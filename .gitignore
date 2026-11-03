@@ -1,0 +1,51 @@
+# === Dados brutos (baixar das fontes: ver README) ===
+dados/
+*.csv
+*.csv.gz
+*.json.gz
+*.duckdb
+*.zip
+
+# === Windows ===
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+
+# === SQL Server ===
+*.bak
+*.trn
+*.ldf
+*.mdf
+
+# === Power BI ===
+# Cache e temporários (mantém .pbix versionado)
+*.pbix.tmp
+.pbi/
+TempSaves/
+
+# === SSIS / SSAS / Visual Studio ===
+bin/
+obj/
+*.suo
+*.user
+*.dtsx.backup
+*.ispac.tmp
+.vs/
+*.bim_*.settings
+
+# === Python (se for usado para preparar os JSONs) ===
+__pycache__/
+.venv/
+*.pyc
+
+# === Claude Code (instruções e preferências do agente, ficam só na máquina) ===
+CLAUDE.md
+CLAUDE.local.md
+.claude/settings.local.json
+
+# === Editor / Sistema ===
+.vscode/
+.idea/
+*.swp
+*~
