@@ -6,7 +6,8 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 |---|---|---|---|
 | D1 | 2026-11-03 | Fontes de dados: StatsBomb Open Data 2015/16 + Transfermarkt Datasets | Decidida |
 | D2 | 2026-11-03 | Clube foco: Chelsea 2015/16 | Decidida |
-| D3 | 2026-11-03 | Pasta e repositório do projeto | Decidida |
+| D3 | 2026-11-03 | Pasta e repositório do projeto | Decidida (pasta `dados/` substituída pela D4) |
+| D4 | 2026-11-03 | Dados brutos fora do OneDrive, em `C:\dados\chelsea_scouting` | Decidida |
 
 ---
 
@@ -64,3 +65,20 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 ## D3 — Pasta e repositório
 
 **Decisão:** `C:\Users\Lustosa\OneDrive\Desktop\PORTFÓLIO\projeto_chelsea_scouting`, ao lado do projeto Olist e no mesmo padrão dele (`01_sql/`, `02_ssis/`, `03_ssas/`, `04_powerbi/`, `dados/` fora do Git, README em português).
+
+> Atualização: a pasta `dados/` dentro do projeto foi substituída pela D4.
+
+---
+
+## D4 — Onde ficam os dados brutos
+
+**Decisão:** guardar os dados brutos em `C:\dados\chelsea_scouting`, fora do OneDrive e fora do Git, com uma subpasta por fonte (`statsbomb\`, `transfermarkt\`).
+
+**Por que:**
+- Volume: cada partida do StatsBomb tem cerca de 3 MB de eventos. Só a Premier League dá ~1,2 GB e as 4 ligas ~4,6 GB. Dentro do OneDrive tudo isso seria sincronizado com a nuvem, e o plano gratuito tem 5 GB.
+- Caminho sem acento: evita as pegadinhas de "PORTFÓLIO" no SQL Server (`BULK INSERT`, `OPENROWSET`) e nos gerenciadores de conexão do SSIS.
+- Os dados são públicos e dá para baixar de novo a qualquer momento. As instruções vão para o README (*Como rodar*).
+
+**Descartadas:**
+- *Pasta `dados/` dentro do projeto* (como previa a D3): sincronizaria até ~4,6 GB no OneDrive.
+- *Manter no OneDrive com mais espaço*: o plano atual não comporta o volume.

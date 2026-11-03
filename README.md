@@ -28,7 +28,7 @@ O Chelsea foi campeão em 2014/15 e terminou a temporada 2015/16 em **10º lugar
 | [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Eventos lance a lance de 2015/16: Premier League, La Liga, Serie A e Ligue 1 | Gratuita, citando a StatsBomb |
 | [Transfermarkt Datasets](https://github.com/dcaribou/transfermarkt-datasets) | Valores de mercado, contratos, transferências e atuações | CC0 |
 
-Os dados brutos **não estão** no repositório. As instruções de download vão entrar em *Como rodar*.
+Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scouting` (~1,2 GB só a Premier League, ~4,6 GB as 4 ligas). As instruções de download vão entrar em *Como rodar*.
 
 ---
 
@@ -42,7 +42,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 
 | Etapa | Status |
 |---|---|
-| Escolha das fontes e do clube | Pronto |
+| Escolha das fontes, do clube e do local dos dados | Pronto |
 | Escopo: posições e KPIs | Próxima |
 | Download e preparação dos dados | Pendente |
 | DW no SQL Server | Pendente |
