@@ -8,6 +8,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D2 | 2026-11-03 | Clube foco: Chelsea 2015/16 | Decidida |
 | D3 | 2026-11-03 | Pasta e repositório do projeto | Decidida (pasta `dados/` substituída pela D4) |
 | D4 | 2026-11-03 | Dados brutos fora do OneDrive, em `C:\dados\chelsea_scouting` | Decidida |
+| D5 | 2026-11-03 | Escopo: zagueiro, volante e lateral; depois, visão por setor do time | Decidida |
 
 ---
 
@@ -82,3 +83,39 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 **Descartadas:**
 - *Pasta `dados/` dentro do projeto* (como previa a D3): sincronizaria até ~4,6 GB no OneDrive.
 - *Manter no OneDrive com mais espaço*: o plano atual não comporta o volume.
+
+---
+
+## D5 — Escopo: posições e indicadores
+
+**Decisão:** analisar **3 posições: zagueiro, volante e lateral** (os dois lados). Para cada uma, o diagnóstico mede os jogadores do Chelsea contra a mesma posição na liga, e o mercado busca candidatos nas 4 grandes ligas. Depois dessas 3 posições entra uma **visão por setor do time inteiro** (defesa, meio e ataque), para mostrar como a queda de produção se espalhou pelo elenco.
+
+**De onde saiu a escolha:** do levantamento feito antes de decidir (scripts em `00_dados/levantamento/`, definições em [`dados.md`](dados.md)), com as 380 partidas da Premier League 2015/16 e o Transfermarkt para 2014/15:
+
+| Achado | Números |
+|---|---|
+| A queda foi maior atrás | Gols sofridos subiram de 32 para 53; gols pró caíram de 73 para 59 (Transfermarkt) |
+| Não foi só azar | xG de 1,41 por jogo (8º) e xG contra de 1,26 (9º): números de meio de tabela. Média dos 4 primeiros: 1,70 e 1,02 |
+| **Zagueiros** não constroem | Setor de defesa em 17º em passes progressivos, 17º em conduções e 19º em recuperações. Terry, Cahill e Zouma entre os percentis 0 e 5 de passes progressivos entre os zagueiros da liga. Time em 20º de 20 em interceptações |
+| **Meio** recupera pouco | Setor de meio em 17º em recuperações, 14º em pressões e 16º em duelos aéreos, mesmo com passe de elite (Fàbregas nos percentis 97 a 100) |
+| **Laterais** criam pouco | Baba nos percentis 7 a 19 em criação; Ivanović no percentil 15 em passes-chave e no 20 em conduções |
+| Ataque cria muito, mas finaliza mal | 1º em passes na área, conduções e dribles; Hazard caiu de 14 para 4 gols e ficou no percentil 17 de xG |
+
+As 3 posições coincidem com a janela real de 2016 (David Luiz, Kanté e Marcos Alonso), o que dá um gabarito para a pergunta de Validação. A escolha saiu dos números do levantamento, não da janela real.
+
+**Indicadores iniciais** (por 90 minutos; a lista final é fechada no desenho do modelo):
+
+| Posição | Indicadores |
+|---|---|
+| Zagueiro | Passes progressivos, conduções progressivas, acerto de passe, desarmes + interceptações, recuperações, duelos aéreos ganhos %, erros que viraram chute |
+| Volante | Recuperações, desarmes + interceptações, pressões, passes progressivos, perdas de bola |
+| Lateral | Passes-chave, passes na área, conduções progressivas, dribles certos, desarmes + interceptações |
+
+**Visão por setor (depois das 3 posições):** como o StatsBomb não tem a Premier League 2014/15, a queda por setor vai ser medida (a) contra a liga e os 4 primeiros em 2015/16, com os indicadores de evento, e (b) de 2014/15 para 2015/16, com gols, assistências, minutos e gols sofridos do Transfermarkt. O formato exato fica para quando a etapa chegar.
+
+**Descartadas:**
+- *3 posições + atacante/ponta*: a queda do ataque parece individual (Hazard voltou a fazer 16 gols em 2016/17), não falta de jogador no elenco. Aumentaria o trabalho em cerca de 30%.
+- *Só um setor (defesa inteira)*: deixaria de fora o meio, um dos achados mais fortes.
+- *Elenco todo por posição*: indicadores genéricos e diagnóstico sem foco. A visão do time inteiro entra por setor, não posição a posição.
+
+**Fora do escopo:** goleiro. Os gols sofridos ficaram 3 acima do xG contra, mas o StatsBomb aberto não tem o xG depois do chute, que é o que mede melhor o goleiro.
