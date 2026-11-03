@@ -28,7 +28,35 @@ O Chelsea foi campeão em 2014/15 e terminou a temporada 2015/16 em **10º lugar
 | [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Eventos lance a lance de 2015/16: Premier League, La Liga, Serie A e Ligue 1 | Gratuita, citando a StatsBomb |
 | [Transfermarkt Datasets](https://github.com/dcaribou/transfermarkt-datasets) | Valores de mercado, contratos, transferências e atuações | CC0 |
 
-Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scouting` (~1,2 GB só a Premier League, ~4,6 GB as 4 ligas). As instruções de download vão entrar em *Como rodar*.
+Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scouting` (~1,1 GB só a Premier League, ~4,6 GB as 4 ligas). O repositório guarda os scripts que baixam e leem esses dados. Detalhes, conferência dos números e definições dos indicadores em [`docs/dados.md`](docs/dados.md).
+
+---
+
+## Como rodar
+
+Windows com PowerShell 5.1. Não precisa de Python.
+
+```powershell
+# 1. Baixar os dados (~1,1 GB, para C:\dados\chelsea_scouting)
+.\00_dados\baixar_dados.ps1
+
+# 2. Levantamento: onde o Chelsea caiu em 2015/16
+.\00_dados\levantamento\1_resumir_statsbomb.ps1
+.\00_dados\levantamento\2_chelsea_transfermarkt.ps1
+.\00_dados\levantamento\3_comparar_liga.ps1
+.\00_dados\levantamento\4_percentis_jogadores.ps1
+```
+
+As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem construídas.
+
+---
+
+## Estrutura
+
+```
+00_dados/        download dos dados e scripts do levantamento
+docs/            log de decisões e documentação dos dados
+```
 
 ---
 
@@ -43,8 +71,9 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Etapa | Status |
 |---|---|
 | Escolha das fontes, do clube e do local dos dados | Pronto |
+| Levantamento: onde o Chelsea caiu | Pronto |
 | Escopo: posições e KPIs | Próxima |
-| Download e preparação dos dados | Pendente |
+| Download e preparação dos dados | Em andamento (Premier League baixada) |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
