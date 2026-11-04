@@ -73,8 +73,8 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Escolha das fontes, do clube e do local dos dados | Pronto |
 | Levantamento: onde o Chelsea caiu | Pronto |
 | Escopo: zagueiro, volante e lateral; depois, visão por setor | Pronto |
-| Desenho do modelo estrela | Próxima |
-| Download e preparação dos dados | Em andamento (Premier League baixada) |
+| Desenho do modelo estrela | Pronto |
+| Download e preparação dos dados | Próxima (Premier League baixada) |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
