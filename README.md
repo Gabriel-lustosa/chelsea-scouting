@@ -45,6 +45,9 @@ Windows com PowerShell 5.1. Não precisa de Python.
 .\00_dados\levantamento\2_chelsea_transfermarkt.ps1
 .\00_dados\levantamento\3_comparar_liga.ps1
 .\00_dados\levantamento\4_percentis_jogadores.ps1
+
+# 3. Criar os bancos (SQL Server local)
+sqlcmd -S localhost -E -C -f 65001 -i 01_sql\00_criar_bancos.sql
 ```
 
 As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem construídas.
@@ -55,6 +58,7 @@ As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem constr
 
 ```
 00_dados/        download dos dados e scripts do levantamento
+01_sql/          DW em T-SQL: bancos, staging, dimensões e fatos
 docs/            log de decisões e documentação dos dados
 ```
 
@@ -76,7 +80,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Desenho do modelo estrela | Pronto |
 | Desenho da carga: OPENJSON no SQL Server | Pronto |
 | Download dos dados (4 ligas, 1.517 partidas) | Pronto |
-| Criação dos bancos e carga da staging | Próxima |
+| Criação dos bancos e carga da staging | Em andamento (bancos criados) |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |

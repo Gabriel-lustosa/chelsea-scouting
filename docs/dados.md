@@ -70,7 +70,7 @@ icacls "C:\dados\chelsea_scouting" /grant "NT Service\MSSQLSERVER:(OI)(CI)RX" /T
 ```
 Aplicado em 2026-11-04. Para desfazer: `icacls "C:\dados\chelsea_scouting" /remove "NT Service\MSSQLSERVER" /T`.
 
-O arquivo é lido em binário (`SINGLE_BLOB`) e gravado direto numa coluna `varchar(max)` com collation UTF-8 (`Latin1_General_100_CI_AS_SC_UTF8`). Converter com `CAST(... AS varchar(max)) COLLATE ...` não serve: a conversão passa pela collation do servidor (`Latin1_General_CI_AS`) e estraga os acentos ("FÃ bregas").
+O arquivo é lido em binário (`SINGLE_BLOB`) e convertido com `CAST(BulkColumn AS varchar(max))`. Isso só acerta os acentos porque os bancos do projeto foram criados com collation UTF-8 (`Latin1_General_100_CI_AS_SC_UTF8`, em `01_sql/00_criar_bancos.sql`). Num banco com a collation do servidor (`Latin1_General_CI_AS`), o mesmo `CAST` lê os bytes como Windows-1252 e estraga os acentos ("FÃ bregas"), e acrescentar `COLLATE` depois não conserta.
 
 ---
 
