@@ -30,6 +30,7 @@ C:\dados\chelsea_scouting\
 │   ├── events\<match_id>.json eventos de cada partida (1.517 arquivos, ~4,3 GB)
 │   └── lineups\<match_id>.json escalações (1.517 arquivos)
 ├── transfermarkt\<tabela>.csv.gz  as 12 tabelas do dataset
+│   └── csv\<tabela>.csv       as 7 usadas no modelo, descompactadas para o BULK INSERT (~290 MB)
 └── levantamento\              saídas dos scripts de levantamento (CSV)
 ```
 

@@ -8,6 +8,7 @@
         statsbomb\events\<match_id>.json         eventos lance a lance (~3 MB por partida)
         statsbomb\lineups\<match_id>.json        escalações, com minutos por posição
         transfermarkt\<tabela>.csv.gz            as 12 tabelas do dcaribou
+        transfermarkt\csv\<tabela>.csv           as 7 usadas no modelo, descompactadas para o BULK INSERT
     Arquivos que já existem são pulados, então dá para rodar de novo para completar um download interrompido.
 
 .PARAMETER Raiz
@@ -46,6 +47,26 @@ if (-not $SemTransfermarkt) {
         if (-not (Test-Path $dest)) { $wc.DownloadFile("$tm/$t.csv.gz", $dest) }
     }
     "Transfermarkt: $($tabelas.Count) tabelas ok"
+
+    # Descompacta para transfermarkt\csv\ as tabelas que entram no SQL Server (decisão D7.3):
+    # o BULK INSERT não lê .gz. As outras 5 (club_games, game_events, game_lineups, countries,
+    # national_teams) não são usadas no modelo da D6 e ficam só compactadas.
+    $usadas = 'competitions', 'clubs', 'players', 'games', 'appearances', 'player_valuations', 'transfers'
+    $pastaCsv = Join-Path $Raiz 'transfermarkt\csv'
+    New-Item -ItemType Directory -Force $pastaCsv | Out-Null
+    foreach ($t in $usadas) {
+        $gz  = Join-Path $Raiz "transfermarkt\$t.csv.gz"
+        $csv = Join-Path $pastaCsv "$t.csv"
+        if ((Test-Path $csv) -and (Get-Item $csv).LastWriteTime -ge (Get-Item $gz).LastWriteTime) { continue }
+        $entrada = [IO.File]::OpenRead($gz)
+        $saida   = [IO.File]::Create($csv)
+        try {
+            $descompacta = New-Object IO.Compression.GZipStream($entrada, [IO.Compression.CompressionMode]::Decompress)
+            $descompacta.CopyTo($saida)
+        }
+        finally { $saida.Dispose(); $entrada.Dispose() }
+    }
+    "Transfermarkt: $($usadas.Count) tabelas descompactadas em $pastaCsv"
 }
 
 foreach ($liga in $Ligas) {
