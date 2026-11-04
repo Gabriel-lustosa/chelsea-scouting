@@ -10,6 +10,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D4 | 2026-11-03 | Dados brutos fora do OneDrive, em `C:\dados\chelsea_scouting` | Decidida |
 | D5 | 2026-11-03 | Escopo: zagueiro, volante e lateral; depois, visão por setor do time | Decidida |
 | D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida |
+| D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
 
 ---
 
@@ -219,3 +220,35 @@ Meta: **≥ 98% dos minutos** do StatsBomb casados com um jogador do Transfermar
 Referência para o teto de valor: as taxas reais da janela de 2016 no Transfermarkt são Kanté €35,8 mi, Batshuayi €39 mi e Marcos Alonso €23 mi. O David Luiz não apareceu na busca em `transfers` e vai ser conferido na etapa da ligação.
 
 **Descartada:** *estimar o contrato pelo tempo desde a última transferência*: aproximação fraca, que poderia levar a conclusões erradas.
+
+---
+
+## D7 — Como os dados brutos entram no SQL Server
+
+**Decisão:** o pacote recomendado, em 3 partes.
+
+### D7.1 — JSONs do StatsBomb: `OPENJSON` no SQL Server
+
+O SQL Server lê cada arquivo com `OPENROWSET(BULK ..., SINGLE_BLOB)`, converte de UTF-8 e grava nas tabelas de staging com `OPENJSON ... WITH`. A lista de partidas sai do próprio `matches\<liga>_27.json`, sem precisar listar a pasta. No caminho do SSIS, um Foreach Loop chama o mesmo SQL partida a partida. Assim **uma única lógica de leitura** atende ao DW feito em SQL e ao SSIS.
+
+**Teste feito antes de decidir** (2026-11-04, SQL Server 2025 Developer 17.0, só leitura, sem alterar bancos): uma partida do Chelsea (`3753973`) deu 3.478 eventos e 963 passes, lidos em 47 a 87 ms. Para as 1.517 partidas, a leitura fica na casa de poucos minutos.
+
+**Duas pegadinhas resolvidas no teste:**
+- **Permissão:** o serviço `NT Service\MSSQLSERVER` não lia a pasta `statsbomb\` ("não existe ou você não tem direitos de acesso"). Com a autorização do usuário, recebeu **só leitura** em `C:\dados\chelsea_scouting` (comando em [`dados.md`](dados.md), com o jeito de desfazer).
+- **Acentos:** `CAST(BulkColumn AS varchar(max)) COLLATE Latin1_General_100_CI_AS_SC_UTF8` estraga os acentos ("FÃ bregas"), porque a conversão passa pela collation do servidor (`Latin1_General_CI_AS`). O certo é gravar o `BulkColumn` direto numa coluna `varchar(max)` com collation UTF-8 ("Fàbregas" certo).
+
+**Descartadas:**
+- *Script Component em C# no SSIS*: C# escondido no pacote, difícil de ler e depurar. O caminho do DW SQL precisaria de outro leitor, então a lógica ficaria duplicada.
+- *Converter para CSV antes* (PowerShell + C#): a extração ficaria num script fora do stack de BI, com mais ~1 a 2 GB em disco e as pegadinhas de aspas e acentos em CSV.
+
+### D7.2 — Staging de eventos: colunas achatadas
+
+Uma linha por evento (~5 milhões), só com as ~25 colunas que os indicadores da D6.5 usam: partida, período, minuto, time, jogador, posição, tipo, x/y de início e de fim, resultado e tipo do passe, assistência para chute, tipo e resultado do duelo, duelo aéreo ganho, falha na recuperação, xG e tipo do chute, sob pressão.
+
+**Descartada:** *colunas achatadas + o JSON bruto de cada evento*: mais flexível para criar indicadores depois, mas ocupa ~4,6 GB a mais no banco. Se faltar algum campo, basta reler os arquivos, que continuam em `C:\dados`.
+
+### D7.3 — Transfermarkt: descompactar e usar `BULK INSERT`
+
+O SQL Server não lê `.gz` direto. Um passo novo no `baixar_dados.ps1` descompacta as tabelas para `transfermarkt\csv\`, e a carga usa `BULK INSERT ... FORMAT = 'CSV'`, que trata as aspas. No SSIS as tabelas entram pela Flat File Source, como no Olist.
+
+**Descartada:** *descompactar dentro do SSIS* (Script Task): adiciona C# no pacote sem ganho.

@@ -8,7 +8,7 @@ De onde vêm os dados, onde ficam, como são lidos e como reproduzir tudo do zer
 
 | Fonte | O que traz | Recorte usado | Formato | Licença |
 |---|---|---|---|---|
-| [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Eventos lance a lance (passes, conduções, dribles, desarmes, pressões, chutes com xG) e escalações com minutos por posição | Temporada 2015/16 (`season_id = 27`). Hoje: Premier League (`competition_id = 2`), 380 partidas | JSON | Gratuita, com atribuição obrigatória à StatsBomb |
+| [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Eventos lance a lance (passes, conduções, dribles, desarmes, pressões, chutes com xG) e escalações com minutos por posição | Temporada 2015/16 (`season_id = 27`): Premier League (2), La Liga (11), Serie A (12) e Ligue 1 (7), 1.517 partidas | JSON | Gratuita, com atribuição obrigatória à StatsBomb |
 | [Transfermarkt Datasets](https://github.com/dcaribou/transfermarkt-datasets) (dcaribou) | Resultados, atuações (minutos, gols, assistências), jogadores, valores de mercado e transferências | Premier League (`GB1`) 2014/15 e 2015/16, valores de 2015 a 2016 | CSV compactado (`.csv.gz`) | CC0 (domínio público) |
 
 Endereços usados no download:
@@ -21,14 +21,14 @@ As duas fontes não têm ID de jogador em comum. A ligação entre elas (nome, d
 
 ## 2. Onde os dados ficam
 
-Os dados brutos **não estão no repositório**. Ficam em `C:\dados\chelsea_scouting`, fora do Git e fora do OneDrive (decisão D4 em [`decisoes.md`](decisoes.md)): só os eventos da Premier League ocupam ~1,1 GB, e as 4 ligas previstas somam ~4,6 GB.
+Os dados brutos **não estão no repositório**. Ficam em `C:\dados\chelsea_scouting`, fora do Git e fora do OneDrive (decisão D4 em [`decisoes.md`](decisoes.md)): os eventos das 4 ligas ocupam ~4,3 GB.
 
 ```
 C:\dados\chelsea_scouting\
 ├── statsbomb\
-│   ├── matches\2_27.json      lista das 380 partidas da Premier League 2015/16
-│   ├── events\<match_id>.json eventos de cada partida (380 arquivos, ~1,05 GB)
-│   └── lineups\<match_id>.json escalações (380 arquivos)
+│   ├── matches\<liga>_27.json lista de partidas de cada liga (2, 11, 12 e 7)
+│   ├── events\<match_id>.json eventos de cada partida (1.517 arquivos, ~4,3 GB)
+│   └── lineups\<match_id>.json escalações (1.517 arquivos)
 ├── transfermarkt\<tabela>.csv.gz  as 12 tabelas do dataset
 └── levantamento\              saídas dos scripts de levantamento (CSV)
 ```
@@ -41,11 +41,11 @@ O que vai para o GitHub são os **scripts** que baixam e leem esses dados. Qualq
 
 Requisitos: Windows com PowerShell 5.1 (já vem no Windows). Não precisa de Python.
 
-**Passo 1: baixar os dados** (~1,1 GB, alguns minutos)
+**Passo 1: baixar os dados das 4 ligas** (~4,3 GB)
 ```powershell
-.\00_dados\baixar_dados.ps1
+.\00_dados\baixar_dados.ps1 -Ligas 2,11,12,7
 ```
-Para as 4 ligas: `.\00_dados\baixar_dados.ps1 -Ligas 2,11,12,7`. Arquivos já baixados são pulados.
+Sem `-Ligas`, o script baixa só a Premier League (~1,1 GB), que basta para o levantamento. Arquivos já baixados são pulados. Download feito em 2026-11-04: 380 + 380 + 380 + 377 partidas, 0 falhas.
 
 **Passo 2: rodar o levantamento** (cerca de 2 minutos no total)
 ```powershell
@@ -57,14 +57,20 @@ Para as 4 ligas: `.\00_dados\baixar_dados.ps1 -Ligas 2,11,12,7`. Arquivos já ba
 
 | Script | O que faz | Saída |
 |---|---|---|
-| `1_resumir_statsbomb.ps1` | Lê os 380 JSONs de eventos e escalações e soma os indicadores por time, setor e jogador | `times_setores.csv`, `jogadores.csv` |
+| `1_resumir_statsbomb.ps1` | Lê os 380 JSONs da Premier League (lista `2_27.json`) de eventos e escalações e soma os indicadores por time, setor e jogador | `times_setores.csv`, `jogadores.csv` |
 | `2_chelsea_transfermarkt.ps1` | Classificação de 2014/15 e 2015/16, minutos/gols/assistências do elenco e valor de mercado jul/2015 × jun/2016 | `tm_classificacao.csv`, `tm_chelsea_jogadores.csv`, recortes `tm_*.csv` |
 | `3_comparar_liga.ps1` | Posição do Chelsea entre os 20 times em cada indicador, no total do time, no sofrido e por setor | Tabelas na tela |
 | `4_percentis_jogadores.ps1` | Percentil de cada jogador do Chelsea dentro do grupo de posição na liga | `chelsea_percentis.csv` |
 
 A leitura dos JSONs é feita em C# (`Levantamento.cs`, compilado na hora pelo próprio PowerShell), porque o `ConvertFrom-Json` do PowerShell 5.1 é lento demais para ~1 GB. Assim as 380 partidas são processadas em menos de 1 minuto.
 
-Nas próximas etapas os dados entram no SQL Server pelo SSIS, a partir da mesma pasta.
+Nas próximas etapas os dados entram no SQL Server direto desta pasta, com `OPENJSON` (decisão D7). Para isso o serviço do SQL Server precisa de leitura na pasta:
+```powershell
+icacls "C:\dados\chelsea_scouting" /grant "NT Service\MSSQLSERVER:(OI)(CI)RX" /T
+```
+Aplicado em 2026-11-04. Para desfazer: `icacls "C:\dados\chelsea_scouting" /remove "NT Service\MSSQLSERVER" /T`.
+
+O arquivo é lido em binário (`SINGLE_BLOB`) e gravado direto numa coluna `varchar(max)` com collation UTF-8 (`Latin1_General_100_CI_AS_SC_UTF8`). Converter com `CAST(... AS varchar(max)) COLLATE ...` não serve: a conversão passa pela collation do servidor (`Latin1_General_CI_AS`) e estraga os acentos ("FÃ bregas").
 
 ---
 

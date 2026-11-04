@@ -28,7 +28,7 @@ O Chelsea foi campeão em 2014/15 e terminou a temporada 2015/16 em **10º lugar
 | [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Eventos lance a lance de 2015/16: Premier League, La Liga, Serie A e Ligue 1 | Gratuita, citando a StatsBomb |
 | [Transfermarkt Datasets](https://github.com/dcaribou/transfermarkt-datasets) | Valores de mercado, contratos, transferências e atuações | CC0 |
 
-Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scouting` (~1,1 GB só a Premier League, ~4,6 GB as 4 ligas). O repositório guarda os scripts que baixam e leem esses dados. Detalhes, conferência dos números e definições dos indicadores em [`docs/dados.md`](docs/dados.md).
+Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scouting` (~4,3 GB de eventos das 4 ligas). O repositório guarda os scripts que baixam e leem esses dados. Detalhes, conferência dos números e definições dos indicadores em [`docs/dados.md`](docs/dados.md).
 
 ---
 
@@ -37,8 +37,8 @@ Os dados brutos **não estão** no repositório: ficam em `C:\dados\chelsea_scou
 Windows com PowerShell 5.1. Não precisa de Python.
 
 ```powershell
-# 1. Baixar os dados (~1,1 GB, para C:\dados\chelsea_scouting)
-.\00_dados\baixar_dados.ps1
+# 1. Baixar os dados das 4 ligas (~4,3 GB, para C:\dados\chelsea_scouting)
+.\00_dados\baixar_dados.ps1 -Ligas 2,11,12,7
 
 # 2. Levantamento: onde o Chelsea caiu em 2015/16
 .\00_dados\levantamento\1_resumir_statsbomb.ps1
@@ -74,7 +74,9 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Levantamento: onde o Chelsea caiu | Pronto |
 | Escopo: zagueiro, volante e lateral; depois, visão por setor | Pronto |
 | Desenho do modelo estrela | Pronto |
-| Download e preparação dos dados | Próxima (Premier League baixada) |
+| Desenho da carga: OPENJSON no SQL Server | Pronto |
+| Download dos dados (4 ligas, 1.517 partidas) | Pronto |
+| Criação dos bancos e carga da staging | Próxima |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
