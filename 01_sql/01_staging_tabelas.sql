@@ -10,7 +10,7 @@
 --
 --   StatsBomb (JSON, lido com OPENJSON, D7.1)
 --     [x] stg.sb_matches    1 linha por partida   (matches\<liga>_27.json)
---     [ ] stg.sb_lineups    1 linha por jogador x trecho em uma posição
+--     [x] stg.sb_lineups   1 linha por jogador x trecho em uma posição
 --     [ ] stg.sb_events     1 linha por evento, colunas achatadas (D7.2)
 --   Transfermarkt (CSV, lido com BULK INSERT, D7.3)
 --     [ ] stg.tm_competitions, tm_clubs, tm_players, tm_games,
@@ -74,6 +74,35 @@ CREATE TABLE stg.sb_matches (
     stadium_name           NVARCHAR(150) NULL,
     referee_name           NVARCHAR(150) NULL,
     data_version           NVARCHAR(10)  NULL
+);
+
+-- ---------------------------------------------------------------------
+-- stg.sb_lineups: 1 linha por jogador x trecho em uma posição
+-- Quem mudou de posição no jogo tem uma linha por trecho (position_seq
+-- = ordem no array positions). Reservas que não entraram não têm
+-- posição e ficam fora (0 minutos, não entram em nenhum indicador).
+-- from/to viraram from_time/to_time: FROM é palavra reservada do SQL.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS stg.sb_lineups;
+CREATE TABLE stg.sb_lineups (
+    match_id         INT           NOT NULL,
+    team_id          INT           NOT NULL,
+    team_name        NVARCHAR(100) NOT NULL,
+    player_id        INT           NOT NULL,
+    player_name      NVARCHAR(150) NOT NULL,
+    player_nickname  NVARCHAR(100) NULL,
+    jersey_number    INT           NULL,
+    country_name     NVARCHAR(100) NULL,
+    position_seq     INT           NOT NULL,
+    position_id      INT           NOT NULL,
+    position         NVARCHAR(50)  NOT NULL,
+    from_time        VARCHAR(10)   NULL,   -- "mm:ss" no relógio da partida
+    to_time          VARCHAR(10)   NULL,   -- vazio = ficou até o fim
+    from_period      INT           NULL,
+    to_period        INT           NULL,
+    start_reason     NVARCHAR(100) NULL,
+    end_reason       NVARCHAR(100) NULL,
+    CONSTRAINT pk_sb_lineups PRIMARY KEY (match_id, player_id, position_seq)
 );
 GO
 
