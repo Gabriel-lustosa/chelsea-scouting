@@ -48,6 +48,10 @@ Windows com PowerShell 5.1. Não precisa de Python.
 
 # 3. Criar os bancos (SQL Server local)
 sqlcmd -S localhost -E -C -f 65001 -i 01_sql\00_criar_bancos.sql
+
+# 4. Criar a staging e carregar o StatsBomb
+sqlcmd -S localhost -E -C -f 65001 -i 01_sql\01_staging_tabelas.sql
+sqlcmd -S localhost -E -C -f 65001 -i 01_sql\02_carga_statsbomb.sql
 ```
 
 As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem construídas.
@@ -80,7 +84,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Desenho do modelo estrela | Pronto |
 | Desenho da carga: OPENJSON no SQL Server | Pronto |
 | Download dos dados (4 ligas, 1.517 partidas) | Pronto |
-| Criação dos bancos e carga da staging | Em andamento (bancos e as 10 tabelas da staging criados; falta a carga) |
+| Criação dos bancos e carga da staging | Em andamento (10 tabelas da staging criadas; carga das partidas da Premier League feita) |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
