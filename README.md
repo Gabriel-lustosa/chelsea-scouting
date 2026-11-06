@@ -80,7 +80,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Desenho do modelo estrela | Pronto |
 | Desenho da carga: OPENJSON no SQL Server | Pronto |
 | Download dos dados (4 ligas, 1.517 partidas) | Pronto |
-| Criação dos bancos e carga da staging | Em andamento (bancos criados) |
+| Criação dos bancos e carga da staging | Em andamento (bancos e as 10 tabelas da staging criados; falta a carga) |
 | DW no SQL Server | Pendente |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
