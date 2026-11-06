@@ -9,11 +9,11 @@
 -- tabela entra aqui depois de criada e conferida no banco.
 --
 --   StatsBomb (JSON, lido com OPENJSON, D7.1)
---     [x] stg.sb_matches    1 linha por partida   (matches\<liga>_27.json)
+--     [x] stg.sb_matches   1 linha por partida   (matches\<liga>_27.json)
 --     [x] stg.sb_lineups   1 linha por jogador x trecho em uma posição
 --     [x] stg.sb_events    1 linha por evento, colunas achatadas (D7.2)
 --   Transfermarkt (CSV, lido com BULK INSERT, D7.3)
---     [ ] stg.tm_competitions, tm_clubs, tm_players, tm_games,
+--     [x] stg.tm_competitions, tm_clubs, tm_players, tm_games,
 --         tm_appearances, tm_player_valuations, tm_transfers
 --
 -- Convenções:
@@ -161,6 +161,149 @@ CREATE TABLE stg.sb_events (
     shot_type                       NVARCHAR(50)     NULL,       -- Open Play, Penalty, Free Kick...
     shot_outcome                    NVARCHAR(50)     NULL,
     CONSTRAINT pk_sb_events PRIMARY KEY (match_id, event_index)
+);
+GO
+
+-- =====================================================================
+-- TRANSFERMARKT (espelho 1:1 dos CSVs, mesma ordem de colunas)
+-- =====================================================================
+
+DROP TABLE IF EXISTS stg.tm_competitions;
+CREATE TABLE stg.tm_competitions (
+    competition_id        NVARCHAR(10)  NOT NULL PRIMARY KEY,   -- GB1, ES1, IT1, FR1...
+    competition_code      NVARCHAR(100) NULL,
+    name                  NVARCHAR(100) NULL,
+    sub_type              NVARCHAR(50)  NULL,
+    type                  NVARCHAR(50)  NULL,
+    country_id            INT           NULL,
+    country_name          NVARCHAR(100) NULL,
+    domestic_league_code  NVARCHAR(10)  NULL,
+    confederation         NVARCHAR(50)  NULL,
+    total_clubs           INT           NULL,
+    url                   NVARCHAR(400) NULL
+);
+
+DROP TABLE IF EXISTS stg.tm_clubs;
+CREATE TABLE stg.tm_clubs (
+    club_id                  INT           NOT NULL PRIMARY KEY,
+    club_code                NVARCHAR(100) NULL,
+    name                     NVARCHAR(200) NULL,
+    domestic_competition_id  NVARCHAR(10)  NULL,
+    total_market_value       NVARCHAR(50)  NULL,
+    squad_size               INT           NULL,
+    average_age              DECIMAL(4,1)  NULL,
+    foreigners_number        INT           NULL,
+    foreigners_percentage    DECIMAL(5,1)  NULL,
+    national_team_players    INT           NULL,
+    stadium_name             NVARCHAR(200) NULL,
+    stadium_seats            INT           NULL,
+    net_transfer_record      NVARCHAR(50)  NULL,   -- texto, ex.: "+€5.90m"
+    coach_name               NVARCHAR(150) NULL,
+    last_season              INT           NULL,
+    filename                 NVARCHAR(400) NULL,
+    url                      NVARCHAR(400) NULL
+);
+
+-- Atenção: posição e contrato são os ATUAIS (2026), não os de 2016 (D6.6)
+DROP TABLE IF EXISTS stg.tm_players;
+CREATE TABLE stg.tm_players (
+    player_id                             INT           NOT NULL PRIMARY KEY,
+    first_name                            NVARCHAR(100) NULL,
+    last_name                             NVARCHAR(150) NULL,
+    name                                  NVARCHAR(200) NULL,
+    last_season                           INT           NULL,
+    current_club_id                       INT           NULL,
+    player_code                           NVARCHAR(200) NULL,
+    country_of_birth                      NVARCHAR(100) NULL,
+    city_of_birth                         NVARCHAR(150) NULL,
+    country_of_citizenship                NVARCHAR(100) NULL,
+    date_of_birth                         DATETIME2(0)  NULL,
+    sub_position                          NVARCHAR(50)  NULL,
+    position                              NVARCHAR(50)  NULL,
+    foot                                  NVARCHAR(10)  NULL,
+    height_in_cm                          INT           NULL,
+    contract_expiration_date              DATETIME2(0)  NULL,
+    agent_name                            NVARCHAR(200) NULL,
+    image_url                             NVARCHAR(400) NULL,
+    international_caps                    INT           NULL,
+    international_goals                   INT           NULL,
+    current_national_team_id              INT           NULL,
+    url                                   NVARCHAR(400) NULL,
+    current_club_domestic_competition_id  NVARCHAR(10)  NULL,
+    current_club_name                     NVARCHAR(200) NULL,
+    market_value_in_eur                   BIGINT        NULL,
+    highest_market_value_in_eur           BIGINT        NULL
+);
+
+DROP TABLE IF EXISTS stg.tm_games;
+CREATE TABLE stg.tm_games (
+    game_id                 INT           NOT NULL PRIMARY KEY,
+    competition_id          NVARCHAR(10)  NULL,
+    season                  INT           NULL,   -- 2015 = temporada 2015/16
+    round                   NVARCHAR(100) NULL,
+    date                    DATE          NULL,
+    home_club_id            INT           NULL,
+    away_club_id            INT           NULL,
+    home_club_goals         INT           NULL,
+    away_club_goals         INT           NULL,
+    home_club_position      INT           NULL,
+    away_club_position      INT           NULL,
+    home_club_manager_name  NVARCHAR(150) NULL,
+    away_club_manager_name  NVARCHAR(150) NULL,
+    stadium                 NVARCHAR(200) NULL,
+    attendance              INT           NULL,
+    referee                 NVARCHAR(150) NULL,
+    url                     NVARCHAR(400) NULL,
+    home_club_formation     NVARCHAR(50)  NULL,
+    away_club_formation     NVARCHAR(50)  NULL,
+    home_club_name          NVARCHAR(200) NULL,
+    away_club_name          NVARCHAR(200) NULL,
+    aggregate               NVARCHAR(20)  NULL,
+    competition_type        NVARCHAR(50)  NULL
+);
+
+DROP TABLE IF EXISTS stg.tm_appearances;
+CREATE TABLE stg.tm_appearances (
+    appearance_id           NVARCHAR(30)  NOT NULL PRIMARY KEY,   -- "<game_id>_<player_id>"
+    game_id                 INT           NOT NULL,
+    player_id               INT           NOT NULL,
+    player_club_id          INT           NULL,
+    player_current_club_id  INT           NULL,
+    date                    DATE          NULL,
+    player_name             NVARCHAR(200) NULL,
+    competition_id          NVARCHAR(10)  NULL,
+    yellow_cards            INT           NULL,
+    red_cards               INT           NULL,
+    goals                   INT           NULL,
+    assists                 INT           NULL,
+    minutes_played          INT           NULL
+);
+
+DROP TABLE IF EXISTS stg.tm_player_valuations;
+CREATE TABLE stg.tm_player_valuations (
+    player_id                            INT           NOT NULL,
+    date                                 DATE          NOT NULL,
+    market_value_in_eur                  BIGINT        NULL,
+    current_club_name                    NVARCHAR(200) NULL,
+    current_club_id                      INT           NULL,
+    player_club_domestic_competition_id  NVARCHAR(10)  NULL,
+    CONSTRAINT pk_tm_player_valuations PRIMARY KEY (player_id, date)
+);
+
+-- Sem chave: 118 casos de jogador com 2 transferências no mesmo dia
+-- (empréstimo e volta; conferido em 2026-11-06). Há datas futuras (fim de empréstimo previsto).
+DROP TABLE IF EXISTS stg.tm_transfers;
+CREATE TABLE stg.tm_transfers (
+    player_id            INT            NOT NULL,
+    transfer_date        DATE           NULL,
+    transfer_season      NVARCHAR(10)   NULL,   -- "16/17"
+    from_club_id         INT            NULL,
+    to_club_id           INT            NULL,
+    from_club_name       NVARCHAR(200)  NULL,
+    to_club_name         NVARCHAR(200)  NULL,
+    transfer_fee         DECIMAL(15,3)  NULL,   -- euros; 0 = sem taxa
+    market_value_in_eur  DECIMAL(15,3)  NULL,
+    player_name          NVARCHAR(200)  NULL
 );
 GO
 
