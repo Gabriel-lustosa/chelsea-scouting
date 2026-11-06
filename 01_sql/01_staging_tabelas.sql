@@ -11,7 +11,7 @@
 --   StatsBomb (JSON, lido com OPENJSON, D7.1)
 --     [x] stg.sb_matches    1 linha por partida   (matches\<liga>_27.json)
 --     [x] stg.sb_lineups   1 linha por jogador x trecho em uma posição
---     [ ] stg.sb_events     1 linha por evento, colunas achatadas (D7.2)
+--     [x] stg.sb_events    1 linha por evento, colunas achatadas (D7.2)
 --   Transfermarkt (CSV, lido com BULK INSERT, D7.3)
 --     [ ] stg.tm_competitions, tm_clubs, tm_players, tm_games,
 --         tm_appearances, tm_player_valuations, tm_transfers
@@ -103,6 +103,64 @@ CREATE TABLE stg.sb_lineups (
     start_reason     NVARCHAR(100) NULL,
     end_reason       NVARCHAR(100) NULL,
     CONSTRAINT pk_sb_lineups PRIMARY KEY (match_id, player_id, position_seq)
+);
+
+-- ---------------------------------------------------------------------
+-- stg.sb_events: ~5 milhões de eventos, só as colunas que os
+-- indicadores da D6.5 usam (D7.2). Nome = caminho no JSON com "_"
+-- (ex.: pass.end_location[0] -> pass_end_location_x).
+-- match_id não está no lance: vem do nome do arquivo (<match_id>.json).
+-- Chave = (match_id, event_index): grava os lances em ordem no disco.
+-- O id (GUID) é único, mas aleatório: como chave, espalharia as linhas.
+-- DECIMAL em vez de FLOAT: soma exata do xG nas conferências.
+-- BIT: o StatsBomb só manda o campo quando é verdade; ausente = NULL.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS stg.sb_events;
+CREATE TABLE stg.sb_events (
+    match_id                        INT              NOT NULL,
+    event_index                     INT              NOT NULL,   -- campo "index"
+    id                              UNIQUEIDENTIFIER NOT NULL,
+    period                          INT              NOT NULL,
+    [timestamp]                     TIME(3)          NULL,       -- [ ]: timestamp é nome de tipo antigo
+    minute                          INT              NOT NULL,
+    second                          INT              NOT NULL,
+    type_id                         INT              NOT NULL,
+    type_name                       NVARCHAR(50)     NOT NULL,
+    possession                      INT              NULL,
+    possession_team_id              INT              NULL,
+    play_pattern                    NVARCHAR(50)     NULL,
+    team_id                         INT              NOT NULL,
+    player_id                       INT              NULL,       -- vazio em eventos do time (ex.: Half Start)
+    position_id                     INT              NULL,
+    location_x                      DECIMAL(5,2)     NULL,       -- campo de 120 x 80
+    location_y                      DECIMAL(5,2)     NULL,
+    under_pressure                  BIT              NULL,
+    counterpress                    BIT              NULL,
+    -- passe
+    pass_end_location_x             DECIMAL(5,2)     NULL,
+    pass_end_location_y             DECIMAL(5,2)     NULL,
+    pass_outcome                    NVARCHAR(50)     NULL,       -- vazio = passe certo
+    pass_type                       NVARCHAR(50)     NULL,       -- Corner, Free Kick, Throw-in...
+    pass_height                     NVARCHAR(50)     NULL,
+    pass_cross                      BIT              NULL,
+    pass_shot_assist                BIT              NULL,
+    pass_goal_assist                BIT              NULL,
+    -- condução
+    carry_end_location_x            DECIMAL(5,2)     NULL,
+    carry_end_location_y            DECIMAL(5,2)     NULL,
+    -- drible, duelo, interceptação, recuperação
+    dribble_outcome                 NVARCHAR(50)     NULL,
+    duel_type                       NVARCHAR(50)     NULL,
+    duel_outcome                    NVARCHAR(50)     NULL,
+    interception_outcome            NVARCHAR(50)     NULL,
+    ball_recovery_recovery_failure  BIT              NULL,
+    -- aerial_won aparece em pass, shot, clearance e miscontrol: junta os 4
+    aerial_won                      BIT              NULL,
+    -- chute
+    shot_statsbomb_xg               DECIMAL(9,8)     NULL,
+    shot_type                       NVARCHAR(50)     NULL,       -- Open Play, Penalty, Free Kick...
+    shot_outcome                    NVARCHAR(50)     NULL,
+    CONSTRAINT pk_sb_events PRIMARY KEY (match_id, event_index)
 );
 GO
 
