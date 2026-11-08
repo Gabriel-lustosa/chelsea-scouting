@@ -11,6 +11,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D5 | 2026-11-03 | Escopo: zagueiro, volante e lateral; depois, visão por setor do time | Decidida |
 | D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida |
 | D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
+| D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
 
 ---
 
@@ -252,3 +253,17 @@ Uma linha por evento (~5 milhões), só com as ~25 colunas que os indicadores da
 O SQL Server não lê `.gz` direto. Um passo novo no `baixar_dados.ps1` descompacta as tabelas para `transfermarkt\csv\`, e a carga usa `BULK INSERT ... FORMAT = 'CSV'`, que trata as aspas. No SSIS as tabelas entram pela Flat File Source, como no Olist.
 
 **Descartada:** *descompactar dentro do SSIS* (Script Task): adiciona C# no pacote sem ganho.
+
+---
+
+## D8 — Cartões na staging de eventos
+
+**Contexto:** a carga das escalações (Aula 7) mostrou que o lineup quase nunca encerra o trecho do jogador expulso: no Chelsea x Swansea (`3754078`), o Courtois é expulso aos 51:37 e segue no lineup como "Center Attacking Midfield" até o apito. Nos 1.517 arquivos de eventos há **413 expulsões** (196 vermelhos diretos + 217 segundos amarelos), mas só 30 trechos do lineup terminam por expulsão. A `stg.sb_events` da D7.2 não tinha coluna de cartão.
+
+**Decisão:** uma coluna `card` (`NVARCHAR(50)`) = `COALESCE(foul_committed.card.name, bad_behaviour.card.name)`. O cartão vem de dois tipos de lance: falta (`Foul Committed`) e cartão sem falta, como reclamação ou simulação (`Bad Behaviour`). O `type_name` diz de qual veio, então juntar não perde informação. É o mesmo jeito do `aerial_won`, que já junta 4 campos. A `stg.sb_events` passa a ter 39 colunas, e o `fato_atuacao` corta os minutos do expulso no minuto do `Red Card` ou do `Second Yellow`.
+
+**Teste feito antes da aula** (2026-11-08, tabela temporária, 38 partidas do Chelsea): 136.207 eventos em 5,8 s; 59 gols pró (55 chutes + 4 gols contra) e 53 contra (51 + 2); xG 53,58 (1,41/jogo) e xG contra 47,97 (1,26/jogo), iguais ao levantamento; Chelsea com 3 vermelhos, 2 segundos amarelos e 60 amarelos (15 deles por `Bad Behaviour`).
+
+**Descartadas:**
+- *Duas colunas* (`foul_committed_card` e `bad_behaviour_card`): mais fiel ao caminho do JSON, mas o fato teria que juntar as duas depois, sem ganho de informação.
+- *Deixar sem cartão*: os minutos sairiam só do lineup e os expulsos ganhariam tempo a mais, o que distorce os indicadores por 90 minutos.
