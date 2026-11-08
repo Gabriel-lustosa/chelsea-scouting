@@ -8,7 +8,7 @@
 -- O arquivo é montado aula a aula, junto com a carga no SSMS:
 --   [x] stg.sb_matches   Premier League (2_27.json)              Aula 5
 --   [x] stg.sb_matches   La Liga, Serie A e Ligue 1 (laço)       Aula 6
---   [ ] stg.sb_lineups   1.517 arquivos lineups\<match_id>.json
+--   [x] stg.sb_lineups   1.517 arquivos lineups\<match_id>.json  Aula 7
 --   [ ] stg.sb_events    1.517 arquivos events\<match_id>.json
 --
 -- Como funciona:
@@ -121,4 +121,103 @@ SELECT SUM(CASE WHEN home_team_name = 'Chelsea' THEN home_score
        SUM(CASE WHEN home_team_name = 'Chelsea' THEN away_score
                 WHEN away_team_name = 'Chelsea' THEN home_score END) AS chelsea_contra
 FROM stg.sb_matches;
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.sb_lineups: um arquivo por partida (lineups\<match_id>.json)
+-- O arquivo tem 3 listas, uma dentro da outra: times > lineup
+-- (jogadores) > positions (trechos em cada posição). Cada nível é aberto
+-- com OPENJSON + CROSS APPLY; a lista de dentro passa como texto pelo
+-- AS JSON (coluna NVARCHAR(MAX)).
+--   * position_seq: o OPENJSON sem WITH devolve key/value/type; numa
+--     lista o key é a posição do item a partir de 0, daí o + 1. O value
+--     é aberto de novo com WITH para pegar os campos.
+--   * Reservas que não entraram têm positions = [] e somem sozinhos:
+--     CROSS APPLY numa lista vazia não gera linha (OUTER APPLY manteria).
+--   * A lista de partidas vem da própria stg.sb_matches, de match_id em
+--     match_id (MIN ... WHERE match_id > @match_id); NULL = acabou.
+-- Conferido em 2026-11-07 (~20 s): 1.517 arquivos, 56.884 linhas, 2.176
+-- jogadores, position_seq de 1 a 8; Chelsea 635 linhas e 28 jogadores.
+-- Limitações da origem (anotadas para o fato_atuacao):
+--   * Expulsão quase nunca encerra o trecho: no Chelsea x Swansea
+--     (3754078) o Courtois expulso vira "Center Attacking Midfield" aos
+--     53:40 até o apito. Só 30 linhas terminam com Red Card, Second
+--     Yellow ou Player Off (Permanent). Minutos só pelo lineup dão
+--     tempo a mais ao expulso: cortar com os cartões dos eventos.
+--   * Escalação incompleta: Deportivo x Sporting Gijón (3825596, Gijón
+--     com 8 titulares) e Liverpool x Swansea (3754047, Swansea com 1).
+--     33.361 titulares em vez de 33.374.
+--   * 4 linhas sem país (country_name NULL).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE stg.sb_lineups;
+
+DECLARE @match_id INT = 0, @sql NVARCHAR(MAX), @json VARCHAR(MAX), @arquivos INT = 0;
+
+WHILE 1 = 1
+BEGIN
+    SELECT @match_id = MIN(match_id) FROM stg.sb_matches WHERE match_id > @match_id;
+    IF @match_id IS NULL BREAK;
+
+    SET @sql = N'SELECT @json = CAST(BulkColumn AS varchar(max)) FROM OPENROWSET(BULK ''C:\dados\chelsea_scouting\statsbomb\lineups\'
+             + CAST(@match_id AS NVARCHAR(10)) + N'.json'', SINGLE_BLOB) AS arq;';
+    EXEC sp_executesql @sql, N'@json VARCHAR(MAX) OUTPUT', @json = @json OUTPUT;
+
+    INSERT INTO stg.sb_lineups
+    SELECT @match_id, t.team_id, t.team_name,
+           j.player_id, j.player_name, j.player_nickname, j.jersey_number, j.country_name,
+           CAST(p.[key] AS INT) + 1,
+           pos.position_id, pos.position, pos.from_time, pos.to_time,
+           pos.from_period, pos.to_period, pos.start_reason, pos.end_reason
+    FROM OPENJSON(@json)
+    WITH (
+        team_id    INT           '$.team_id',
+        team_name  NVARCHAR(100) '$.team_name',
+        lineup     NVARCHAR(MAX) '$.lineup' AS JSON
+    ) AS t
+    CROSS APPLY OPENJSON(t.lineup)
+    WITH (
+        player_id        INT           '$.player_id',
+        player_name      NVARCHAR(150) '$.player_name',
+        player_nickname  NVARCHAR(100) '$.player_nickname',
+        jersey_number    INT           '$.jersey_number',
+        country_name     NVARCHAR(100) '$.country.name',
+        positions        NVARCHAR(MAX) '$.positions' AS JSON
+    ) AS j
+    CROSS APPLY OPENJSON(j.positions) AS p
+    CROSS APPLY OPENJSON(p.value)
+    WITH (
+        position_id   INT           '$.position_id',
+        position      NVARCHAR(50)  '$.position',
+        from_time     VARCHAR(10)   '$.from',
+        to_time       VARCHAR(10)   '$.to',
+        from_period   INT           '$.from_period',
+        to_period     INT           '$.to_period',
+        start_reason  NVARCHAR(100) '$.start_reason',
+        end_reason    NVARCHAR(100) '$.end_reason'
+    ) AS pos;
+
+    SET @arquivos += 1;
+END;
+
+PRINT CONCAT(@arquivos, ' arquivos lidos');
+GO
+
+-- ---------------------------------------------------------------------
+-- Conferência: linhas, partidas e jogadores por liga, e o Chelsea
+-- Esperado: La Liga 13.609 | 380 | 539, Ligue 1 15.224 | 377 | 574,
+--           Premier League 12.717 | 380 | 550, Serie A 15.334 | 380 | 551
+--           (total 56.884 linhas); Chelsea 635 linhas e 28 jogadores
+-- ---------------------------------------------------------------------
+SELECT m.competition_name,
+       COUNT(*)                    AS linhas,
+       COUNT(DISTINCT l.match_id)  AS partidas,
+       COUNT(DISTINCT l.player_id) AS jogadores
+FROM stg.sb_lineups l
+JOIN stg.sb_matches m ON m.match_id = l.match_id
+GROUP BY m.competition_name
+ORDER BY m.competition_name;
+
+SELECT COUNT(*) AS linhas_chelsea, COUNT(DISTINCT player_id) AS jogadores_chelsea
+FROM stg.sb_lineups
+WHERE team_name = 'Chelsea';
 GO
