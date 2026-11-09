@@ -10,7 +10,7 @@
 --   Bloco 1 — StatsBomb (D10.2)
 --   [x] dw.dim_data                                            Aula 10
 --   [x] dw.dim_liga                                            Aula 11
---   [ ] dw.dim_posicao
+--   [x] dw.dim_posicao                                         Aula 12
 --   [ ] dw.dim_time
 --   [ ] dw.dim_partida
 --   [ ] dw.dim_jogador
@@ -81,5 +81,28 @@ CREATE TABLE dw.dim_liga (
     eh_liga_do_estudo  BIT           NOT NULL,       -- 1 = uma das 4 ligas do StatsBomb
     CONSTRAINT pk_dim_liga PRIMARY KEY (sk_liga),
     CONSTRAINT uq_dim_liga_tm_competition_id UNIQUE (tm_competition_id)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_posicao: as 25 posições do StatsBomb (D6.3, D13). Hierarquia
+-- posição -> grupo (9) -> setor (4), com os setores do levantamento.
+-- O Secondary Striker (25) entra mesmo sem aparecer nas escalações.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.dim_posicao;
+CREATE TABLE dw.dim_posicao (
+    sk_posicao      INT IDENTITY(1,1) NOT NULL,   -- chave do DW (sai igual ao id do StatsBomb)
+    sb_position_id  INT           NOT NULL,       -- chave do StatsBomb: 1 a 25
+    posicao         NVARCHAR(40)  NOT NULL,       -- nome do StatsBomb: 'Left Defensive Midfield'
+    posicao_pt      NVARCHAR(40)  NOT NULL,       -- 'Volante esquerdo'
+    sigla           NVARCHAR(5)   NOT NULL,       -- 'LDM'
+    lado            NVARCHAR(10)  NOT NULL,       -- 'Direito', 'Centro', 'Esquerdo'
+    grupo           NVARCHAR(20)  NOT NULL,       -- 'Zagueiro', 'Volante'...
+    setor           NVARCHAR(10)  NOT NULL,       -- 'Goleiro', 'Defesa', 'Meio', 'Ataque'
+    eh_escopo       BIT           NOT NULL,       -- 1 = zagueiro, lateral ou volante (D5)
+    ordem_grupo     INT           NOT NULL,       -- 1 Goleiro ... 9 Atacante
+    ordem_setor     INT           NOT NULL,       -- 1 Goleiro ... 4 Ataque
+    CONSTRAINT pk_dim_posicao PRIMARY KEY (sk_posicao),
+    CONSTRAINT uq_dim_posicao_sb_position_id UNIQUE (sb_position_id)
 );
 GO

@@ -9,7 +9,7 @@
 --   Bloco 1 — StatsBomb (D10.2)
 --   [x] dw.dim_data        calendário gerado, sem origem        Aula 10
 --   [x] dw.dim_liga        65 competições TM + 4 faltantes      Aula 11
---   [ ] dw.dim_posicao
+--   [x] dw.dim_posicao     25 posições, 9 grupos, 4 setores     Aula 12
 --   [ ] dw.dim_time
 --   [ ] dw.dim_partida
 --   [ ] dw.dim_jogador
@@ -159,6 +159,80 @@ ORDER BY competition_id;
 RAISERROR('dw.dim_liga ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_posicao: 25 posições do StatsBomb (D13)
+-- * A staging não tem tabela de posições: as 25 ficam escritas aqui, em
+--   duas listas VALUES. A 1ª dá o grupo de cada posição; a 2ª dá o setor,
+--   a ordem e o escopo de cada grupo. Com o setor escrito uma vez por
+--   grupo, nenhum grupo cai em dois setores.
+-- * Nome de grupo digitado errado numa das listas: o JOIN não acha o par
+--   e a posição some (a conferência pega: menos de 25 linhas).
+-- * AS p (...): um VALUES solto não tem nome de coluna; esta parte dá.
+-- * lado: toda posição de lado começa com 'Right ' ou 'Left '.
+-- * ORDER BY: o sk_posicao sai igual ao sb_position_id.
+-- Conferido em 2026-11-09: igual ao gabarito (EXCEPT 0/0), 0 trechos das
+-- escalações sem posição.
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.dim_posicao;
+
+WITH posicoes AS (
+    SELECT *
+    FROM (VALUES
+        ( 1, N'Goalkeeper',                N'Goleiro',                N'GK',  N'Goleiro'),
+        ( 2, N'Right Back',                N'Lateral direito',        N'RB',  N'Lateral'),
+        ( 3, N'Right Center Back',         N'Zagueiro direito',       N'RCB', N'Zagueiro'),
+        ( 4, N'Center Back',               N'Zagueiro central',       N'CB',  N'Zagueiro'),
+        ( 5, N'Left Center Back',          N'Zagueiro esquerdo',      N'LCB', N'Zagueiro'),
+        ( 6, N'Left Back',                 N'Lateral esquerdo',       N'LB',  N'Lateral'),
+        ( 7, N'Right Wing Back',           N'Ala direito',            N'RWB', N'Lateral'),
+        ( 8, N'Left Wing Back',            N'Ala esquerdo',           N'LWB', N'Lateral'),
+        ( 9, N'Right Defensive Midfield',  N'Volante direito',        N'RDM', N'Volante'),
+        (10, N'Center Defensive Midfield', N'Volante central',        N'CDM', N'Volante'),
+        (11, N'Left Defensive Midfield',   N'Volante esquerdo',       N'LDM', N'Volante'),
+        (12, N'Right Midfield',            N'Meia aberto direito',    N'RM',  N'Meia aberto'),
+        (13, N'Right Center Midfield',     N'Meia central direito',   N'RCM', N'Meia central'),
+        (14, N'Center Midfield',           N'Meia central',           N'CM',  N'Meia central'),
+        (15, N'Left Center Midfield',      N'Meia central esquerdo',  N'LCM', N'Meia central'),
+        (16, N'Left Midfield',             N'Meia aberto esquerdo',   N'LM',  N'Meia aberto'),
+        (17, N'Right Wing',                N'Ponta direita',          N'RW',  N'Ponta'),
+        (18, N'Right Attacking Midfield',  N'Meia ofensivo direito',  N'RAM', N'Meia ofensivo'),
+        (19, N'Center Attacking Midfield', N'Meia ofensivo central',  N'CAM', N'Meia ofensivo'),
+        (20, N'Left Attacking Midfield',   N'Meia ofensivo esquerdo', N'LAM', N'Meia ofensivo'),
+        (21, N'Left Wing',                 N'Ponta esquerda',         N'LW',  N'Ponta'),
+        (22, N'Right Center Forward',      N'Atacante direito',       N'RCF', N'Atacante'),
+        (23, N'Center Forward',            N'Centroavante',           N'CF',  N'Atacante'),
+        (24, N'Left Center Forward',       N'Atacante esquerdo',      N'LCF', N'Atacante'),
+        (25, N'Secondary Striker',         N'Segundo atacante',       N'SS',  N'Atacante')
+    ) AS p (sb_position_id, posicao, posicao_pt, sigla, grupo)
+),
+grupos AS (
+    SELECT *
+    FROM (VALUES
+        (N'Goleiro',       N'Goleiro', 1, 1, 0),
+        (N'Zagueiro',      N'Defesa',  2, 2, 1),
+        (N'Lateral',       N'Defesa',  3, 2, 1),
+        (N'Volante',       N'Meio',    4, 3, 1),
+        (N'Meia central',  N'Meio',    5, 3, 0),
+        (N'Meia aberto',   N'Meio',    6, 3, 0),
+        (N'Meia ofensivo', N'Meio',    7, 3, 0),
+        (N'Ponta',         N'Ataque',  8, 4, 0),
+        (N'Atacante',      N'Ataque',  9, 4, 0)
+    ) AS g (grupo, setor, ordem_grupo, ordem_setor, eh_escopo)
+)
+INSERT INTO dw.dim_posicao (sb_position_id, posicao, posicao_pt, sigla, lado, grupo, setor,
+                            eh_escopo, ordem_grupo, ordem_setor)
+SELECT p.sb_position_id, p.posicao, p.posicao_pt, p.sigla,
+       CASE WHEN p.posicao LIKE N'Right %' THEN N'Direito'
+            WHEN p.posicao LIKE N'Left %'  THEN N'Esquerdo'
+            ELSE N'Centro' END,
+       p.grupo, g.setor, g.eh_escopo, g.ordem_grupo, g.ordem_setor
+FROM posicoes p
+JOIN grupos g ON g.grupo = p.grupo
+ORDER BY p.sb_position_id;
+
+RAISERROR('dw.dim_posicao ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -215,4 +289,31 @@ ORDER BY tipo, nome;
 SELECT COUNT(*) AS atuacoes_orfas
 FROM stg.tm_appearances a
 WHERE NOT EXISTS (SELECT 1 FROM dw.dim_liga l WHERE l.tm_competition_id = a.competition_id);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_posicao
+-- Esperado: 25 linhas, 10 do escopo; 9 grupos (Goleiro 1, Zagueiro 3,
+--           Lateral 4, Volante 3, Meia central 3, Meia aberto 2, Meia
+--           ofensivo 3, Ponta 2, Atacante 4); trechos das escalações por
+--           setor: Goleiro 3.081, Defesa 16.627, Meio 21.645, Ataque
+--           15.531 (56.884, a stg.sb_lineups inteira); 0 sem posição.
+-- ---------------------------------------------------------------------
+SELECT COUNT(*) AS linhas, SUM(CAST(eh_escopo AS INT)) AS posicoes_escopo
+FROM dw.dim_posicao;
+
+SELECT setor, grupo, COUNT(*) AS posicoes
+FROM dw.dim_posicao
+GROUP BY ordem_grupo, grupo, setor
+ORDER BY ordem_grupo;
+
+SELECT d.setor, COUNT(*) AS trechos
+FROM stg.sb_lineups l
+JOIN dw.dim_posicao d ON d.sb_position_id = l.position_id
+GROUP BY d.ordem_setor, d.setor
+ORDER BY d.ordem_setor;
+
+SELECT COUNT(*) AS trechos_sem_posicao
+FROM stg.sb_lineups l
+WHERE NOT EXISTS (SELECT 1 FROM dw.dim_posicao d WHERE d.sb_position_id = l.position_id);
 GO
