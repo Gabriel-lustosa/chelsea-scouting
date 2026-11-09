@@ -13,7 +13,7 @@
 --   [x] dw.dim_posicao                                         Aula 12
 --   [x] dw.dim_time                                            Aula 13
 --   [x] dw.dim_partida                                         Aula 14
---   [ ] dw.dim_jogador
+--   [x] dw.dim_jogador                                         Aula 15
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
@@ -176,4 +176,43 @@ CREATE TABLE dw.dim_partida (
 CREATE UNIQUE INDEX uq_dim_partida_sb
     ON dw.dim_partida (sb_match_id, sb_team_id)
     WHERE sb_match_id IS NOT NULL;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador: os 2.176 jogadores do StatsBomb 2015/16 (D16).
+-- * 7 colunas nascem vazias: posicao_principal e grupo_principal são
+--   preenchidas na aula da fato_desempenho (minutos certos); tm_player_id,
+--   data_nascimento, idade_2016, pe e altura_cm no Bloco 2, depois da
+--   ligação com o Transfermarkt.
+-- * Índices únicos filtrados nas duas chaves das fontes: no Bloco 2 entra
+--   o elenco do Chelsea 2014/15 que não está no StatsBomb (sb_player_id
+--   NULL), e até lá o tm_player_id fica NULL em todos.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.dim_jogador;
+CREATE TABLE dw.dim_jogador (
+    sk_jogador                  INT IDENTITY(1,1) NOT NULL,   -- chave do DW
+    sb_player_id                INT           NULL,           -- chave do StatsBomb (NULL no Chelsea 2014/15 fora do SB, Bloco 2)
+    tm_player_id                INT           NULL,           -- chave do Transfermarkt (Bloco 2)
+    nome                        NVARCHAR(200) NOT NULL,       -- 'Willian', 'N''Golo Kanté'
+    nome_completo               NVARCHAR(300) NULL,           -- 'Willian Borges da Silva'
+    pais                        NVARCHAR(200) NULL,
+    time_fim_2015_16            NVARCHAR(200) NULL,           -- time do último jogo da temporada
+    trocou_de_time_2015_16      BIT           NOT NULL,       -- 1 = jogou por mais de um time
+    eh_elenco_chelsea_2015_16   BIT           NOT NULL,       -- 1 = jogou pelo Chelsea
+    posicao_principal           NVARCHAR(40)  NULL,           -- aula da fato_desempenho
+    grupo_principal             NVARCHAR(20)  NULL,           -- aula da fato_desempenho
+    data_nascimento             DATE          NULL,           -- Bloco 2 (TM)
+    idade_2016                  INT           NULL,           -- Bloco 2: idade em 01/07/2016
+    pe                          NVARCHAR(10)  NULL,           -- Bloco 2 (TM)
+    altura_cm                   INT           NULL,           -- Bloco 2 (TM)
+    CONSTRAINT pk_dim_jogador PRIMARY KEY (sk_jogador)
+);
+
+CREATE UNIQUE INDEX uq_dim_jogador_sb_player_id
+    ON dw.dim_jogador (sb_player_id)
+    WHERE sb_player_id IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_dim_jogador_tm_player_id
+    ON dw.dim_jogador (tm_player_id)
+    WHERE tm_player_id IS NOT NULL;
 GO

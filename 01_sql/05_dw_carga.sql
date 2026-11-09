@@ -12,12 +12,13 @@
 --   [x] dw.dim_posicao     25 posições, 9 grupos, 4 setores     Aula 12
 --   [x] dw.dim_time        80 times SB ligados ao TM por votação Aula 13
 --   [x] dw.dim_partida     1.517 partidas SB x 2 lados (D15)    Aula 14
---   [ ] dw.dim_jogador
---   [ ] dw.fato_desempenho
+--   [x] dw.dim_jogador     2.176 jogadores SB, atributos 15/16  Aula 15
+--   [ ] dw.fato_desempenho (+ UPDATE da posição principal na dim_jogador)
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
 --   [ ] dw.dim_partida     jogos só do TM (sb_match_id NULL)
+--   [ ] dw.dim_jogador     UPDATE dos dados TM + Chelsea 2014/15 fora do SB
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Como funciona:
@@ -377,6 +378,72 @@ ORDER BY x.date, x.match_id, x.mando;
 RAISERROR('dw.dim_partida ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador: os 2.176 jogadores do StatsBomb 2015/16 (D16)
+-- * Só as colunas do StatsBomb; as outras 7 ficam NULL até o UPDATE da
+--   aula da fato_desempenho e do Bloco 2.
+-- * N'''''' (dois apóstrofos) -> N'''' (um): o JSON traz alguns nomes
+--   com o apóstrofo duplicado (N''Golo, O''Shea).
+-- * DISTINCT na CTE 1: a escalação tem uma linha por trecho de posição;
+--   sem ele, "mais partidas" contaria trechos.
+-- * Time pelo team_id e nome pela dim_time: algumas escalações trazem
+--   outro nome para o mesmo time ("Marseille" x "Olympique de
+--   Marseille", "Caen" x "Stade Malherbe Caen"); contando por nome, as
+--   trocas de time viravam 145 em vez de 103.
+-- * ROW_NUMBER escolhe a versão campeã (nome e país com mais partidas,
+--   time do último jogo); a 2ª coluna do ORDER BY só desempata.
+-- * LEFT JOIN no país: o Henok Goitom não tem país em nenhuma escalação.
+-- Conferido em 2026-11-09: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.dim_jogador;
+
+WITH escalacoes AS (        -- 1. uma linha por jogador × partida, com o apóstrofo corrigido
+    SELECT DISTINCT l.player_id, l.match_id, m.match_date, l.team_id, dt.nome AS time_nome, l.country_name,
+           REPLACE(l.player_name, N'''''', N'''') AS nome_completo,
+           REPLACE(COALESCE(l.player_nickname, l.player_name), N'''''', N'''') AS nome
+    FROM stg.sb_lineups l
+    JOIN stg.sb_matches m ON m.match_id = l.match_id
+    JOIN dw.dim_time dt   ON dt.sb_team_id = l.team_id
+),
+nomes AS (                  -- 2. a versão do nome com mais partidas
+    SELECT player_id, nome, nome_completo,
+           ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY COUNT(*) DESC, nome_completo) AS ordem
+    FROM escalacoes
+    GROUP BY player_id, nome, nome_completo
+),
+paises AS (                 -- 3. o país com mais partidas
+    SELECT player_id, country_name,
+           ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY COUNT(*) DESC, country_name) AS ordem
+    FROM escalacoes
+    WHERE country_name IS NOT NULL
+    GROUP BY player_id, country_name
+),
+ultimo_jogo AS (            -- 4. o time do último jogo da temporada
+    SELECT player_id, time_nome,
+           ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY match_date DESC) AS ordem
+    FROM escalacoes
+),
+times AS (                  -- 5. quantos times e se jogou pelo Chelsea
+    SELECT player_id,
+           COUNT(DISTINCT team_id) AS qtd_times,
+           MAX(CASE WHEN time_nome = N'Chelsea' THEN 1 ELSE 0 END) AS jogou_chelsea
+    FROM escalacoes
+    GROUP BY player_id
+)
+INSERT INTO dw.dim_jogador (sb_player_id, nome, nome_completo, pais, time_fim_2015_16,
+                            trocou_de_time_2015_16, eh_elenco_chelsea_2015_16)
+SELECT t.player_id, n.nome, n.nome_completo, p.country_name, u.time_nome,
+       CASE WHEN t.qtd_times > 1 THEN 1 ELSE 0 END,
+       t.jogou_chelsea
+FROM times t
+JOIN nomes n            ON n.player_id = t.player_id AND n.ordem = 1
+JOIN ultimo_jogo u      ON u.player_id = t.player_id AND u.ordem = 1
+LEFT JOIN paises p      ON p.player_id = t.player_id AND p.ordem = 1
+ORDER BY t.player_id;
+
+RAISERROR('dw.dim_jogador ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -515,4 +582,29 @@ FROM dw.dim_partida p
 JOIN dw.dim_time t ON t.sb_team_id = p.sb_team_id
 WHERE t.nome = N'Chelsea'
 GROUP BY p.tecnico;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador
+-- Esperado: 2.176 jogadores, 2.175 com país (Henok Goitom sem), 103
+--           trocaram de time, 28 do elenco do Chelsea (27 terminam no
+--           Chelsea; Juan Cuadrado termina na Juventus), 0 nomes com
+--           apóstrofo duplicado; Fernandinho (Fernando Luiz Rosa),
+--           N'Golo Kanté (Leicester City), John O'Shea, Mamadou N'Diaye.
+-- ---------------------------------------------------------------------
+SELECT COUNT(*) AS jogadores,
+       COUNT(pais) AS com_pais,
+       SUM(CAST(trocou_de_time_2015_16 AS INT)) AS trocaram_de_time,
+       SUM(CAST(eh_elenco_chelsea_2015_16 AS INT)) AS elenco_chelsea,
+       SUM(CASE WHEN nome LIKE N'%''''%' THEN 1 ELSE 0 END) AS apostrofo_duplo
+FROM dw.dim_jogador;
+
+SELECT sb_player_id, nome, nome_completo, pais, time_fim_2015_16
+FROM dw.dim_jogador
+WHERE sb_player_id IN (3054, 3961, 16890, 40700);
+
+SELECT nome, time_fim_2015_16, trocou_de_time_2015_16
+FROM dw.dim_jogador
+WHERE eh_elenco_chelsea_2015_16 = 1
+ORDER BY nome;
 GO
