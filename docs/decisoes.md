@@ -16,6 +16,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida |
 | D11 | 2026-11-09 | Padrões do DW: estrutura e carga em scripts separados, sem FK declarada (conferência de órfãos), `dim_data` com chave AAAAMMDD de 2014 a 2026 e colunas de temporada e do cenário | Decidida |
 | D12 | 2026-11-09 | `dim_liga`: as 65 competições do Transfermarkt mais as 4 que faltam no CSV, com nome por regra (e exceções) e tipo em português | Decidida |
+| D13 | 2026-11-09 | `dim_posicao`: 9 grupos com os setores do levantamento (meia aberto no Meio, ponta e atacante no Ataque), nomes em português, lado, escopo e ordem de exibição | Decidida |
 
 ---
 
@@ -174,7 +175,7 @@ A `dim_posicao` tem a hierarquia **posição StatsBomb (25) → grupo → setor*
 | Lateral | Left Back, Right Back, Left Wing Back, Right Wing Back | Defesa |
 | Volante | Left / Center / Right Defensive Midfield | Meio |
 | Meia central | Left / Center / Right Center Midfield | Meio |
-| Demais grupos (meia ofensivo, ponta, atacante, goleiro) | Restante | Meio / Ataque / Goleiro |
+| Demais grupos (goleiro, meia aberto, meia ofensivo, ponta, atacante: fechados na D13) | Restante | Goleiro / Meio / Ataque |
 
 - **Volante só com as posições Defensive Midfield.** O Kanté (LDM), o Matić (LDM), o Mikel e o Fàbregas (RDM) já ficam nesse grupo. O Drinkwater (LCM) fica em "Meia central", que continua no modelo para a visão por setor.
 - **Mínimo de 900 minutos no grupo de posição** (10 jogos) para entrar na comparação.
@@ -404,3 +405,43 @@ As 4 ligas recebem também o código do StatsBomb. Toda atuação da `fato_atuac
 Colunas: `sk_liga` (`IDENTITY`, na ordem do código do Transfermarkt), `tm_competition_id`, `sb_competition_id` (NULL fora das 4 ligas), `nome`, `tipo`, `pais`, `confederacao`, `eh_liga_do_estudo`.
 
 **Descartadas:** *CSV escrito à mão com as 69* (cada nome perfeito, mas é trabalho manual e mais uma carga; esse tipo de CSV só faz falta de verdade na ligação dos times); *nome e tipo como vêm do Transfermarkt* (`laliga` e a Europa League como `other` no dashboard).
+
+---
+
+## D13 — `dim_posicao`: grupos e colunas
+
+**Contexto** (2026-11-09): as escalações do StatsBomb usam 24 das 25 posições da especificação (o `Secondary Striker`, id 25, não aparece). A D6.3 já tinha fixado Zagueiro, Lateral, Volante e Meia central. Faltava o grupo do goleiro, dos meias abertos (Right/Left Midfield), dos meias ofensivos, das pontas e dos atacantes. No levantamento (D5), o setor saiu do nome da posição: tudo com "Midfield" no Meio, Wing e Forward no Ataque.
+
+### D13.1 — 9 grupos, com os setores do levantamento
+
+| Grupo | Posições StatsBomb (id) | Setor |
+|---|---|---|
+| Goleiro | Goalkeeper (1) | Goleiro |
+| Zagueiro | Right / Left Center Back, Center Back (3, 4, 5) | Defesa |
+| Lateral | Right / Left Back, Right / Left Wing Back (2, 6, 7, 8) | Defesa |
+| Volante | Right / Center / Left Defensive Midfield (9, 10, 11) | Meio |
+| Meia central | Right / Center / Left Center Midfield (13, 14, 15) | Meio |
+| Meia aberto | Right / Left Midfield (12, 16) | Meio |
+| Meia ofensivo | Right / Center / Left Attacking Midfield (18, 19, 20) | Meio |
+| Ponta | Right / Left Wing (17, 21) | Ataque |
+| Atacante | Right / Left Center Forward, Center Forward, Secondary Striker (22, 23, 24, 25) | Ataque |
+
+Os setores ficam iguais aos do levantamento, e os achados da D5 continuam comparáveis. O meia aberto do 4-4-2 fica separado do ponta do 4-3-3. Conferido: Goleiro 3.081 trechos, Defesa 16.627, Meio 21.645, Ataque 15.531 (total 56.884, a `stg.sb_lineups` inteira).
+
+**Descartadas:** *Ponta = meia aberto + ponta, tudo no Ataque*: mudaria o setor de 4.502 trechos em relação ao levantamento, e o meia aberto do 4-4-2 recua para defender; *um grupo "Meia ofensivo/Ponta"*, como no levantamento: o grupo ficaria em dois setores e quebraria a hierarquia posição → grupo → setor.
+
+### D13.2 — Colunas para o Power BI
+
+| Coluna | Conteúdo |
+|---|---|
+| `sk_posicao` | `IDENTITY`, na ordem do id do StatsBomb (sai igual ao `sb_position_id`) |
+| `sb_position_id`, `posicao` | Id e nome do StatsBomb (o nome confere com o das escalações) |
+| `posicao_pt`, `sigla` | Nome em português (`Volante esquerdo`) e sigla (`LDM`) |
+| `lado` | `Direito`, `Centro` ou `Esquerdo`, pelo começo do nome (`Right` / `Left`) |
+| `grupo`, `setor` | Hierarquia da D13.1 |
+| `eh_escopo` | 1 em Zagueiro, Lateral e Volante (D5): 10 posições |
+| `ordem_grupo`, `ordem_setor` | Ordem de exibição (Goleiro, Defesa, Meio, Ataque), em vez da alfabética |
+
+As 25 linhas ficam escritas no script com `VALUES` (a staging não tem tabela de posições), em duas listas: posição → grupo e grupo → setor, ordem e escopo. Assim cada grupo tem um setor só. O `Secondary Striker` entra mesmo sem uso, para a dimensão ficar completa.
+
+**Descartada:** *só id, nome, grupo e setor*: gráficos em ordem alfabética, nomes em inglês e o filtro de escopo refeito em cada visual.
