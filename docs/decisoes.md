@@ -15,6 +15,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
 | D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida |
 | D11 | 2026-11-09 | Padrões do DW: estrutura e carga em scripts separados, sem FK declarada (conferência de órfãos), `dim_data` com chave AAAAMMDD de 2014 a 2026 e colunas de temporada e do cenário | Decidida |
+| D12 | 2026-11-09 | `dim_liga`: as 65 competições do Transfermarkt mais as 4 que faltam no CSV, com nome por regra (e exceções) e tipo em português | Decidida |
 
 ---
 
@@ -378,3 +379,28 @@ As colunas do Olist (ano, trimestre, mês, nomes em português, dia, dia da sema
 **Atenção:** a `temporada` da `dim_data` é a regra do calendário. A temporada **de uma partida** vem da própria partida (`dim_partida`), porque 221 jogos das 4 ligas na temporada 2019/20 foram disputados depois de 30/06/2020 (pandemia), e a regra de 1º de julho os colocaria em 2020/21.
 
 **Descartadas:** *coluna de janela de transferências* (verão = jul/ago, inverno = jan): aproximação, porque as datas reais mudam por país e ano; *só as colunas do Olist, com a temporada no DAX*: a mesma regra se repetiria em várias medidas.
+
+---
+
+## D12 — `dim_liga`: quais competições e como exibir
+
+**Contexto** (2026-11-09): o StatsBomb tem só as 4 ligas (`competition_id` 2, 11, 12 e 7). O Transfermarkt tem 65 competições no `competitions.csv` (31 ligas de 1ª divisão, copas, supercopas, competições europeias e de seleções), mas **4 competições aparecem nas atuações sem estar no CSV**: `CGB` (Copa da Liga Inglesa, 2.348 atuações), `POCP` (Taça da Liga de Portugal, 9.769), `KLUB` (Mundial de Clubes, 1.808) e `UKRS` (Supercopa da Ucrânia, 275). Os nomes vêm como no endereço da página (`uefa-champions-league`, `laliga`), e a classificação de tipo põe a Europa League como `other`.
+
+### D12.1 — Todas as competições: 65 do Transfermarkt + 4 escritas no script (69)
+
+As 4 ligas recebem também o código do StatsBomb. Toda atuação da `fato_atuacao` (D10.3) encontra a sua competição (conferido: 0 atuações sem competição). Ficam fora só os 200 jogos do campeonato colombiano (`COL1`) de 2025, que estão na `tm_games` sem nenhuma atuação.
+
+**Descartadas:** *só as competições que aparecerem nas fatos* (a dimensão teria que ser refeita no Bloco 2); *as 4 ligas + "Outras"* (a Validação perderia Champions League e copas × liga).
+
+### D12.2 — Nome por regra, com exceções, e tipo em português
+
+| Coluna | Regra |
+|---|---|
+| `nome` | Troca `-` por espaço e põe maiúscula em cada palavra (`uefa-champions-league` → `UEFA Champions League`, com `UEFA` e `DFB` corrigidos). Exceções escritas à mão: as 4 ligas com o nome do StatsBomb (`Premier League`, `La Liga`, `Serie A`, `Ligue 1`), as 4 que faltam, `FA Cup`, `AFC Asian Cup`, `Africa Cup of Nations` e `Copa del Rey` |
+| `tipo` | `Liga nacional`, `Copa nacional`, `Supercopa` (inclui a Supercopa da UEFA), `Competição europeia` (Champions, Europa e Conference League e as eliminatórias), `Seleções`, `Mundial de Clubes`, `Playoff` |
+| `confederacao` | Em português: `Europa`, `Américas`, `Ásia`, `África`, `FIFA` |
+| `eh_liga_do_estudo` | 1 nas 4 ligas do StatsBomb |
+
+Colunas: `sk_liga` (`IDENTITY`, na ordem do código do Transfermarkt), `tm_competition_id`, `sb_competition_id` (NULL fora das 4 ligas), `nome`, `tipo`, `pais`, `confederacao`, `eh_liga_do_estudo`.
+
+**Descartadas:** *CSV escrito à mão com as 69* (cada nome perfeito, mas é trabalho manual e mais uma carga; esse tipo de CSV só faz falta de verdade na ligação dos times); *nome e tipo como vêm do Transfermarkt* (`laliga` e a Europa League como `other` no dashboard).
