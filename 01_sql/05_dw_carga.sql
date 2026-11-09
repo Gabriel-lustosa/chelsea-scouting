@@ -10,12 +10,13 @@
 --   [x] dw.dim_data        calendário gerado, sem origem        Aula 10
 --   [x] dw.dim_liga        65 competições TM + 4 faltantes      Aula 11
 --   [x] dw.dim_posicao     25 posições, 9 grupos, 4 setores     Aula 12
---   [ ] dw.dim_time
+--   [x] dw.dim_time        80 times SB ligados ao TM por votação Aula 13
 --   [ ] dw.dim_partida
 --   [ ] dw.dim_jogador
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
---   [ ] ligação de times, partidas e jogadores
+--   [ ] ligação de partidas e jogadores (os times já na D14.1)
+--   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Como funciona:
@@ -24,6 +25,9 @@
 --   * Datas escritas como 'AAAAMMDD' ('20140101'): esse formato é lido
 --     igual em qualquer idioma da sessão (o SET LANGUAGE 'Brazilian'
 --     muda a ordem de dia e mês em outros formatos).
+--   * SET QUOTED_IDENTIFIER ON: gravar numa tabela com índice filtrado
+--     (dim_time) exige essa opção. O SSMS já liga; o sqlcmd deixa
+--     desligada.
 --
 -- Rodar com (depois do 04_dw_tabelas.sql):
 --   sqlcmd -S localhost -E -C -f 65001 -i 01_sql\05_dw_carga.sql
@@ -32,6 +36,7 @@
 USE chelsea_scouting;
 GO
 
+SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 
 -- ---------------------------------------------------------------------
@@ -233,6 +238,74 @@ ORDER BY p.sb_position_id;
 RAISERROR('dw.dim_posicao ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_time: os 80 times do StatsBomb ligados ao Transfermarkt (D14)
+-- * Ligação pelas partidas: cada partida SB é cruzada com os jogos TM de
+--   mesma liga, data e placar. Em 297 partidas há mais de um jogo
+--   possível, então cada par vira voto e o clube TM mais votado é o par
+--   do time SB (80/80, vencedor com >= 37 votos, 2º com <= 5).
+-- * A dim_liga traduz a liga SB (2) para a TM ('GB1') e dá país e nome.
+-- * UNION na CTE 1 tira as repetições (uma linha por time); UNION ALL na
+--   CTE 3 mantém todos os votos.
+-- * ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) numera dentro de
+--   cada grupo: na CTE 4 pega o mais votado; na CTE 6, o último jogo.
+-- * Posição final = a do TM depois do último jogo do clube na liga (pelo
+--   StatsBomb não dá: faltam 3 partidas da Ligue 1).
+-- Conferido em 2026-11-09: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.dim_time;
+
+WITH sb_times AS (          -- 1. os 80 times do StatsBomb, com a liga
+    SELECT competition_id, home_team_id AS sb_team_id, home_team_name AS nome FROM stg.sb_matches
+    UNION
+    SELECT competition_id, away_team_id, away_team_name FROM stg.sb_matches
+),
+pares AS (                  -- 2. cada partida SB com os jogos TM de mesma liga, data e placar
+    SELECT m.home_team_id, m.away_team_id, g.home_club_id, g.away_club_id
+    FROM stg.sb_matches m
+    JOIN dw.dim_liga l  ON l.sb_competition_id = m.competition_id
+    JOIN stg.tm_games g ON g.competition_id = l.tm_competition_id
+                       AND g.season = 2015
+                       AND g.date = m.match_date
+                       AND g.home_club_goals = m.home_score
+                       AND g.away_club_goals = m.away_score
+),
+votos AS (                  -- 3. cada par vira 2 votos: mandante com mandante, visitante com visitante
+    SELECT home_team_id AS sb_team_id, home_club_id AS tm_club_id FROM pares
+    UNION ALL
+    SELECT away_team_id, away_club_id FROM pares
+),
+ranking AS (                -- 4. conta os votos; lugar 1 = clube TM mais votado para cada time SB
+    SELECT sb_team_id, tm_club_id, COUNT(*) AS votos,
+           ROW_NUMBER() OVER (PARTITION BY sb_team_id ORDER BY COUNT(*) DESC) AS lugar
+    FROM votos
+    GROUP BY sb_team_id, tm_club_id
+),
+jogos_tm AS (               -- 5. posição de cada clube depois de cada jogo da liga (TM)
+    SELECT home_club_id AS tm_club_id, date, home_club_position AS posicao
+    FROM stg.tm_games WHERE season = 2015 AND competition_id IN ('GB1', 'ES1', 'IT1', 'FR1')
+    UNION ALL
+    SELECT away_club_id, date, away_club_position
+    FROM stg.tm_games WHERE season = 2015 AND competition_id IN ('GB1', 'ES1', 'IT1', 'FR1')
+),
+posicao_final AS (          -- 6. fica só o último jogo de cada clube
+    SELECT tm_club_id, posicao,
+           ROW_NUMBER() OVER (PARTITION BY tm_club_id ORDER BY date DESC) AS ultimo
+    FROM jogos_tm
+)
+INSERT INTO dw.dim_time (sb_team_id, tm_club_id, nome, nome_tm, pais, liga_2015_16,
+                         posicao_2015_16, eh_time_do_estudo)
+SELECT t.sb_team_id, r.tm_club_id, t.nome, c.name, l.pais, l.nome, p.posicao, 1
+FROM sb_times t
+JOIN dw.dim_liga l        ON l.sb_competition_id = t.competition_id
+JOIN ranking r            ON r.sb_team_id = t.sb_team_id AND r.lugar = 1
+LEFT JOIN stg.tm_clubs c  ON c.club_id = r.tm_club_id
+LEFT JOIN posicao_final p ON p.tm_club_id = r.tm_club_id AND p.ultimo = 1
+ORDER BY t.sb_team_id;
+
+RAISERROR('dw.dim_time ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -316,4 +389,29 @@ ORDER BY d.ordem_setor;
 SELECT COUNT(*) AS trechos_sem_posicao
 FROM stg.sb_lineups l
 WHERE NOT EXISTS (SELECT 1 FROM dw.dim_posicao d WHERE d.sb_position_id = l.position_id);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_time
+-- Esperado: 80 linhas, 80 clubes TM diferentes, todos com nome_tm e
+--           posição; 4 ligas com 20 times e 20 posições cada; 4 primeiros:
+--           La Liga Barcelona, Real Madrid, Atlético Madrid, Villarreal;
+--           Ligue 1 PSG, Lyon, Monaco, Nice; Premier League Leicester,
+--           Arsenal, Tottenham, Manchester City (Chelsea 10º); Serie A
+--           Juventus, Napoli, Roma, Inter.
+-- ---------------------------------------------------------------------
+SELECT COUNT(*) AS linhas,
+       COUNT(DISTINCT tm_club_id) AS clubes_tm,
+       COUNT(nome_tm) AS com_nome_tm,
+       COUNT(posicao_2015_16) AS com_posicao
+FROM dw.dim_time;
+
+SELECT liga_2015_16, COUNT(*) AS times, COUNT(DISTINCT posicao_2015_16) AS posicoes
+FROM dw.dim_time
+GROUP BY liga_2015_16;
+
+SELECT liga_2015_16, posicao_2015_16, nome, nome_tm
+FROM dw.dim_time
+WHERE posicao_2015_16 <= 4 OR nome = N'Chelsea'
+ORDER BY liga_2015_16, posicao_2015_16;
 GO

@@ -11,12 +11,12 @@
 --   [x] dw.dim_data                                            Aula 10
 --   [x] dw.dim_liga                                            Aula 11
 --   [x] dw.dim_posicao                                         Aula 12
---   [ ] dw.dim_time
+--   [x] dw.dim_time                                            Aula 13
 --   [ ] dw.dim_partida
 --   [ ] dw.dim_jogador
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
---   [ ] ligação de times, partidas e jogadores
+--   [ ] ligação de partidas e jogadores (os times já na D14.1)
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Padrões (D10.4 e D11):
@@ -29,12 +29,17 @@
 --   * Chaves com nome (pk_..., uq_...), para não ficar o nome automático.
 --   * DROP TABLE IF EXISTS antes do CREATE: rodar de novo recria a tabela
 --     vazia (depois, rodar o 05_dw_carga.sql).
+--   * SET QUOTED_IDENTIFIER ON: o índice filtrado da dim_time exige essa
+--     opção (erro 1934 sem ela). O SSMS já liga; o sqlcmd deixa desligada.
 --
 -- Rodar com:
 --   sqlcmd -S localhost -E -C -f 65001 -i 01_sql\04_dw_tabelas.sql
 -- =====================================================================
 
 USE chelsea_scouting;
+GO
+
+SET QUOTED_IDENTIFIER ON;
 GO
 
 -- ---------------------------------------------------------------------
@@ -105,4 +110,31 @@ CREATE TABLE dw.dim_posicao (
     CONSTRAINT pk_dim_posicao PRIMARY KEY (sk_posicao),
     CONSTRAINT uq_dim_posicao_sb_position_id UNIQUE (sb_position_id)
 );
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_time: os 80 times do StatsBomb, já com o clube do Transfermarkt
+-- (D14). No Bloco 2 entram os clubes que só existem no TM, com
+-- sb_team_id NULL.
+-- * Uma UNIQUE comum aceita um NULL só: a chave do StatsBomb fica única
+--   por um índice filtrado, que só olha as linhas preenchidas.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.dim_time;
+CREATE TABLE dw.dim_time (
+    sk_time            INT IDENTITY(1,1) NOT NULL,   -- chave do DW
+    sb_team_id         INT           NULL,           -- chave do StatsBomb (NULL nos clubes só do TM, Bloco 2)
+    tm_club_id         INT           NOT NULL,       -- chave do Transfermarkt
+    nome               NVARCHAR(200) NOT NULL,       -- curto, do StatsBomb: 'Chelsea', 'Lazio'
+    nome_tm            NVARCHAR(200) NULL,           -- oficial do TM: 'Chelsea FC'
+    pais               NVARCHAR(100) NULL,           -- país da liga
+    liga_2015_16       NVARCHAR(100) NULL,           -- 'Premier League'...
+    posicao_2015_16    INT           NULL,           -- posição final na liga (TM)
+    eh_time_do_estudo  BIT           NOT NULL,       -- 1 = um dos 80 times das 4 ligas
+    CONSTRAINT pk_dim_time PRIMARY KEY (sk_time),
+    CONSTRAINT uq_dim_time_tm_club_id UNIQUE (tm_club_id)
+);
+
+CREATE UNIQUE INDEX uq_dim_time_sb_team_id
+    ON dw.dim_time (sb_team_id)
+    WHERE sb_team_id IS NOT NULL;
 GO
