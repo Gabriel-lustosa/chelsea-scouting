@@ -9,7 +9,7 @@
 --   [x] stg.sb_matches   Premier League (2_27.json)              Aula 5
 --   [x] stg.sb_matches   La Liga, Serie A e Ligue 1 (laço)       Aula 6
 --   [x] stg.sb_lineups   1.517 arquivos lineups\<match_id>.json  Aula 7
---   [ ] stg.sb_events    1.517 arquivos events\<match_id>.json
+--   [x] stg.sb_events    1.517 arquivos events\<match_id>.json   Aula 8
 --
 -- Como funciona:
 --   * OPENROWSET(BULK ..., SINGLE_BLOB) devolve o arquivo inteiro numa
@@ -220,4 +220,149 @@ ORDER BY m.competition_name;
 SELECT COUNT(*) AS linhas_chelsea, COUNT(DISTINCT player_id) AS jogadores_chelsea
 FROM stg.sb_lineups
 WHERE team_name = 'Chelsea';
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.sb_events: um arquivo por partida (events\<match_id>.json), uma
+-- linha por lance. Mesmo laço das escalações; o OPENJSON tem um nível só.
+--   * '$.location[0]' e '[1]': a lista [x, y] do JSON, item a item
+--     (começa no 0).
+--   * O WITH lê 42 campos e a tabela tem 39 colunas: o aerial_won vem de
+--     4 lugares (pass, shot, clearance, miscontrol) e o card de 2
+--     (foul_committed, bad_behaviour, D8). O COALESCE pega o primeiro que
+--     não for NULL; cada lance tem no máximo um deles. Por isso o SELECT
+--     lista as colunas na ordem da tabela, em vez de e.*.
+--   * xG lido como FLOAT e convertido para DECIMAL(11,10) (D9): 7 chutes
+--     vêm em notação científica (1.8E-4), que o DECIMAL não lê, e 18.722
+--     dos 37.888 têm 9 ou 10 casas. Testado: 0 diferenças do JSON.
+--   * Cada INSERT grava sozinho: se o laço parar no meio, o que entrou
+--     antes fica. O TRUNCATE do começo deixa rodar de novo do zero.
+--   * RAISERROR(..., 0, ...) WITH NOWAIT: nível 0 não é erro; mostra o
+--     progresso na hora (o PRINT só aparece no fim do lote).
+-- Conferido em 2026-11-08 (~4 min): 1.517 partidas, 5.321.459 eventos;
+-- gols dos eventos (chute Goal + Own Goal For) = placar da sb_matches em
+-- todas as partidas; Chelsea 59 pró e 53 contra, xG 1,41 e xG contra
+-- 1,26 por jogo (igual ao levantamento); 196 vermelhos, 217 segundos
+-- amarelos e 6.682 amarelos; vermelho do Courtois aos 51:37 (3754078).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE stg.sb_events;
+
+DECLARE @match_id INT = 0, @sql NVARCHAR(MAX), @json VARCHAR(MAX), @arquivos INT = 0;
+
+WHILE 1 = 1
+BEGIN
+    SELECT @match_id = MIN(match_id) FROM stg.sb_matches WHERE match_id > @match_id;
+    IF @match_id IS NULL BREAK;
+
+    SET @sql = N'SELECT @json = CAST(BulkColumn AS varchar(max)) FROM OPENROWSET(BULK ''C:\dados\chelsea_scouting\statsbomb\events\'
+             + CAST(@match_id AS NVARCHAR(10)) + N'.json'', SINGLE_BLOB) AS arq;';
+    EXEC sp_executesql @sql, N'@json VARCHAR(MAX) OUTPUT', @json = @json OUTPUT;
+
+    INSERT INTO stg.sb_events
+    SELECT @match_id, e.event_index, e.id, e.period, e.[timestamp], e.minute, e.second,
+           e.type_id, e.type_name, e.possession, e.possession_team_id, e.play_pattern,
+           e.team_id, e.player_id, e.position_id, e.location_x, e.location_y,
+           e.under_pressure, e.counterpress,
+           e.pass_end_location_x, e.pass_end_location_y, e.pass_outcome, e.pass_type,
+           e.pass_height, e.pass_cross, e.pass_shot_assist, e.pass_goal_assist,
+           e.carry_end_location_x, e.carry_end_location_y,
+           e.dribble_outcome, e.duel_type, e.duel_outcome, e.interception_outcome,
+           e.ball_recovery_recovery_failure,
+           COALESCE(e.pass_aerial_won, e.shot_aerial_won, e.clearance_aerial_won, e.miscontrol_aerial_won),
+           CAST(e.shot_statsbomb_xg AS DECIMAL(11,10)), e.shot_type, e.shot_outcome,
+           COALESCE(e.foul_committed_card, e.bad_behaviour_card)
+    FROM OPENJSON(@json)
+    WITH (
+        event_index                     INT              '$.index',
+        id                              UNIQUEIDENTIFIER '$.id',
+        period                          INT              '$.period',
+        [timestamp]                     TIME(3)          '$.timestamp',
+        minute                          INT              '$.minute',
+        second                          INT              '$.second',
+        type_id                         INT              '$.type.id',
+        type_name                       NVARCHAR(50)     '$.type.name',
+        possession                      INT              '$.possession',
+        possession_team_id              INT              '$.possession_team.id',
+        play_pattern                    NVARCHAR(50)     '$.play_pattern.name',
+        team_id                         INT              '$.team.id',
+        player_id                       INT              '$.player.id',
+        position_id                     INT              '$.position.id',
+        location_x                      DECIMAL(5,2)     '$.location[0]',
+        location_y                      DECIMAL(5,2)     '$.location[1]',
+        under_pressure                  BIT              '$.under_pressure',
+        counterpress                    BIT              '$.counterpress',
+        pass_end_location_x             DECIMAL(5,2)     '$.pass.end_location[0]',
+        pass_end_location_y             DECIMAL(5,2)     '$.pass.end_location[1]',
+        pass_outcome                    NVARCHAR(50)     '$.pass.outcome.name',
+        pass_type                       NVARCHAR(50)     '$.pass.type.name',
+        pass_height                     NVARCHAR(50)     '$.pass.height.name',
+        pass_cross                      BIT              '$.pass.cross',
+        pass_shot_assist                BIT              '$.pass.shot_assist',
+        pass_goal_assist                BIT              '$.pass.goal_assist',
+        carry_end_location_x            DECIMAL(5,2)     '$.carry.end_location[0]',
+        carry_end_location_y            DECIMAL(5,2)     '$.carry.end_location[1]',
+        dribble_outcome                 NVARCHAR(50)     '$.dribble.outcome.name',
+        duel_type                       NVARCHAR(50)     '$.duel.type.name',
+        duel_outcome                    NVARCHAR(50)     '$.duel.outcome.name',
+        interception_outcome            NVARCHAR(50)     '$.interception.outcome.name',
+        ball_recovery_recovery_failure  BIT              '$.ball_recovery.recovery_failure',
+        pass_aerial_won                 BIT              '$.pass.aerial_won',
+        shot_aerial_won                 BIT              '$.shot.aerial_won',
+        clearance_aerial_won            BIT              '$.clearance.aerial_won',
+        miscontrol_aerial_won           BIT              '$.miscontrol.aerial_won',
+        shot_statsbomb_xg               FLOAT            '$.shot.statsbomb_xg',   -- D9
+        shot_type                       NVARCHAR(50)     '$.shot.type.name',
+        shot_outcome                    NVARCHAR(50)     '$.shot.outcome.name',
+        foul_committed_card             NVARCHAR(50)     '$.foul_committed.card.name',
+        bad_behaviour_card              NVARCHAR(50)     '$.bad_behaviour.card.name'
+    ) AS e;
+
+    SET @arquivos += 1;
+    IF @arquivos % 100 = 0 RAISERROR('%d arquivos', 0, 1, @arquivos) WITH NOWAIT;
+END;
+
+PRINT CONCAT(@arquivos, ' arquivos lidos');
+GO
+
+-- ---------------------------------------------------------------------
+-- Conferência: eventos, partidas, gols e xG por liga; Chelsea; cartões
+-- Esperado: La Liga 1.295.354 | 380 | 1.043, Ligue 1 1.358.593 | 377 |
+--           949, Premier League 1.313.773 | 380 | 1.026, Serie A
+--           1.353.739 | 380 | 979 (total 5.321.459; 37.888 chutes);
+--           0 partidas com gols diferentes do placar; Chelsea 59 | 53,
+--           xG 1,41 | 1,26 por jogo; Red Card 196, Second Yellow 217,
+--           Yellow Card 6.682
+-- ---------------------------------------------------------------------
+SELECT m.competition_name,
+       COUNT(*)                                     AS eventos,
+       COUNT(DISTINCT e.match_id)                   AS partidas,
+       SUM(CASE WHEN e.shot_outcome = 'Goal' OR e.type_name = 'Own Goal For'
+                THEN 1 ELSE 0 END)                  AS gols,
+       COUNT(e.shot_statsbomb_xg)                   AS chutes,
+       SUM(e.shot_statsbomb_xg)                     AS xg
+FROM stg.sb_events e
+JOIN stg.sb_matches m ON m.match_id = e.match_id
+GROUP BY m.competition_name
+ORDER BY m.competition_name;
+
+SELECT COUNT(*) AS partidas_com_gols_diferentes_do_placar
+FROM stg.sb_matches m
+CROSS APPLY (SELECT SUM(CASE WHEN e.shot_outcome = 'Goal' OR e.type_name = 'Own Goal For'
+                             THEN 1 ELSE 0 END) AS gols
+             FROM stg.sb_events e WHERE e.match_id = m.match_id) g
+WHERE ISNULL(g.gols, -1) <> m.home_score + m.away_score;
+
+SELECT SUM(CASE WHEN e.team_id = 33 AND (e.shot_outcome = 'Goal' OR e.type_name = 'Own Goal For') THEN 1 ELSE 0 END) AS chelsea_pro,
+       SUM(CASE WHEN e.team_id <> 33 AND (e.shot_outcome = 'Goal' OR e.type_name = 'Own Goal For') THEN 1 ELSE 0 END) AS chelsea_contra,
+       CAST(SUM(CASE WHEN e.team_id = 33 THEN e.shot_statsbomb_xg END) / 38 AS DECIMAL(5,2))  AS xg_por_jogo,
+       CAST(SUM(CASE WHEN e.team_id <> 33 THEN e.shot_statsbomb_xg END) / 38 AS DECIMAL(5,2)) AS xg_contra_por_jogo
+FROM stg.sb_events e
+JOIN stg.sb_matches m ON m.match_id = e.match_id
+WHERE 33 IN (m.home_team_id, m.away_team_id);
+
+SELECT card, COUNT(*) AS cartoes
+FROM stg.sb_events
+WHERE card IS NOT NULL
+GROUP BY card
+ORDER BY card;
 GO

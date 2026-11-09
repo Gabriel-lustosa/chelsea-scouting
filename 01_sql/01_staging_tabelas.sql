@@ -112,7 +112,9 @@ CREATE TABLE stg.sb_lineups (
 -- match_id não está no lance: vem do nome do arquivo (<match_id>.json).
 -- Chave = (match_id, event_index): grava os lances em ordem no disco.
 -- O id (GUID) é único, mas aleatório: como chave, espalharia as linhas.
--- DECIMAL em vez de FLOAT: soma exata do xG nas conferências.
+-- DECIMAL em vez de FLOAT: soma exata do xG nas conferências. O xG
+-- tem até 10 casas e às vezes vem em notação científica (1.8E-4): a
+-- carga lê como FLOAT e converte para DECIMAL(11,10) sem perda (D9).
 -- BIT: o StatsBomb só manda o campo quando é verdade; ausente = NULL.
 -- ---------------------------------------------------------------------
 DROP TABLE IF EXISTS stg.sb_events;
@@ -157,9 +159,13 @@ CREATE TABLE stg.sb_events (
     -- aerial_won aparece em pass, shot, clearance e miscontrol: junta os 4
     aerial_won                      BIT              NULL,
     -- chute
-    shot_statsbomb_xg               DECIMAL(9,8)     NULL,
+    shot_statsbomb_xg               DECIMAL(11,10)   NULL,       -- até 10 casas no JSON (D9)
     shot_type                       NVARCHAR(50)     NULL,       -- Open Play, Penalty, Free Kick...
     shot_outcome                    NVARCHAR(50)     NULL,
+    -- cartão (D8): foul_committed.card ou bad_behaviour.card, junta os 2
+    -- (o type_name diz de qual veio). Corta os minutos do expulso no
+    -- fato_atuacao: o lineup só registra 30 das 413 expulsões.
+    card                            NVARCHAR(50)     NULL,       -- Yellow Card, Second Yellow, Red Card
     CONSTRAINT pk_sb_events PRIMARY KEY (match_id, event_index)
 );
 GO
