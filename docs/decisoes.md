@@ -19,6 +19,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D13 | 2026-11-09 | `dim_posicao`: 9 grupos com os setores do levantamento (meia aberto no Meio, ponta e atacante no Ataque), nomes em português, lado, escopo e ordem de exibição | Decidida |
 | D14 | 2026-11-09 | `dim_time`: times ligados ao Transfermarkt pelas partidas (votação por data, liga e placar, 80/80), os 80 do StatsBomb agora e os clubes do TM no Bloco 2, com nome curto, posição final em 2015/16 e marcação dos times do estudo | Decidida |
 | D15 | 2026-11-09 | `dim_partida` no grão partida × time (2 linhas por partida), as 1.517 do StatsBomb agora e os jogos do TM no Bloco 2, com técnico e formação do Transfermarkt | Decidida |
+| D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
 
 ---
 
@@ -515,3 +516,38 @@ As 1.517 partidas (3.034 linhas) entram já com `tm_game_id` e `tm_club_id`. No 
 O técnico e a formação vêm do Transfermarkt: completo nos 3.034 lados, nome curto e a mesma fonte dos jogos do Bloco 2. Os gols também vêm do TM (iguais ao StatsBomb nas 1.517).
 
 **Descartadas:** *técnico do StatsBomb* (`COALESCE(apelido, nome)`): 58 lados vazios, um nome com TAB, e o Bloco 2 teria que usar o TM de qualquer jeito; *só chaves, data, mando, adversário e resultado*: sem técnico, e o corte Mourinho × Hiddink é central (D6.1). Estádio, árbitro, público e horário ficam fora (não respondem às 3 perguntas; podem entrar depois).
+
+---
+
+## D16 — `dim_jogador`: nome, atributos de 2015/16 e colunas que chegam depois
+
+**Contexto** (2026-11-09): o StatsBomb tem 2.176 jogadores nas escalações. Só 9 aparecem com dois nomes no mesmo `player_id`: 8 pelo apóstrofo duplicado do JSON (`N''Golo` × `N'Golo`, `O''Shea`, `M''Vila`) e o Fernandinho ("Rosa" em 32 jogos, "Roza" em 1). 1.310 (60%) não têm apelido, e nesses o nome já é o usado no dia a dia ("Eden Hazard"); com apelido, o nome completo é longo ("Willian Borges da Silva"). 7 jogadores têm dois países e 1 não tem país. 103 trocaram de time durante a temporada (Cuadrado Chelsea → Juventus, Shelvey Swansea → Newcastle). 33.391 dos 56.884 trechos de posição não têm hora de fim, e o corte dos expulsos (D8) ainda não foi feito: os minutos certos só saem na `fato_desempenho`.
+
+### D16.1 — Nome de exibição + nome completo
+
+`nome` = apelido, ou o nome quando não há apelido, com `''` trocado por `'`; quando ainda sobra mais de uma versão, fica a de mais partidas. `nome_completo` também fica, para as regras 2 e 3 da ligação com o Transfermarkt (D10.1).
+
+**Descartada:** *só o nome completo*: "Willian Borges da Silva" e "Francesc Fàbregas i Soler" nos gráficos.
+
+### D16.2 — País, time do fim da temporada e marcações
+
+| Coluna | Regra |
+|---|---|
+| `pais` | O mais frequente nas escalações |
+| `time_fim_2015_16` | Time do último jogo da temporada: quem negociaria o jogador na janela. O time de cada partida continua na fato (`sk_time`) |
+| `trocou_de_time_2015_16` | 1 nos 103 que jogaram por mais de um time |
+| `eh_elenco_chelsea_2015_16` | 1 nos 28 que jogaram pelo Chelsea (inclui o Cuadrado, que terminou na Juventus) |
+
+**Descartadas:** *time com mais jogos*: para quem trocou em janeiro, mostra o time antigo, que não negociaria mais o jogador; *sem time na dimensão*: sem filtro direto do elenco e lista de Mercado sem clube.
+
+### D16.3 — Posição principal preenchida depois da `fato_desempenho`
+
+`posicao_principal` e `grupo_principal` (os de mais minutos) são criadas agora, vazias, e preenchidas por `UPDATE` na aula da `fato_desempenho`, com os minutos certos (acréscimos e expulsões). Servem de rótulo e filtro ("Kanté · Volante"). O mínimo de 900 minutos continua sendo **no grupo** (D6.3), por medida DAX sobre a fato.
+
+**Descartadas:** *calcular agora pela contagem de trechos*: quem entra aos 85 minutos contaria como um jogo inteiro; *sem posição principal*: sem rótulo na lista de jogadores.
+
+### D16.4 — Colunas do Transfermarkt criadas agora, preenchidas no Bloco 2
+
+`tm_player_id`, `data_nascimento`, `idade_2016` (em 01/07/2016, D6.6), `pe` e `altura_cm` são criadas vazias e preenchidas por `UPDATE` depois da ligação. `sb_player_id` e `tm_player_id` ficam únicos por índice filtrado, porque no Bloco 2 entram os jogadores do Chelsea 2014/15 que não estão no StatsBomb (D10.3), com `sb_player_id` NULL.
+
+**Descartada:** *criar as colunas só no Bloco 2* (refazendo o `CREATE` ou com `ALTER TABLE`): mexe de novo na estrutura de uma tabela já carregada.
