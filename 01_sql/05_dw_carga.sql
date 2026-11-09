@@ -11,12 +11,13 @@
 --   [x] dw.dim_liga        65 competições TM + 4 faltantes      Aula 11
 --   [x] dw.dim_posicao     25 posições, 9 grupos, 4 setores     Aula 12
 --   [x] dw.dim_time        80 times SB ligados ao TM por votação Aula 13
---   [ ] dw.dim_partida
+--   [x] dw.dim_partida     1.517 partidas SB x 2 lados (D15)    Aula 14
 --   [ ] dw.dim_jogador
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
---   [ ] ligação de partidas e jogadores (os times já na D14.1)
+--   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
+--   [ ] dw.dim_partida     jogos só do TM (sb_match_id NULL)
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Como funciona:
@@ -306,6 +307,76 @@ ORDER BY t.sb_team_id;
 RAISERROR('dw.dim_time ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_partida: 1.517 partidas do StatsBomb × 2 lados = 3.034 (D15)
+-- * Ligação SB × TM pela D6.4: data + mandante + visitante, com os
+--   clubes TM vindos da dim_time (1.517/1.517, placar igual em todas).
+-- * A dim_time entra duas vezes: tc (time da casa) e tf (time de fora).
+-- * O UNION ALL abre cada partida em 2 linhas. Os nomes das colunas vêm
+--   só da 1ª metade; na 2ª vale a ordem, com casa e fora trocados.
+-- * Técnico, formação e gols do Transfermarkt (D15.3).
+-- * ORDER BY: o sk_partida segue a data; dentro da partida, 'Casa' vem
+--   antes de 'Fora'.
+-- Conferido em 2026-11-09: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.dim_partida;
+
+WITH partidas AS (          -- 1. cada partida SB com o seu jogo TM (D6.4: data + mandante + visitante)
+    SELECT m.match_id, m.match_week, m.home_team_id, m.away_team_id,
+           g.game_id, g.competition_id, g.season, g.date,
+           g.home_club_id, g.away_club_id, g.home_club_goals, g.away_club_goals,
+           g.home_club_manager_name, g.away_club_manager_name,
+           g.home_club_formation, g.away_club_formation,
+           tc.nome AS nome_casa, tf.nome AS nome_fora,
+           tc.posicao_2015_16 AS posicao_casa, tf.posicao_2015_16 AS posicao_fora
+    FROM stg.sb_matches m
+    JOIN dw.dim_time tc ON tc.sb_team_id = m.home_team_id
+    JOIN dw.dim_time tf ON tf.sb_team_id = m.away_team_id
+    JOIN stg.tm_games g ON g.home_club_id = tc.tm_club_id
+                       AND g.away_club_id = tf.tm_club_id
+                       AND g.date = m.match_date
+),
+lados AS (                  -- 2. cada partida vira 2 linhas: o lado do mandante e o do visitante
+    SELECT match_id, home_team_id AS sb_team_id, game_id, home_club_id AS tm_club_id,
+           competition_id, season, date, match_week, nome_casa, nome_fora,
+           home_club_goals, away_club_goals,
+           N'Casa' AS mando, nome_fora AS adversario, posicao_fora AS posicao_adversario,
+           home_club_manager_name AS tecnico, away_club_manager_name AS tecnico_adversario,
+           home_club_formation AS formacao, away_club_formation AS formacao_adversario,
+           home_club_goals AS gols_pro, away_club_goals AS gols_contra
+    FROM partidas
+    UNION ALL
+    SELECT match_id, away_team_id, game_id, away_club_id,
+           competition_id, season, date, match_week, nome_casa, nome_fora,
+           home_club_goals, away_club_goals,
+           N'Fora', nome_casa, posicao_casa,
+           away_club_manager_name, home_club_manager_name,
+           away_club_formation, home_club_formation,
+           away_club_goals, home_club_goals
+    FROM partidas
+)
+INSERT INTO dw.dim_partida (sb_match_id, sb_team_id, tm_game_id, tm_club_id, data, temporada, liga,
+                            rodada, confronto, mando, adversario, posicao_adversario_2015_16,
+                            tecnico, tecnico_adversario, formacao, formacao_adversario,
+                            gols_pro, gols_contra, resultado)
+SELECT x.match_id, x.sb_team_id, x.game_id, x.tm_club_id, x.date,
+       CONCAT(x.season, '/', RIGHT(x.season + 1, 2)),
+       l.nome,
+       x.match_week,
+       CONCAT(x.nome_casa, ' ', x.home_club_goals, ' x ', x.away_club_goals, ' ', x.nome_fora),
+       x.mando, x.adversario, x.posicao_adversario,
+       x.tecnico, x.tecnico_adversario, x.formacao, x.formacao_adversario,
+       x.gols_pro, x.gols_contra,
+       CASE WHEN x.gols_pro > x.gols_contra THEN N'Vitória'
+            WHEN x.gols_pro = x.gols_contra THEN N'Empate'
+            ELSE N'Derrota' END
+FROM lados x
+JOIN dw.dim_liga l ON l.tm_competition_id = x.competition_id
+ORDER BY x.date, x.match_id, x.mando;
+
+RAISERROR('dw.dim_partida ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -414,4 +485,34 @@ SELECT liga_2015_16, posicao_2015_16, nome, nome_tm
 FROM dw.dim_time
 WHERE posicao_2015_16 <= 4 OR nome = N'Chelsea'
 ORDER BY liga_2015_16, posicao_2015_16;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_partida
+-- Esperado: 3.034 linhas, 1.517 partidas SB e 1.517 jogos TM, técnico
+--           em todas; espelho casa × fora: Casa V 675 / E 402 / D 440,
+--           Fora V 440 / E 402 / D 675; Chelsea: Hiddink 21 jogos
+--           7/11/3 (38 x 26), Mourinho 16 jogos 4/3/9 (18 x 26), Steve
+--           Holland 1 jogo 1/0/0 (3 x 1) = 12/14/12, 59 x 53.
+-- ---------------------------------------------------------------------
+SELECT COUNT(*) AS linhas,
+       COUNT(DISTINCT sb_match_id) AS partidas_sb,
+       COUNT(DISTINCT tm_game_id) AS jogos_tm,
+       COUNT(tecnico) AS com_tecnico
+FROM dw.dim_partida;
+
+SELECT mando, resultado, COUNT(*) AS linhas
+FROM dw.dim_partida
+GROUP BY mando, resultado
+ORDER BY mando, resultado;
+
+SELECT p.tecnico, COUNT(*) AS jogos,
+       SUM(CASE WHEN p.resultado = N'Vitória' THEN 1 ELSE 0 END) AS vitorias,
+       SUM(CASE WHEN p.resultado = N'Empate'  THEN 1 ELSE 0 END) AS empates,
+       SUM(CASE WHEN p.resultado = N'Derrota' THEN 1 ELSE 0 END) AS derrotas,
+       SUM(p.gols_pro) AS gols_pro, SUM(p.gols_contra) AS gols_contra
+FROM dw.dim_partida p
+JOIN dw.dim_time t ON t.sb_team_id = p.sb_team_id
+WHERE t.nome = N'Chelsea'
+GROUP BY p.tecnico;
 GO

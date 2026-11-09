@@ -12,11 +12,11 @@
 --   [x] dw.dim_liga                                            Aula 11
 --   [x] dw.dim_posicao                                         Aula 12
 --   [x] dw.dim_time                                            Aula 13
---   [ ] dw.dim_partida
+--   [x] dw.dim_partida                                         Aula 14
 --   [ ] dw.dim_jogador
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
---   [ ] ligação de partidas e jogadores (os times já na D14.1)
+--   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Padrões (D10.4 e D11):
@@ -137,4 +137,43 @@ CREATE TABLE dw.dim_time (
 CREATE UNIQUE INDEX uq_dim_time_sb_team_id
     ON dw.dim_time (sb_team_id)
     WHERE sb_team_id IS NOT NULL;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_partida: grão partida × time (D15). Duas linhas por partida,
+-- cada uma vista do lado de um time. As 1.517 do StatsBomb agora; no
+-- Bloco 2, os jogos só do TM, com sb_match_id e sb_team_id NULL.
+-- * As chaves únicas têm duas colunas: a mesma partida aparece duas
+--   vezes (uma por time), mas o par partida + time só uma vez.
+-- * Contar partidas no Power BI: DISTINCTCOUNT(sb_match_id).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.dim_partida;
+CREATE TABLE dw.dim_partida (
+    sk_partida                  INT IDENTITY(1,1) NOT NULL,   -- chave do DW (na ordem da data)
+    sb_match_id                 INT           NULL,           -- partida StatsBomb (NULL nos jogos só do TM, Bloco 2)
+    sb_team_id                  INT           NULL,           -- time StatsBomb deste lado
+    tm_game_id                  INT           NOT NULL,       -- jogo Transfermarkt
+    tm_club_id                  INT           NOT NULL,       -- clube Transfermarkt deste lado
+    data                        DATE          NOT NULL,
+    temporada                   NVARCHAR(7)   NOT NULL,       -- '2015/16' (do jogo, D11)
+    liga                        NVARCHAR(100) NOT NULL,       -- dim_liga.nome
+    rodada                      INT           NULL,           -- 1 a 38
+    confronto                   NVARCHAR(200) NOT NULL,       -- 'Chelsea 2 x 2 Swansea City' (mandante primeiro)
+    mando                       NVARCHAR(4)   NOT NULL,       -- 'Casa' ou 'Fora'
+    adversario                  NVARCHAR(200) NOT NULL,
+    posicao_adversario_2015_16  INT           NULL,           -- posição final do adversário
+    tecnico                     NVARCHAR(100) NULL,           -- técnico deste lado (TM)
+    tecnico_adversario          NVARCHAR(100) NULL,
+    formacao                    NVARCHAR(30)  NULL,           -- '4-2-3-1' (TM)
+    formacao_adversario         NVARCHAR(30)  NULL,
+    gols_pro                    INT           NOT NULL,
+    gols_contra                 INT           NOT NULL,
+    resultado                   NVARCHAR(10)  NOT NULL,       -- 'Vitória', 'Empate', 'Derrota'
+    CONSTRAINT pk_dim_partida PRIMARY KEY (sk_partida),
+    CONSTRAINT uq_dim_partida_tm UNIQUE (tm_game_id, tm_club_id)
+);
+
+CREATE UNIQUE INDEX uq_dim_partida_sb
+    ON dw.dim_partida (sb_match_id, sb_team_id)
+    WHERE sb_match_id IS NOT NULL;
 GO
