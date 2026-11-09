@@ -18,6 +18,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D12 | 2026-11-09 | `dim_liga`: as 65 competições do Transfermarkt mais as 4 que faltam no CSV, com nome por regra (e exceções) e tipo em português | Decidida |
 | D13 | 2026-11-09 | `dim_posicao`: 9 grupos com os setores do levantamento (meia aberto no Meio, ponta e atacante no Ataque), nomes em português, lado, escopo e ordem de exibição | Decidida |
 | D14 | 2026-11-09 | `dim_time`: times ligados ao Transfermarkt pelas partidas (votação por data, liga e placar, 80/80), os 80 do StatsBomb agora e os clubes do TM no Bloco 2, com nome curto, posição final em 2015/16 e marcação dos times do estudo | Decidida |
+| D15 | 2026-11-09 | `dim_partida` no grão partida × time (2 linhas por partida), as 1.517 do StatsBomb agora e os jogos do TM no Bloco 2, com técnico e formação do Transfermarkt | Decidida |
 
 ---
 
@@ -484,3 +485,33 @@ Os 80 times entram já com `sb_team_id` e `tm_club_id`. No Bloco 2 entram os clu
 A `posicao_2015_16` responde direto ao "contra os 4 primeiros" da visão por setor (D5).
 
 **Descartada:** *só os dois IDs, nome e país*: a comparação com os 4 primeiros teria que ser montada no DAX.
+
+---
+
+## D15 — `dim_partida`: grão, recorte e colunas
+
+**Contexto** (2026-11-09): com a `dim_time` pronta, a regra da D6.4 para as partidas (data + mandante + visitante) casou **1.517 de 1.517** partidas do StatsBomb com jogos diferentes do Transfermarkt, todas com o mesmo placar. O técnico vem preenchido em 3.034 de 3.034 lados de partida no TM e em 2.976 no StatsBomb (58 vazios, quase todos na Ligue 1; nomes completos e um com TAB no fim). Os 2.175 jogadores das 4 ligas jogaram cerca de 45 mil jogos TM de 2014 a 2026 (71 mil combinações jogo × time).
+
+### D15.1 — Grão: partida × time
+
+Duas linhas por partida, cada uma vista do lado de um time (mando, adversário, técnico, gols pró e contra, resultado). As fatos ligam pela partida + time do jogador: a `fato_desempenho` pelo `sb_match_id` + `sb_team_id`, a `fato_atuacao` pelo `tm_game_id` + `tm_club_id` (o TM traz o clube do jogador em cada jogo). Assim, Mourinho × Hiddink, casa × fora, resultado e "contra os 4 primeiros" viram filtros diretos. Contar partidas pede `DISTINCTCOUNT` (cada uma tem 2 linhas).
+
+**Descartada:** *uma linha por partida, com mandante e visitante*: o técnico "do meu time" exigiria `eh_mandante` na fato e escolha no DAX, e o adversário uma 2ª relação inativa com a `dim_time` e `USERELATIONSHIP` em cada medida.
+
+### D15.2 — Agora as 1.517 do StatsBomb; no Bloco 2, os jogos do TM
+
+As 1.517 partidas (3.034 linhas) entram já com `tm_game_id` e `tm_club_id`. No Bloco 2 entram os jogos TM das atuações dos jogadores ligados, com `sb_match_id` e `sb_team_id` NULL (mesmo padrão da D14.2).
+
+**Descartadas:** *os 88.958 jogos do TM agora* (cerca de 178 mil linhas, quase todas sem jogador ligado); *só as do StatsBomb*: o `fato_atuacao` ficaria sem partida, técnico e resultado.
+
+### D15.3 — Colunas, com técnico e formação do Transfermarkt
+
+| Grupo | Colunas |
+|---|---|
+| Chaves | `sk_partida` (`IDENTITY`, na ordem da data), `sb_match_id` + `sb_team_id` (únicas por índice filtrado, NULL no Bloco 2), `tm_game_id` + `tm_club_id` (`UNIQUE`) |
+| Partida | `data`, `temporada` (do jogo, D11), `liga` (`dim_liga.nome`), `rodada`, `confronto` ("Chelsea 2 x 2 Swansea City", mandante primeiro) |
+| Lado do time | `mando` (Casa / Fora), `adversario`, `posicao_adversario_2015_16`, `tecnico`, `tecnico_adversario`, `formacao`, `formacao_adversario`, `gols_pro`, `gols_contra`, `resultado` (Vitória / Empate / Derrota) |
+
+O técnico e a formação vêm do Transfermarkt: completo nos 3.034 lados, nome curto e a mesma fonte dos jogos do Bloco 2. Os gols também vêm do TM (iguais ao StatsBomb nas 1.517).
+
+**Descartadas:** *técnico do StatsBomb* (`COALESCE(apelido, nome)`): 58 lados vazios, um nome com TAB, e o Bloco 2 teria que usar o TM de qualquer jeito; *só chaves, data, mando, adversário e resultado*: sem técnico, e o corte Mourinho × Hiddink é central (D6.1). Estádio, árbitro, público e horário ficam fora (não respondem às 3 perguntas; podem entrar depois).
