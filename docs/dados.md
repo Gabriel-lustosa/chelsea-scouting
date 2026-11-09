@@ -73,6 +73,8 @@ Aplicado em 2026-11-04. Para desfazer: `icacls "C:\dados\chelsea_scouting" /remo
 
 O arquivo é lido em binário (`SINGLE_BLOB`) e convertido com `CAST(BulkColumn AS varchar(max))`. Isso só acerta os acentos porque os bancos do projeto foram criados com collation UTF-8 (`Latin1_General_100_CI_AS_SC_UTF8`, em `01_sql/00_criar_bancos.sql`). Num banco com a collation do servidor (`Latin1_General_CI_AS`), o mesmo `CAST` lê os bytes como Windows-1252 e estraga os acentos ("FÃ bregas"), e acrescentar `COLLATE` depois não conserta.
 
+Os CSVs do Transfermarkt entram com `BULK INSERT ... WITH (FORMAT = 'CSV', FIRSTROW = 2, CODEPAGE = '65001', ROWTERMINATOR = '0x0a')` (`01_sql/03_carga_transfermarkt.sql`). Os arquivos terminam a linha só com LF. No `BULK INSERT`, `'\n'` quer dizer CRLF, e com ele a carga falha com o erro 7301 (`IID_IColumnsInfo`), que não indica a causa.
+
 ---
 
 ## 4. Conferência
@@ -82,6 +84,12 @@ O arquivo é lido em binário (`SINGLE_BLOB`) e convertido com `CAST(BulkColumn 
 | Gols do Chelsea em 2015/16 (pró / contra) | 59 / 53 | 59 / 53 |
 | Gols da Premier League 2015/16 | 1.026 | 1.026 |
 | Partidas | 380 | 380 |
+| Partidas / gols de 2015/16: La Liga | 380 / 1.043 | 380 / 1.043 |
+| Partidas / gols de 2015/16: Serie A | 380 / 979 | 380 / 979 |
+| Partidas / gols de 2015/16: Ligue 1 | 377 / 949 | 380 / 960 (3 partidas a mais) |
+| Jogadores do Chelsea na Premier League 2015/16 | 28 (escalações) | 28 (appearances) |
+
+Conferido na staging do SQL Server em 2026-11-09 (`02_carga_statsbomb.sql` e `03_carga_transfermarkt.sql`).
 
 ---
 
