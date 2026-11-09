@@ -12,6 +12,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida |
 | D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
 | D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
+| D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
 
 ---
 
@@ -267,3 +268,15 @@ O SQL Server não lê `.gz` direto. Um passo novo no `baixar_dados.ps1` descompa
 **Descartadas:**
 - *Duas colunas* (`foul_committed_card` e `bad_behaviour_card`): mais fiel ao caminho do JSON, mas o fato teria que juntar as duas depois, sem ganho de informação.
 - *Deixar sem cartão*: os minutos sairiam só do lineup e os expulsos ganhariam tempo a mais, o que distorce os indicadores por 90 minutos.
+
+---
+
+## D9 — Tipo do xG na staging de eventos
+
+**Contexto:** a primeira carga da `stg.sb_events` (Aula 8, 2026-11-08) parou no arquivo `3754162.json` com o erro 8114 ("Erro ao converter tipo de dados nvarchar em decimal"). Em 7 chutes o xG vem em notação científica (`"statsbomb_xg" : 1.8E-4`), que o `DECIMAL` não lê. A contagem nos 1.517 arquivos mostrou outro problema: dos 37.888 xG, 17.725 têm 9 casas e 997 têm 10, então a coluna `DECIMAL(9,8)` da D7.2 já arredondava 18.722 valores. Não cumpria a "soma exata" que justificou o `DECIMAL`.
+
+**Decisão:** coluna `shot_statsbomb_xg DECIMAL(11,10)`. No `OPENJSON ... WITH` o xG é lido como `FLOAT`, que entende o `E-4`, e convertido no `SELECT` com `CAST(... AS DECIMAL(11,10))`. **Teste nos 1.517 arquivos:** 0 diferenças entre esse caminho e o número escrito no JSON, e os 7 `1.8E-4` viram `0.0001800000`.
+
+**Descartadas:**
+- *Manter `DECIMAL(9,8)` e só ler como `FLOAT`*: destrava a carga, mas continua arredondando a 9ª e a 10ª casa.
+- *Coluna `FLOAT`*: mais simples, mas a soma deixa de ser exata.
