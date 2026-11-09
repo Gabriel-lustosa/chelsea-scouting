@@ -9,7 +9,7 @@
 -- O arquivo é montado aula a aula, junto com o DW no SSMS:
 --   Bloco 1 — StatsBomb (D10.2)
 --   [x] dw.dim_data                                            Aula 10
---   [ ] dw.dim_liga
+--   [x] dw.dim_liga                                            Aula 11
 --   [ ] dw.dim_posicao
 --   [ ] dw.dim_time
 --   [ ] dw.dim_partida
@@ -60,5 +60,26 @@ CREATE TABLE dw.dim_data (
     periodo_cenario       NVARCHAR(30)  NOT NULL,   -- corte da D6.6 em 30/06/2016
     CONSTRAINT pk_dim_data PRIMARY KEY (sk_data),
     CONSTRAINT uq_dim_data_data UNIQUE (data)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_liga: 69 competições (D12). As 65 do tm_competitions + 4 que
+-- só aparecem nas atuações (CGB, POCP, KLUB, UKRS). sb_competition_id só
+-- nas 4 ligas do StatsBomb.
+-- IDENTITY(1,1): o banco numera o sk_liga sozinho (começa em 1, soma 1).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.dim_liga;
+CREATE TABLE dw.dim_liga (
+    sk_liga            INT IDENTITY(1,1) NOT NULL,   -- chave do DW
+    tm_competition_id  NVARCHAR(10)  NOT NULL,       -- chave do Transfermarkt: GB1, CL...
+    sb_competition_id  INT           NULL,           -- chave do StatsBomb (só nas 4 ligas)
+    nome               NVARCHAR(100) NOT NULL,
+    tipo               NVARCHAR(30)  NOT NULL,       -- 'Liga nacional', 'Copa nacional'...
+    pais               NVARCHAR(100) NULL,           -- NULL nas europeias e de seleções
+    confederacao       NVARCHAR(20)  NULL,
+    eh_liga_do_estudo  BIT           NOT NULL,       -- 1 = uma das 4 ligas do StatsBomb
+    CONSTRAINT pk_dim_liga PRIMARY KEY (sk_liga),
+    CONSTRAINT uq_dim_liga_tm_competition_id UNIQUE (tm_competition_id)
 );
 GO
