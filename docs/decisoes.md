@@ -9,7 +9,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D3 | 2026-11-03 | Pasta e repositório do projeto | Decidida (pasta `dados/` substituída pela D4) |
 | D4 | 2026-11-03 | Dados brutos fora do OneDrive, em `C:\dados\chelsea_scouting` | Decidida |
 | D5 | 2026-11-03 | Escopo: zagueiro, volante e lateral; depois, visão por setor do time | Decidida |
-| D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida (ligação da D6.4 revista na D10.1) |
+| D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida (ligação da D6.4 revista na D10.1 e, nos times, na D14.1) |
 | D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
 | D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
 | D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
@@ -17,6 +17,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D11 | 2026-11-09 | Padrões do DW: estrutura e carga em scripts separados, sem FK declarada (conferência de órfãos), `dim_data` com chave AAAAMMDD de 2014 a 2026 e colunas de temporada e do cenário | Decidida |
 | D12 | 2026-11-09 | `dim_liga`: as 65 competições do Transfermarkt mais as 4 que faltam no CSV, com nome por regra (e exceções) e tipo em português | Decidida |
 | D13 | 2026-11-09 | `dim_posicao`: 9 grupos com os setores do levantamento (meia aberto no Meio, ponta e atacante no Ataque), nomes em português, lado, escopo e ordem de exibição | Decidida |
+| D14 | 2026-11-09 | `dim_time`: times ligados ao Transfermarkt pelas partidas (votação por data, liga e placar, 80/80), os 80 do StatsBomb agora e os clubes do TM no Bloco 2, com nome curto, posição final em 2015/16 e marcação dos times do estudo | Decidida |
 
 ---
 
@@ -186,7 +187,7 @@ A `dim_posicao` tem a hierarquia **posição StatsBomb (25) → grupo → setor*
 
 | Item | Como |
 |---|---|
-| Times (~78) | Tabela manual em CSV, versionada no repositório |
+| Times (~78) | Tabela manual em CSV, versionada no repositório (revisto na D14.1: ligação pelas partidas, sem CSV) |
 | Partidas | Data + mandante + visitante (pela tabela de times), conferindo pelo placar |
 | Jogadores | Dentro da mesma partida e do mesmo time: a Pesquisa Difusa (Fuzzy Lookup) do SSIS compara o nome ou apelido do StatsBomb com o nome do TM entre os ~14 jogadores daquele time no jogo, e os minutos servem de conferência. Os casos que sobrarem vão para um CSV de exceções manuais |
 
@@ -445,3 +446,41 @@ Os setores ficam iguais aos do levantamento, e os achados da D5 continuam compar
 As 25 linhas ficam escritas no script com `VALUES` (a staging não tem tabela de posições), em duas listas: posição → grupo e grupo → setor, ordem e escopo. Assim cada grupo tem um setor só. O `Secondary Striker` entra mesmo sem uso, para a dimensão ficar completa.
 
 **Descartada:** *só id, nome, grupo e setor*: gráficos em ordem alfabética, nomes em inglês e o filtro de escopo refeito em cada visual.
+
+---
+
+## D14 — `dim_time`: ligação dos times e colunas
+
+**Contexto** (2026-11-09): o StatsBomb tem 80 times nas 4 ligas, cada um com um nome só. Os 80 clubes do Transfermarkt nessas ligas em 2015/16 estão todos na `tm_clubs`, mas só 24 dos 80 nomes batem com os do StatsBomb ("Chelsea" × "Chelsea FC", "Lazio" × "Società Sportiva Lazio S.p.A.", "Athletic Club" × "Athletic Bilbao"). As transferências, jogos e avaliações do TM citam 18.636 clubes, dos quais 17.840 não estão na `tm_clubs` (clubes pequenos, categorias de base).
+
+### D14.1 — Ligação dos times pelas partidas, com votação
+
+Cada partida do StatsBomb é cruzada com os jogos do Transfermarkt da mesma liga, na mesma data e com o mesmo placar. Em 297 partidas aparece mais de um jogo possível (mesmo dia, mesmo placar), então uma partida sozinha não decide: para cada time do StatsBomb, conta-se quantas vezes cada clube do TM apareceu no lugar dele, e o mais votado é o par. Testado: **80 de 80 times ligados**, cada um a um clube diferente, com pelo menos 37 votos para o vencedor e no máximo 5 para o segundo.
+
+**O que muda na D6.4:** a tabela manual de times em CSV sai, e a ligação dos times passa do Bloco 2 para o Bloco 1 (D10.2). A ligação das partidas continua como na D6.4 (data + mandante + visitante, pela `dim_time`).
+
+**Descartadas:** *CSV manual com os 80 pares* (D6.4): trabalho à mão, com 56 nomes diferentes; *regras de nome, como nos jogadores*: só 24 iguais, e "Athletic Club" × "Athletic Bilbao" não casa por regra simples.
+
+### D14.2 — Agora os 80 do StatsBomb; no Bloco 2, os clubes do TM
+
+Os 80 times entram já com `sb_team_id` e `tm_club_id`. No Bloco 2 entram os clubes do Transfermarkt que as fatos usarem, com `sb_team_id` NULL, quando o recorte dos jogadores da D10.3 já existir. Para os que não estão na `tm_clubs`, o nome vem das próprias tabelas (ex.: `from_club_name` das transferências).
+
+**Descartadas:** *tudo agora* (80 + 796 da `tm_clubs` + clubes das transferências): sem o recorte dos jogadores, entrariam milhares de clubes sem uso, e o trabalho seria refeito no Bloco 2; *só os 80, para sempre*: o clube de origem e o de destino das transferências da Validação ficariam sem dimensão.
+
+### D14.3 — Colunas
+
+| Coluna | Conteúdo |
+|---|---|
+| `sk_time` | `IDENTITY`, na ordem do `sb_team_id` |
+| `sb_team_id` | Chave do StatsBomb; NULL nos clubes que só existem no TM (Bloco 2). Única pelo índice filtrado `uq_dim_time_sb_team_id` (`WHERE sb_team_id IS NOT NULL`), porque uma `UNIQUE` comum aceita um NULL só |
+| `tm_club_id` | Chave do Transfermarkt (`uq_dim_time_tm_club_id`) |
+| `nome` | Curto, do StatsBomb ("Chelsea", "Lazio"); no Bloco 2, o do TM para quem não está no StatsBomb |
+| `nome_tm` | Nome oficial do Transfermarkt |
+| `pais` | País da liga (`dim_liga.pais`) |
+| `liga_2015_16` | Nome da liga em 2015/16 (`dim_liga.nome`) |
+| `posicao_2015_16` | Posição final, do TM: a da última partida do clube na temporada (`home_club_position` / `away_club_position`). Confere com a tabela real (Leicester 1º, Arsenal, Tottenham, Manchester City; Chelsea 10º). Pelos jogos do StatsBomb não dá: faltam 3 partidas da Ligue 1 |
+| `eh_time_do_estudo` | 1 nos 80 times das 4 ligas |
+
+A `posicao_2015_16` responde direto ao "contra os 4 primeiros" da visão por setor (D5).
+
+**Descartada:** *só os dois IDs, nome e país*: a comparação com os 4 primeiros teria que ser montada no DAX.
