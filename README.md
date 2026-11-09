@@ -85,7 +85,8 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Desenho da carga: OPENJSON no SQL Server | Pronto |
 | Download dos dados (4 ligas, 1.517 partidas) | Pronto |
 | Criação dos bancos e carga da staging | Pronto (10 tabelas da staging criadas; carga das partidas das 4 ligas feita: 1.517; escalações: 56.884 linhas; eventos: 5.321.459, com cartões e xG exato, D8 e D9; Transfermarkt: 7 tabelas, 2,9 milhões de linhas) |
-| DW no SQL Server | Pendente |
+| Desenho do DW: ligação em SQL, dois blocos (D10) | Pronto |
+| DW no SQL Server | Em andamento (Bloco 1: StatsBomb) |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
 | Dashboards Power BI | Pendente |

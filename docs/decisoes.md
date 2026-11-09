@@ -9,10 +9,11 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D3 | 2026-11-03 | Pasta e repositório do projeto | Decidida (pasta `dados/` substituída pela D4) |
 | D4 | 2026-11-03 | Dados brutos fora do OneDrive, em `C:\dados\chelsea_scouting` | Decidida |
 | D5 | 2026-11-03 | Escopo: zagueiro, volante e lateral; depois, visão por setor do time | Decidida |
-| D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida |
+| D6 | 2026-11-04 | Modelo estrela: fato jogador × partida × posição, 4 fatos, KPIs finais, ligação StatsBomb × Transfermarkt e recorte de mercado | Decidida (ligação da D6.4 revista na D10.1) |
 | D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
 | D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
 | D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
+| D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida |
 
 ---
 
@@ -280,3 +281,59 @@ O SQL Server não lê `.gz` direto. Um passo novo no `baixar_dados.ps1` descompa
 **Descartadas:**
 - *Manter `DECIMAL(9,8)` e só ler como `FLOAT`*: destrava a carga, mas continua arredondando a 9ª e a 10ª casa.
 - *Coluna `FLOAT`*: mais simples, mas a soma deixa de ser exata.
+
+---
+
+## D10 — Como montar o DW no SQL Server
+
+**Contexto:** com a staging carregada (Aula 9, 2026-11-09), falta transformar as 10 tabelas no modelo estrela da D6. Antes de decidir, foi testada a ligação de jogadores no elenco do Chelsea: comparando nome e apelido sem acento entre o StatsBomb e o Transfermarkt, dentro do time na temporada, **27 dos 28 jogadores casaram sozinhos**. Só o Mikel ficou de fora (`John Obi Mikel` no StatsBomb, outro nome no Transfermarkt). O SQL Server 2025 tem funções de semelhança de texto (`JARO_WINKLER_SIMILARITY`, `EDIT_DISTANCE_SIMILARITY`), mas elas só funcionam com o recurso em prévia (`PREVIEW_FEATURES`) ligado no banco, e ele está desligado.
+
+**Decisão:** o pacote recomendado, em 4 partes.
+
+### D10.1 — Ligação dos jogadores: em SQL, por regras em ordem, dentro do time × temporada
+
+| Ordem | Regra (sem acento, `COLLATE ..._CI_AI`) |
+|---|---|
+| 1 | Nome do Transfermarkt = apelido do StatsBomb (ou o nome, quando não há apelido) |
+| 2 | Nome do Transfermarkt = nome completo do StatsBomb |
+| 3 | Último sobrenome igual |
+| 4 | O que sobrar vai para um CSV de exceções manuais, versionado no repositório |
+
+Os minutos da temporada nas duas fontes servem de conferência. A meta da D6.4 continua: **≥ 98% dos minutos** do StatsBomb casados. No SSIS, a mesma ligação é refeita com a Pesquisa Difusa (Fuzzy Lookup) e o resultado é comparado com o do SQL (`EXCEPT` nos dois sentidos), como no Olist.
+
+**O que muda na D6.4:** a ligação passa a ser feita no SQL (o DW em SQL continua sendo a referência dos números) e compara os jogadores dentro do **time na temporada**, não dentro de cada partida. Fica mais simples e não depende de ligar as partidas antes. Quem trocou de time em janeiro aparece nos dois elencos e é ligado nos dois.
+
+**Descartadas:**
+- *Somar a regra `JARO_WINKLER_SIMILARITY` antes do CSV de exceções*: menos casos à mão, mas exige ligar o recurso em prévia no banco.
+- *Ligação só no SSIS, como na D6.4*: o DW em SQL deixaria de ser a referência e só ficaria completo depois do SSIS.
+
+### D10.2 — Ordem: dois blocos, primeiro o StatsBomb
+
+| Bloco | Tabelas | Pergunta respondida |
+|---|---|---|
+| 1. StatsBomb | `dim_data`, `dim_liga`, `dim_posicao`, `dim_time`, `dim_partida`, `dim_jogador` (atributos do StatsBomb) e `fato_desempenho` (trechos de posição, corte dos expulsos da D8, ajuste por posse e passe progressivo da D6.5) | Diagnóstico |
+| 2. Transfermarkt | Ligação de times, partidas e jogadores; atributos do TM na `dim_jogador` e na `dim_partida`; `fato_valor_mercado`, `fato_atuacao`, `fato_transferencia` | Mercado e Validação |
+
+A parte mais difícil em SQL (a `fato_desempenho`) não fica esperando a ligação, e a pergunta do Diagnóstico sai cedo.
+
+**Descartadas:**
+- *Todas as ligações e dimensões primeiro, depois as 4 fatos*: segue a ordem de dependência, mas a ligação trava tudo e o primeiro resultado demora.
+- *Transfermarkt inteiro primeiro*: começa pelo mais fácil, mas adia o centro do projeto.
+
+### D10.3 — Transfermarkt no DW: só os jogadores ligados
+
+Entram os jogadores ligados aos 2.176 do StatsBomb 2015/16, mais o elenco do Chelsea em 2014/15 (para a visão por setor 14/15 × 15/16 da D5), com todas as atuações, avaliações e transferências deles de 2014 a 2026.
+
+**Descartadas:**
+- *Transfermarkt inteiro* (50 mil jogadores, 1,9 milhão de atuações): modelo pesado e quase todo sem uso.
+- *Só zagueiros, volantes e laterais*: perde a visão por setor do time inteiro.
+
+### D10.4 — Tabelas no schema `dw`, carregadas por scripts SQL
+
+- Scripts numerados na sequência dos atuais (`04_...`, `05_...`), com `TRUNCATE` + `INSERT`, para poder rodar de novo.
+- Cada dimensão com chave substituta (`INT IDENTITY`) e as chaves das fontes preservadas (`sb_player_id`, `tm_player_id` etc.), como no Olist.
+- Passos intermediários em tabelas da `stg` (ex.: trechos de posição de cada jogador na partida).
+
+**Descartadas:**
+- *Views no `dw` em cima da staging*: a `fato_desempenho` recalcularia 5,3 milhões de eventos a cada leitura.
+- *Stored procedures*: mais uma camada para aprender agora, sem ganho real no portfólio.
