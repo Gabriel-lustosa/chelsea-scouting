@@ -14,6 +14,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
 | D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
 | D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida |
+| D11 | 2026-11-09 | Padrões do DW: estrutura e carga em scripts separados, sem FK declarada (conferência de órfãos), `dim_data` com chave AAAAMMDD de 2014 a 2026 e colunas de temporada e do cenário | Decidida |
 
 ---
 
@@ -337,3 +338,43 @@ Entram os jogadores ligados aos 2.176 do StatsBomb 2015/16, mais o elenco do Che
 **Descartadas:**
 - *Views no `dw` em cima da staging*: a `fato_desempenho` recalcularia 5,3 milhões de eventos a cada leitura.
 - *Stored procedures*: mais uma camada para aprender agora, sem ganho real no portfólio.
+
+---
+
+## D11 — Padrões do DW e a `dim_data`
+
+**Contexto:** antes da primeira tabela do DW (Aula 10, 2026-11-09), faltava definir como os scripts se dividem, se há chave estrangeira e como é a dimensão de datas. Datas encontradas na staging: partidas do StatsBomb de 07/08/2015 a 17/05/2016; atuações do Transfermarkt de 03/07/2012 a 28/06/2026; avaliações desde 2014 (recorte da D10.3) até 12/06/2026; transferências de 01/07/1993 a 30/06/2030 (fim de empréstimo previsto).
+
+**Decisão:** o pacote recomendado, em 4 partes.
+
+### D11.1 — Estrutura e carga em scripts separados
+
+`01_sql/04_dw_tabelas.sql` só cria as tabelas do schema `dw`; `01_sql/05_dw_carga.sql` só carrega (`TRUNCATE` + `INSERT`). Os dois crescem por aula, com checklist no cabeçalho, como os scripts da staging. A carga roda quantas vezes for preciso sem recriar nada, e o `04` também cria as tabelas no banco do SSIS (`chelsea_scouting_ssis`).
+
+**Descartada:** *um script que apaga, cria e carrega cada tabela, como no Olist*: cada recarga recriaria as tabelas, e a estrutura teria que ser copiada para o SSIS.
+
+### D11.2 — Sem chave estrangeira declarada
+
+A integridade entre fato e dimensão é conferida no fim de cada carga de fato (linhas órfãs, esperado 0). O SQL Server não aceita `TRUNCATE` numa tabela referenciada por FK, e o SSAS e o Power BI definem os relacionamentos deles.
+
+**Descartada:** *FKs declaradas, como no Olist*: o banco barraria o órfão sozinho, mas a carga teria que trocar o `TRUNCATE` por `DELETE` + `DBCC CHECKIDENT`, mais lenta na fato.
+
+### D11.3 — `dim_data`: chave AAAAMMDD, de 01/01/2014 a 31/12/2026
+
+Chave inteligente (`20160630`), exceção ao `IDENTITY` da D10.4, como no Olist: é legível, e a fato calcula a chave direto da data. São 4.748 dias, cobrindo as avaliações desde 2014, a temporada 2014/15 e o Transfermarkt até 2026. Datas fora do intervalo (transferências antes de 2014 ou previstas depois de 2026) já ficam fora pelo recorte da D10.3.
+
+**Descartadas:** *1993 a 2030* (38 anos de calendário para usar 13); *chave `IDENTITY`* (toda fato teria que procurar a chave, sem ganho).
+
+### D11.4 — Colunas da `dim_data`: as do Olist + temporada e cenário
+
+As colunas do Olist (ano, trimestre, mês, nomes em português, dia, dia da semana, fim de semana) e mais três:
+
+| Coluna | Regra | Exemplo |
+|---|---|---|
+| `temporada` | De 01/07 a 30/06 | `'2015/16'` |
+| `temporada_ano_inicio` | Ano em que a temporada começa, igual à coluna `season` do Transfermarkt | `2015` |
+| `periodo_cenario` | Corte da D6.6: até 30/06/2016 ou depois | `'Até a janela de 2016'` / `'Depois'` |
+
+**Atenção:** a `temporada` da `dim_data` é a regra do calendário. A temporada **de uma partida** vem da própria partida (`dim_partida`), porque 221 jogos das 4 ligas na temporada 2019/20 foram disputados depois de 30/06/2020 (pandemia), e a regra de 1º de julho os colocaria em 2020/21.
+
+**Descartadas:** *coluna de janela de transferências* (verão = jul/ago, inverno = jan): aproximação, porque as datas reais mudam por país e ano; *só as colunas do Olist, com a temporada no DAX*: a mesma regra se repetiria em várias medidas.
