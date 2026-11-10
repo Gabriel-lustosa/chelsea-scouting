@@ -22,7 +22,7 @@
 --   [x] dw.dim_jogador     tm_player_id dos 2.176 (D18.4)       Aula 19
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
 --   [ ] dw.dim_partida     jogos só do TM (sb_match_id NULL)
---   [ ] dw.dim_jogador     UPDATE dos dados TM + Chelsea 2014/15 fora do SB
+--   [x] dw.dim_jogador     5 do Chelsea 14/15 + atributos TM    Aula 20
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Como funciona:
@@ -896,6 +896,64 @@ JOIN (SELECT DISTINCT sb_player_id, tm_player_id
 RAISERROR('stg.ligacao_jogadores ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador: Bloco 2 (D19.1)
+-- * INSERT dos 5 do elenco do Chelsea 2014/15 que não jogaram em 2015/16
+--   (Drogba, Schürrle, Christensen, Izzy Brown, Solanke), com
+--   sb_player_id NULL. Vêm antes do UPDATE, para receber os atributos.
+--   País com a grafia do StatsBomb, pelo país mais frequente entre os
+--   ligados com o mesmo país no TM (Cote d'Ivoire -> Côte d'Ivoire).
+-- * UPDATE de nascimento, idade em 01/07/2016 (anos completos), pé em
+--   português e altura, da stg.tm_players. Os buracos vêm do TM (1 sem
+--   nascimento, 16 sem pé, 10 sem altura) e ficam NULL.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+-- D19.1: os 5 do elenco do Chelsea 2014/15 que não jogaram em 2015/16 (fora do StatsBomb)
+WITH chelsea_14_15 AS (
+    SELECT DISTINCT a.player_id
+    FROM stg.tm_appearances a
+    JOIN stg.tm_games g ON g.game_id = a.game_id
+    WHERE g.season = 2014
+      AND a.player_club_id = 631                       -- Chelsea no Transfermarkt
+)
+INSERT INTO dw.dim_jogador (sb_player_id, tm_player_id, nome, pais,
+                            trocou_de_time_2015_16, eh_elenco_chelsea_2015_16)
+SELECT NULL, p.player_id, p.name,
+       COALESCE(sb.pais, p.country_of_citizenship),    -- país com a grafia do StatsBomb
+       0, 0
+FROM chelsea_14_15 c
+JOIN stg.tm_players p ON p.player_id = c.player_id
+-- grafia do StatsBomb: o país mais frequente entre os ligados com o mesmo país no TM
+-- (o TM escreve "Cote d'Ivoire", o StatsBomb "Côte d'Ivoire")
+OUTER APPLY (
+    SELECT TOP 1 j.pais
+    FROM dw.dim_jogador j
+    JOIN stg.tm_players p2 ON p2.player_id = j.tm_player_id
+    WHERE p2.country_of_citizenship = p.country_of_citizenship
+      AND j.pais IS NOT NULL
+    GROUP BY j.pais
+    ORDER BY COUNT(*) DESC
+) sb
+WHERE NOT EXISTS (SELECT 1 FROM dw.dim_jogador j WHERE j.tm_player_id = c.player_id)
+ORDER BY p.player_id;
+
+-- D19.1: nascimento, idade em 01/07/2016 (D6.6), pé em português e altura
+UPDATE j
+SET j.data_nascimento = CAST(p.date_of_birth AS DATE),
+    -- anos completos: diferença de anos, menos 1 se o aniversário ainda não chegou em 01/07/2016
+    j.idade_2016 = DATEDIFF(YEAR, p.date_of_birth, '20160701')
+                 - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.date_of_birth, '20160701'), p.date_of_birth) > '20160701'
+                        THEN 1 ELSE 0 END,
+    j.pe = CASE p.foot WHEN N'right' THEN N'Direito'
+                       WHEN N'left'  THEN N'Esquerdo'
+                       WHEN N'both'  THEN N'Ambos' END,
+    j.altura_cm = p.height_in_cm
+FROM dw.dim_jogador j
+JOIN stg.tm_players p ON p.player_id = j.tm_player_id;
+
+RAISERROR('dw.dim_jogador Bloco 2 ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -1329,4 +1387,48 @@ JOIN dw.dim_time t    ON t.sb_team_id = l.sb_team_id
 JOIN stg.tm_players p ON p.player_id = l.tm_player_id
 WHERE t.nome = N'Chelsea'
 ORDER BY l.regra DESC, j.nome;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador (Bloco 2)
+-- Esperado: 2.181 jogadores (2.176 do StatsBomb), 2.181 com tm_player_id,
+--           2.180 com nascimento e idade, 2.165 com pé, 2.171 com altura,
+--           idade de 17 a 41; pé Direito 1.577, Esquerdo 527, Ambos 61,
+--           NULL 16; novos 2177 a 2181 (Drogba 38 anos, Côte d'Ivoire);
+--           Kanté 25, Terry 35, David Luiz 29; 18 com algum atributo NULL.
+-- ---------------------------------------------------------------------
+-- 1. Totais
+SELECT COUNT(*) AS jogadores,
+       COUNT(sb_player_id) AS do_statsbomb,
+       COUNT(tm_player_id) AS com_tm,
+       COUNT(data_nascimento) AS com_nascimento,
+       COUNT(idade_2016) AS com_idade,
+       COUNT(pe) AS com_pe,
+       COUNT(altura_cm) AS com_altura,
+       MIN(idade_2016) AS idade_min, MAX(idade_2016) AS idade_max
+FROM dw.dim_jogador;
+
+-- 2. Pé
+SELECT pe, COUNT(*) AS jogadores
+FROM dw.dim_jogador
+GROUP BY pe
+ORDER BY jogadores DESC;
+
+-- 3. Os 5 novos do Chelsea 2014/15
+SELECT sk_jogador, tm_player_id, nome, pais, data_nascimento, idade_2016, pe, altura_cm
+FROM dw.dim_jogador
+WHERE sb_player_id IS NULL
+ORDER BY sk_jogador;
+
+-- 4. Idade na janela de 2016: Kanté (29/03/1991), Terry (07/12/1980), Hazard (07/01/1991)
+SELECT nome, data_nascimento, idade_2016, pe, altura_cm
+FROM dw.dim_jogador
+WHERE nome IN (N'N''Golo Kanté', N'John Terry', N'Eden Hazard', N'Marcos Alonso', N'Michy Batshuayi', N'David Luiz')
+ORDER BY nome;
+
+-- 5. Quem ficou sem atributo
+SELECT nome, data_nascimento, pe, altura_cm
+FROM dw.dim_jogador
+WHERE data_nascimento IS NULL OR pe IS NULL OR altura_cm IS NULL
+ORDER BY nome;
 GO
