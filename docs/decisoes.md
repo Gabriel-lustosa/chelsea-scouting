@@ -22,7 +22,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 | D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
-| D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 963 clubes das fatos na `dim_time`, só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida |
+| D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida |
 
 ---
 
@@ -669,7 +669,7 @@ Uma linha por par jogador × time do StatsBomb (`sb_player_id`, `sb_team_id`, `t
 
 **Descartada:** *só o `UPDATE`*: a visão 14/15 perderia o Drogba e o Schürrle.
 
-### D19.2 — `dim_time`: os 963 clubes usados como chave nas fatos
+### D19.2 — `dim_time`: os clubes usados como chave nas fatos (revista pela D19.5: 943 clubes, sem os das avaliações)
 
 Entram o clube do jogador em cada atuação, os clubes de origem e destino das transferências e o clube na data da avaliação. Nome da `tm_clubs` ou, quando falta, o nome mais frequente nas fatos. Os "clubes" especiais do TM entram traduzidos ("Without Club" = "Sem clube", "Retired" = "Aposentado").
 
@@ -692,5 +692,13 @@ Entram o clube do jogador em cada atuação, os clubes de origem e destino das t
 Limitação registrada: o dataset só tem transferências de 762 dos 2.181 jogadores (nenhuma do David Luiz). Na Validação, a mudança de clube depois de 2016 aparece também nas atuações (o David Luiz joga pelo Chelsea em 2016/17).
 
 **Descartada:** *avaliações desde 2004* (65.909): exigiria aumentar a `dim_data` (revê a D11.3) para salvar 3 valores.
+
+### D19.5 — Avaliação sem chave de clube (revê a D19.2)
+
+Achado na preparação da Aula 21 (2026-11-10): na `tm_player_valuations`, o `current_club_id` não é confiável. Para muitos jogadores ele repete o mesmo clube em todas as avaliações, enquanto o `current_club_name` acompanha a carreira (David Luiz: ID 10870, Fortaleza, em todas as linhas de 2014 a 2023, com o nome passando por Chelsea, PSG, Chelsea, Arsenal e Flamengo; no Kanté, ID e nome mudam juntos). 292 dos 738 IDs das avaliações aparecem com 3 nomes ou mais (até 79); nas atuações cada ID tem 1 nome, nas transferências no máximo 2 (grafias: "Roma" e "AS Roma").
+
+Decisão: a `fato_valor_mercado` fica sem chave de clube, com o nome do clube na data como texto (`clube_na_avaliacao`). A `dim_time` recebe só os clubes das atuações e das transferências: 943 (80 + 863 novos, 519 deles na `tm_clubs`). Colunas dos novos: `nome` curto como nos 80 (o mais frequente nas transferências; na falta, `tm_clubs` ou jogos), `nome_tm` da `tm_clubs` (na falta, dos jogos), especiais traduzidos ("Without Club" = "Sem clube", "Retired" = "Aposentado", "Career break" = "Pausa na carreira"), `pais` pela liga nacional na `dim_liga`, `liga_2015_16` e `posicao_2015_16` pelos jogos de liga nacional do TM em 2015/16 (128 clubes), `eh_time_do_estudo` = 0.
+
+**Descartadas:** *clube deduzido pelas atuações perto da data* (erra perto das janelas e para quem ficou sem jogar); *nome convertido em ID pelos nomes dos jogos e transferências* (grafias diferentes: "Chelsea FC", "Chelsea", "Associazione Sportiva Roma"); *confiar no ID* (errado em centenas de jogadores).
 
 **Ordem das aulas:** 20 `dim_jogador`; 21 `dim_time` e `dim_partida`; 22 `fato_atuacao`; 23 `fato_valor_mercado` e `fato_transferencia`.
