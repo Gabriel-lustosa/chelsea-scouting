@@ -17,7 +17,7 @@
 --   [x] stg.sb_trechos (intermediário da fato)                 Aula 16
 --   [x] dw.fato_desempenho (+ coluna posse na dim_partida)     Aula 17
 --   Bloco 2 — Transfermarkt
---   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
+--   [x] stg.ligacao_jogadores (D18)                            Aula 19
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
 -- Padrões (D10.4 e D11):
@@ -297,5 +297,22 @@ CREATE TABLE dw.fato_desempenho (
     recuperacoes_padj           DECIMAL(9,4)   NOT NULL,
     pressoes_padj               DECIMAL(9,4)   NOT NULL,
     CONSTRAINT pk_fato_desempenho PRIMARY KEY (sk_jogador, sk_partida, sk_posicao)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.ligacao_jogadores: StatsBomb x Transfermarkt, um par por jogador x
+-- time do StatsBomb (2.279), com a regra que casou (D18.4). Fica na stg
+-- (D10.4): é passo da carga; o resultado vai para o tm_player_id da
+-- dim_jogador. É também o que o SSIS compara por EXCEPT (D10.1).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS stg.ligacao_jogadores;
+CREATE TABLE stg.ligacao_jogadores (
+    sb_player_id    INT NOT NULL,
+    sb_team_id      INT NOT NULL,   -- quem trocou de time tem uma linha por time
+    tm_player_id    INT NOT NULL,
+    tm_club_id      INT NOT NULL,
+    regra           INT NOT NULL,   -- 1 apelido, 2 nome completo, 3 sobrenome, 4 palavras, 5 exceção
+    CONSTRAINT pk_ligacao_jogadores PRIMARY KEY (sb_player_id, sb_team_id)
 );
 GO

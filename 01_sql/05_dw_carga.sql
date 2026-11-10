@@ -18,7 +18,8 @@
 --   [x] dw.fato_desempenho 54.415 jogador × partida × posição   Aula 17
 --   [x] dw.dim_jogador     UPDATE da posição principal (D17.5)  Aula 18
 --   Bloco 2 — Transfermarkt
---   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
+--   [x] stg.ligacao_jogadores 2.279 pares, 5 regras (D18)       Aula 19
+--   [x] dw.dim_jogador     tm_player_id dos 2.176 (D18.4)       Aula 19
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
 --   [ ] dw.dim_partida     jogos só do TM (sb_match_id NULL)
 --   [ ] dw.dim_jogador     UPDATE dos dados TM + Chelsea 2014/15 fora do SB
@@ -415,7 +416,8 @@ GO
 -- * Só as colunas do StatsBomb; as outras 7 ficam NULL até o UPDATE da
 --   aula da fato_desempenho e do Bloco 2.
 -- * N'''''' (dois apóstrofos) -> N'''' (um): o JSON traz alguns nomes
---   com o apóstrofo duplicado (N''Golo, O''Shea).
+--   com o apóstrofo duplicado (N''Golo, O''Shea). Aspas duplas também
+--   viram apóstrofo (D18.3: David N"Gog, Charles N"Zogbia).
 -- * DISTINCT na CTE 1: a escalação tem uma linha por trecho de posição;
 --   sem ele, "mais partidas" contaria trechos.
 -- * Time pelo team_id e nome pela dim_time: algumas escalações trazem
@@ -431,8 +433,8 @@ TRUNCATE TABLE dw.dim_jogador;
 
 WITH escalacoes AS (        -- 1. uma linha por jogador × partida, com o apóstrofo corrigido
     SELECT DISTINCT l.player_id, l.match_id, m.match_date, l.team_id, dt.nome AS time_nome, l.country_name,
-           REPLACE(l.player_name, N'''''', N'''') AS nome_completo,
-           REPLACE(COALESCE(l.player_nickname, l.player_name), N'''''', N'''') AS nome
+           REPLACE(REPLACE(l.player_name, N'''''', N''''), N'"', N'''') AS nome_completo,
+           REPLACE(REPLACE(COALESCE(l.player_nickname, l.player_name), N'''''', N''''), N'"', N'''') AS nome
     FROM stg.sb_lineups l
     JOIN stg.sb_matches m ON m.match_id = l.match_id
     JOIN dw.dim_time dt   ON dt.sb_team_id = l.team_id
@@ -726,6 +728,172 @@ JOIN posicoes x ON x.sk_jogador = j.sk_jogador
                AND x.ordem = 1;
 
 RAISERROR('dw.dim_jogador posicao principal ok', 0, 1) WITH NOWAIT;
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.ligacao_jogadores + dw.dim_jogador.tm_player_id (D18)
+-- * Elencos de 2015/16 nas duas fontes: #sb (jogador x time com minutos
+--   na fato, 2.279 pares) e #tm (quem atuou pelos 80 clubes na
+--   temporada, em qualquer competição). Tabelas temporárias: só existem
+--   nesta sessão.
+-- * Regras em ordem, sem acento (COLLATE ..._CI_AI), dentro do clube, só
+--   quem ainda não foi ligado e só com 1 candidato de cada lado:
+--   1 nome TM = apelido SB; 2 = nome completo SB; 3 último sobrenome
+--   igual; 4 todas as palavras do nome TM no apelido + nome completo SB
+--   (hífen separa palavras, ponto sai); 5 exceções conferidas à mão.
+-- * Đ/đ viram Dj/dj antes de comparar (Đoković = Djokovic): o CI_AI não
+--   faz essa troca.
+-- * Resultado em 2026-11-10: 2.142 + 10 + 57 + 52 = 99,50% dos minutos
+--   pelas regras; com as 18 exceções, 100%. Nenhum jogador com dois IDs.
+--   Só o Markel Susaeta difere nos minutos (1.985 x 0): o TM não tem as
+--   atuações dele em 2015/16.
+-- * O UPDATE no fim grava o tm_player_id; o índice único filtrado da
+--   dim_jogador impede dois jogadores do StatsBomb com o mesmo ID do TM.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE stg.ligacao_jogadores;
+
+-- 1. Elenco do StatsBomb: cada jogador × time com minutos na fato (2.279 pares)
+DROP TABLE IF EXISTS #sb;
+SELECT DISTINCT j.sb_player_id, t.sb_team_id, t.tm_club_id,
+       REPLACE(j.nome, N'đ', N'dj')          AS nome,           -- Đoković -> Djoković (D18.1)
+       REPLACE(j.nome_completo, N'đ', N'dj') AS nome_completo,
+       -- apelido + nome completo numa frase só, com espaço nas pontas, para a regra 4
+       CONCAT(N' ', REPLACE(REPLACE(REPLACE(CONCAT(j.nome, N' ', j.nome_completo),
+                                            N'đ', N'dj'), N'-', N' '), N'.', N''), N' ') AS palavras
+INTO #sb
+FROM dw.fato_desempenho f
+JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+JOIN dw.dim_time t    ON t.sk_time = f.sk_time;
+
+-- 2. Elenco do Transfermarkt: quem atuou pelos 80 clubes em 2015/16 (qualquer competição)
+DROP TABLE IF EXISTS #tm;
+SELECT DISTINCT a.player_club_id AS tm_club_id, a.player_id AS tm_player_id, p.name AS tm_nome
+INTO #tm
+FROM stg.tm_appearances a
+JOIN stg.tm_games g   ON g.game_id = a.game_id
+JOIN stg.tm_players p ON p.player_id = a.player_id
+WHERE g.season = 2015
+  AND a.player_club_id IN (SELECT tm_club_id FROM dw.dim_time);
+
+-- 3. Regras 1 a 4, uma de cada vez. Cada uma só olha quem ainda não foi ligado
+--    e só liga quando há exatamente 1 candidato de cada lado.
+
+-- Regra 1: nome TM = apelido SB
+WITH candidatos AS (
+    SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
+    FROM #sb s
+    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+              AND t.tm_nome COLLATE Latin1_General_100_CI_AI = s.nome COLLATE Latin1_General_100_CI_AI
+    WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
+      AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
+),
+unicos AS (
+    SELECT *, COUNT(*) OVER (PARTITION BY sb_player_id, sb_team_id) AS n_sb,
+              COUNT(*) OVER (PARTITION BY tm_player_id, tm_club_id) AS n_tm
+    FROM candidatos
+)
+INSERT INTO stg.ligacao_jogadores (sb_player_id, sb_team_id, tm_player_id, tm_club_id, regra)
+SELECT sb_player_id, sb_team_id, tm_player_id, tm_club_id, 1
+FROM unicos WHERE n_sb = 1 AND n_tm = 1;
+
+-- Regra 2: nome TM = nome completo SB
+WITH candidatos AS (
+    SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
+    FROM #sb s
+    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+              AND t.tm_nome COLLATE Latin1_General_100_CI_AI = s.nome_completo COLLATE Latin1_General_100_CI_AI
+    WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
+      AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
+),
+unicos AS (
+    SELECT *, COUNT(*) OVER (PARTITION BY sb_player_id, sb_team_id) AS n_sb,
+              COUNT(*) OVER (PARTITION BY tm_player_id, tm_club_id) AS n_tm
+    FROM candidatos
+)
+INSERT INTO stg.ligacao_jogadores (sb_player_id, sb_team_id, tm_player_id, tm_club_id, regra)
+SELECT sb_player_id, sb_team_id, tm_player_id, tm_club_id, 2
+FROM unicos WHERE n_sb = 1 AND n_tm = 1;
+
+-- Regra 3: último sobrenome igual (última palavra do nome completo SB e do nome TM)
+WITH candidatos AS (
+    SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
+    FROM #sb s
+    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+              AND RIGHT(t.tm_nome, CHARINDEX(N' ', REVERSE(t.tm_nome) + N' ') - 1) COLLATE Latin1_General_100_CI_AI
+                = RIGHT(s.nome_completo, CHARINDEX(N' ', REVERSE(s.nome_completo) + N' ') - 1) COLLATE Latin1_General_100_CI_AI
+    WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
+      AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
+),
+unicos AS (
+    SELECT *, COUNT(*) OVER (PARTITION BY sb_player_id, sb_team_id) AS n_sb,
+              COUNT(*) OVER (PARTITION BY tm_player_id, tm_club_id) AS n_tm
+    FROM candidatos
+)
+INSERT INTO stg.ligacao_jogadores (sb_player_id, sb_team_id, tm_player_id, tm_club_id, regra)
+SELECT sb_player_id, sb_team_id, tm_player_id, tm_club_id, 3
+FROM unicos WHERE n_sb = 1 AND n_tm = 1;
+
+-- Regra 4: todas as palavras do nome TM aparecem no apelido + nome completo SB
+WITH candidatos AS (
+    SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
+    FROM #sb s
+    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+    WHERE NOT EXISTS (                 -- nenhuma palavra do nome TM fica de fora
+              SELECT 1
+              FROM STRING_SPLIT(REPLACE(REPLACE(t.tm_nome, N'-', N' '), N'.', N''), N' ') w
+              WHERE w.value <> N''
+                AND s.palavras COLLATE Latin1_General_100_CI_AI NOT LIKE N'% ' + w.value + N' %')
+      AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
+      AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
+),
+unicos AS (
+    SELECT *, COUNT(*) OVER (PARTITION BY sb_player_id, sb_team_id) AS n_sb,
+              COUNT(*) OVER (PARTITION BY tm_player_id, tm_club_id) AS n_tm
+    FROM candidatos
+)
+INSERT INTO stg.ligacao_jogadores (sb_player_id, sb_team_id, tm_player_id, tm_club_id, regra)
+SELECT sb_player_id, sb_team_id, tm_player_id, tm_club_id, 4
+FROM unicos WHERE n_sb = 1 AND n_tm = 1;
+
+-- Regra 5: exceções conferidas à mão (D18.2). Liga o jogador em todos os times dele.
+WITH excecoes AS (
+    SELECT sb_player_id, tm_player_id
+    FROM (VALUES
+        (3058,   50935,  N'Apelido no TM: Chicharito'),
+        (3601,   177862, N'Apelido no TM: Charly Musonda Jr.'),
+        (5558,   2904,   N'Apelido no TM: Rafa Márquez'),
+        (6390,   54245,  N'Markel Susaeta: sem atuação no TM em 2015/16'),
+        (6559,   126625, N'Apelido no TM: Juankar'),
+        (6788,   71559,  N'Apelido no TM: Xabi Etxeita'),
+        (9636,   314237, N'Rushian Hepburn-Murphy: sem atuação no TM em 2015/16'),
+        (18721,  242532, N'Apelido no TM: Rober Ibáñez'),
+        (18946,  73846,  N'Grafia no TM: Paul-José Mpoku'),
+        (24132,  212867, N'Apelido no TM: Fran Varela'),
+        (24782,  343273, N'Apelido no TM: Joni Montiel'),
+        (26087,  7631,   N'Grafia no TM: Carlos Gurpegui'),
+        (26764,  37892,  N'Grafia no TM: Ion Ansotegi'),
+        (27053,  27394,  N'Apelido no TM: Alex Song'),
+        (40348,  336704, N'Assane Gnoukouri = Alassane Traoré no TM (mesma data de nascimento)'),
+        (42946,  156934, N'Jiang Guangtai = Tyias Browning (mudou de nome ao se naturalizar chinês)'),
+        (386651, 38592,  N'Apelido no TM: Juanito Gómez'),
+        (398941, 87893,  N'Grafia no TM: Vasyl Pryima')
+    ) AS e (sb_player_id, tm_player_id, motivo)
+)
+INSERT INTO stg.ligacao_jogadores (sb_player_id, sb_team_id, tm_player_id, tm_club_id, regra)
+SELECT s.sb_player_id, s.sb_team_id, e.tm_player_id, s.tm_club_id, 5
+FROM #sb s
+JOIN excecoes e ON e.sb_player_id = s.sb_player_id
+WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id);
+
+-- tm_player_id na dim_jogador (D18.4)
+UPDATE j
+SET j.tm_player_id = l.tm_player_id
+FROM dw.dim_jogador j
+JOIN (SELECT DISTINCT sb_player_id, tm_player_id
+      FROM stg.ligacao_jogadores) l ON l.sb_player_id = j.sb_player_id;
+
+RAISERROR('stg.ligacao_jogadores ok', 0, 1) WITH NOWAIT;
 GO
 
 -- =====================================================================
@@ -1092,4 +1260,73 @@ SELECT nome, n, CAST(minutos AS INT) AS minutos,
 FROM percentis
 WHERE eh_elenco_chelsea_2015_16 = 1
 ORDER BY minutos DESC;
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.ligacao_jogadores
+-- Esperado: regras 1 a 5 com 2.142, 10, 57, 52 e 18 pares (95,37%,
+--           95,81%, 97,24%, 99,50% e 100,00% dos minutos); 2.279 pares,
+--           0 jogador com 2 IDs nos dois sentidos, 2.176 com
+--           tm_player_id, 0 nomes com aspas; só o Markel Susaeta com
+--           minutos diferentes; no Chelsea, Mikel e Falcao pela regra 4,
+--           Clarke-Salter pela 3, Baba Rahman pela 2, os outros 24 pela 1.
+-- ---------------------------------------------------------------------
+-- 1. Pares e minutos por regra (acumulado)
+WITH minutos AS (
+    SELECT j.sb_player_id, t.sb_team_id, SUM(f.minutos) AS minutos
+    FROM dw.fato_desempenho f
+    JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+    JOIN dw.dim_time t    ON t.sk_time = f.sk_time
+    GROUP BY j.sb_player_id, t.sb_team_id
+),
+por_regra AS (
+    SELECT l.regra, COUNT(*) AS pares, SUM(m.minutos) AS minutos
+    FROM stg.ligacao_jogadores l
+    JOIN minutos m ON m.sb_player_id = l.sb_player_id AND m.sb_team_id = l.sb_team_id
+    GROUP BY l.regra
+)
+SELECT regra, pares,
+       CAST(SUM(minutos) OVER (ORDER BY regra) * 100.0
+            / (SELECT SUM(minutos) FROM minutos) AS DECIMAL(5,2)) AS pct_minutos_acumulado
+FROM por_regra
+ORDER BY regra;
+
+-- 2. Coerência: ninguém com dois IDs, e todos os 2.176 com tm_player_id
+SELECT (SELECT COUNT(*) FROM stg.ligacao_jogadores) AS pares,
+       (SELECT COUNT(*) FROM (SELECT sb_player_id FROM stg.ligacao_jogadores
+                              GROUP BY sb_player_id HAVING COUNT(DISTINCT tm_player_id) > 1) x) AS sb_com_2_tm,
+       (SELECT COUNT(*) FROM (SELECT tm_player_id FROM stg.ligacao_jogadores
+                              GROUP BY tm_player_id HAVING COUNT(DISTINCT sb_player_id) > 1) x) AS tm_com_2_sb,
+       (SELECT COUNT(tm_player_id) FROM dw.dim_jogador) AS dim_jogador_com_tm,
+       (SELECT COUNT(*) FROM dw.dim_jogador WHERE nome LIKE N'%"%') AS nomes_com_aspas;
+
+-- 3. Conferência pelos minutos de liga das duas fontes (diferença acima de 25% + 90)
+WITH sb AS (
+    SELECT j.sb_player_id, t.sb_team_id, j.nome, SUM(f.minutos) AS minutos_sb
+    FROM dw.fato_desempenho f
+    JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+    JOIN dw.dim_time t    ON t.sk_time = f.sk_time
+    GROUP BY j.sb_player_id, t.sb_team_id, j.nome
+),
+tm AS (
+    SELECT a.player_id, a.player_club_id, SUM(a.minutes_played) AS minutos_tm
+    FROM stg.tm_appearances a
+    JOIN stg.tm_games g ON g.game_id = a.game_id
+    WHERE g.season = 2015 AND g.competition_id IN ('GB1', 'ES1', 'IT1', 'FR1')
+    GROUP BY a.player_id, a.player_club_id
+)
+SELECT sb.nome, l.regra, CAST(sb.minutos_sb AS INT) AS minutos_sb, ISNULL(tm.minutos_tm, 0) AS minutos_tm
+FROM stg.ligacao_jogadores l
+JOIN sb      ON sb.sb_player_id = l.sb_player_id AND sb.sb_team_id = l.sb_team_id
+LEFT JOIN tm ON tm.player_id = l.tm_player_id AND tm.player_club_id = l.tm_club_id
+WHERE ABS(sb.minutos_sb - ISNULL(tm.minutos_tm, 0)) > 0.25 * sb.minutos_sb + 90;
+
+-- 4. Chelsea: nome nas duas fontes
+SELECT j.nome AS nome_sb, p.name AS nome_tm, l.regra
+FROM stg.ligacao_jogadores l
+JOIN dw.dim_jogador j ON j.sb_player_id = l.sb_player_id
+JOIN dw.dim_time t    ON t.sb_team_id = l.sb_team_id
+JOIN stg.tm_players p ON p.player_id = l.tm_player_id
+WHERE t.nome = N'Chelsea'
+ORDER BY l.regra DESC, j.nome;
 GO
