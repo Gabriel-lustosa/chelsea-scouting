@@ -20,6 +20,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D14 | 2026-11-09 | `dim_time`: times ligados ao Transfermarkt pelas partidas (votação por data, liga e placar, 80/80), os 80 do StatsBomb agora e os clubes do TM no Bloco 2, com nome curto, posição final em 2015/16 e marcação dos times do estudo | Decidida |
 | D15 | 2026-11-09 | `dim_partida` no grão partida × time (2 linhas por partida), as 1.517 do StatsBomb agora e os jogos do TM no Bloco 2, com técnico e formação do Transfermarkt | Decidida |
 | D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
+| D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 
 ---
 
@@ -551,3 +552,64 @@ O técnico e a formação vêm do Transfermarkt: completo nos 3.034 lados, nome 
 `tm_player_id`, `data_nascimento`, `idade_2016` (em 01/07/2016, D6.6), `pe` e `altura_cm` são criadas vazias e preenchidas por `UPDATE` depois da ligação. `sb_player_id` e `tm_player_id` ficam únicos por índice filtrado, porque no Bloco 2 entram os jogadores do Chelsea 2014/15 que não estão no StatsBomb (D10.3), com `sb_player_id` NULL.
 
 **Descartada:** *criar as colunas só no Bloco 2* (refazendo o `CREATE` ou com `ALTER TABLE`): mexe de novo na estrutura de uma tabela já carregada.
+
+---
+
+## D17 — `fato_desempenho`: minutos, ligação dos lances, trechos, colunas e posição principal
+
+**Contexto** (2026-11-10, medido no banco antes de decidir, sem alterar nada):
+
+| Medição | Resultado |
+|---|---|
+| Grão jogador × partida × posição | 54.415 linhas (56.884 trechos; quem volta à mesma posição na partida conta uma vez) |
+| Lances com jogador cuja `position_id` bate com um trecho dele na partida | 5.301.052 de 5.301.066; os 14 restantes são cartões ("Bad Behaviour") de quem estava no banco |
+| Expulsos (vermelho ou segundo amarelo) | 413; em 406 o trecho vai até o apito, e nenhum tem lance depois do cartão (9.663 minutos a mais) |
+| Minutos pelo método do levantamento (relógio, fim = último lance da partida) | 3.131.179: perde o acréscimo do 1º tempo, porque o relógio do 2º tempo recomeça em 45:00 |
+| Minutos por tempo, com os dois acréscimos | 3.175.569 (+44 mil, 1,4%); duração média de 95,2 minutos |
+| Com o corte dos expulsos | 3.165.906 |
+| Jogadores em campo por jogo × time | 2.937 normais; 65 abaixo de 10,5, todos com expulsão; 32 acima de 11 por erro da origem (ex.: Waguè, Udinese, sai lesionado e a escalação registra a volta dele junto com a entrada do Heurtaux) |
+| Posse (participação nos passes, sem lateral) | Chelsea 56%, Barcelona 67%, Leicester 42%; fator do PAdj de 0,64 a 2,25 |
+| Posição × grupo de mais minutos | Em 68 jogadores o grupo da posição de mais minutos não é o grupo de mais minutos (Kenedy: Lateral esquerdo é a posição de mais minutos, mas soma mais em Ponta) |
+
+### D17.1 — Minutos por tempo, com os dois acréscimos e o corte dos expulsos
+
+O fim de cada tempo é o último lance daquele período. Um trecho que começa no 1º tempo soma `fim do 1º tempo − início` e `fim do trecho − 45:00` no 2º. Sem hora de fim, vai até o fim do 2º tempo. O trecho ativo de quem levou vermelho ou segundo amarelo (coluna `card`, D8) termina no minuto do cartão. Os 32 jogos × time com sobreposição ficam como vieram e são registrados como erro da origem (algumas centenas de minutos).
+
+**Descartadas:** *método do levantamento*: perde 1,4% dos minutos e não corta os expulsos; *por tempo sem o corte*: 406 expulsos com 9.663 minutos fora de campo, o que derruba o "por 90" deles.
+
+### D17.2 — Lance ligado à linha pela posição do próprio evento
+
+Cada lance cai na linha jogador × partida × posição pela `position_id` gravada no evento: 99,9997% batem com um trecho. Os 14 cartões de quem estava no banco ficam fora.
+
+**Descartada:** *pelo horário do lance dentro do trecho*: muito mais SQL para o mesmo resultado.
+
+### D17.3 — Tabela intermediária `stg.sb_trechos`
+
+Uma linha por trecho (56.884), com os segundos de início e fim já com o corte dos expulsos e os minutos do trecho. É conferida sozinha (jogadores em campo por jogo × time), segue a D10 (intermediários na `stg`) e é reaproveitada no `UPDATE` da posição principal e no SSIS.
+
+**Descartada:** *tudo em CTEs na carga da fato*: sem tabela a mais, mas um script enorme e difícil de conferir.
+
+### D17.4 — Colunas da fato e PAdj no ETL
+
+| Grupo | Colunas |
+|---|---|
+| Chaves | `sk_jogador`, `sk_partida`, `sk_posicao` (PK nas três), `sk_time`, `sk_liga`, `sk_data` |
+| Tempo | `minutos` |
+| Passe | `passes`, `passes_certos`, `passes_progressivos`, `passes_chave`, `passes_area` |
+| Condução e drible | `conducoes_progressivas`, `dribles`, `dribles_certos` |
+| Defesa | `desarmes_ganhos`, `interceptacoes`, `recuperacoes`, `pressoes`, `duelos_aereos_ganhos`, `duelos_aereos_perdidos` |
+| Erros | `perdas_bola`, `erros_levaram_chute` |
+| Ataque (visão por setor) | `chutes`, `gols`, `xg`, `assistencias` |
+| PAdj (D6.5) | `desarmes_padj`, `interceptacoes_padj`, `recuperacoes_padj`, `pressoes_padj` = contagem × 0,5 / (1 − posse do time na partida) |
+
+A partida já leva ao time, à liga e à data, mas as chaves diretas deixam a estrela simples no SSAS e no Power BI. A posse vira a coluna `posse` da `dw.dim_partida` (grão partida × time), por `ALTER TABLE` + `UPDATE`. As regras de cada indicador são as do levantamento (`00_dados/levantamento/Levantamento.cs`): passe sem lateral; certo = sem `pass_outcome`; passe-chave = assistência para chute ou gol; passe na área = certo, de fora para dentro da área; passe progressivo pela D6.5; condução progressiva = termina com x ≥ 60, 25% mais perto do gol e avança pelo menos 5; desarme e interceptação com resultado Won / Success In Play / Success Out; recuperação sem falha; perda = Dispossessed + Miscontrol; duelo aéreo ganho pelo `aerial_won` e perdido pelo `Aerial Lost`.
+
+**Descartadas:** *só as contagens brutas e a posse, com o ajuste no DAX* (`SUMX` linha a linha): flexível, mas foge da D6.5 e pesa no modelo; *só os valores ajustados*: perde o número bruto.
+
+### D17.5 — Grupo principal primeiro, posição principal dentro dele
+
+`grupo_principal` = grupo com mais minutos; `posicao_principal` = posição com mais minutos dentro desse grupo. Os dois ficam sempre coerentes (Kenedy: Ponta).
+
+**Descartada:** *posição de mais minutos e o grupo dela*: em 68 jogadores o grupo não seria o de mais minutos.
+
+**Ordem das aulas:** 16 `stg.sb_trechos`; 17 coluna `posse` + `fato_desempenho`; 18 `UPDATE` da posição principal e validação contra o levantamento (percentis de Terry e Cahill em passe progressivo).
