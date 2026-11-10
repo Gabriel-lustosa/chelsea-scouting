@@ -22,6 +22,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 | D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
+| D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 963 clubes das fatos na `dim_time`, só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida |
 
 ---
 
@@ -655,3 +656,41 @@ A regra do apóstrofo da D16 passa a trocar também `"` por `'` ("David N'Gog", 
 Uma linha por par jogador × time do StatsBomb (`sb_player_id`, `sb_team_id`, `tm_player_id`, `tm_club_id`, `regra`, com regra 5 = exceção). Depois, o `UPDATE` do `tm_player_id` na `dim_jogador`. A coluna `regra` permite auditar e é o que o SSIS compara por `EXCEPT` (D10.1).
 
 **Descartada:** *`UPDATE` direto na `dim_jogador`*: mais curto, mas perde a regra de cada par e a comparação com o SSIS.
+
+---
+
+## D19 — Resto do Bloco 2: `dim_jogador`, clubes e jogos do Transfermarkt e o recorte das 3 fatos
+
+**Contexto** (2026-11-10, medido no banco antes de decidir, sem alterar nada): o universo do Transfermarkt no DW tem 2.181 jogadores, os 2.176 ligados (D18) mais 5 do elenco do Chelsea 2014/15 que não jogaram em 2015/16 (Drogba 1.317 min, Schürrle 664, Christensen 102, Solanke 17, Izzy Brown 11; os outros 21 do elenco já estão entre os ligados). De 2014 a 2026 eles têm 329.797 atuações em 43.457 jogos (68.504 jogo × clube, 3.034 já na `dim_partida`; todas as competições já na `dim_liga`), 46.741 avaliações e 5.717 transferências. Os clubes usados como chave nas fatos são 963 (883 fora da `dim_time`, só 537 na `tm_clubs`); com os adversários seriam 1.676. Nos 2.176 ligados há data de nascimento em 2.175, pé em 2.160 e altura em 2.166. As transferências cobrem só 762 dos 2.181 jogadores (16 dos 28 do Chelsea, nenhuma do David Luiz); das 5.717, 1.389 têm taxa paga, 3.482 taxa 0 (empréstimo, fim de contrato) e 846 sem informação. A janela de 2016 do Chelsea está lá: Kanté €35,8 mi, Batshuayi €39 mi, Alonso €23 mi.
+
+### D19.1 — `dim_jogador`: atributos do TM + 5 jogadores do Chelsea 2014/15
+
+`UPDATE` de `data_nascimento`, `idade_2016` (em 01/07/2016, D6.6), `pe` em português (Direito, Esquerdo, Ambos) e `altura_cm`. `INSERT` dos 5 do Chelsea 2014/15 com `sb_player_id` NULL e nome do TM, para a visão por setor 14/15 × 15/16 (D5).
+
+**Descartada:** *só o `UPDATE`*: a visão 14/15 perderia o Drogba e o Schürrle.
+
+### D19.2 — `dim_time`: os 963 clubes usados como chave nas fatos
+
+Entram o clube do jogador em cada atuação, os clubes de origem e destino das transferências e o clube na data da avaliação. Nome da `tm_clubs` ou, quando falta, o nome mais frequente nas fatos. Os "clubes" especiais do TM entram traduzidos ("Without Club" = "Sem clube", "Retired" = "Aposentado").
+
+**Descartadas:** *com os adversários* (1.676): a `dim_partida` já guarda o adversário como texto (D15); *só os clubes das atuações*: as transferências ficariam com clube em texto, fora da estrela.
+
+### D19.3 — `dim_partida`: só o lado do clube do jogador
+
+65.470 linhas novas (68.504 no total), no grão partida × time da D15. Rodada tirada de "N. Matchday" (35.317 dos 43.457 jogos; jogo de copa fica sem rodada); posse e chaves do StatsBomb NULL.
+
+**Descartada:** *os dois lados de cada jogo* (86.914): metade das linhas sem nenhum jogador do DW.
+
+### D19.4 — Fatos a partir de 2014 (D10.3)
+
+| Fato | Linhas | Conteúdo |
+|---|---|---|
+| `fato_atuacao` | 329.797 | Minutos, gols, assistências, amarelos, vermelhos (2014/15 a 2025/26) |
+| `fato_valor_mercado` | 46.741 | Valor em cada avaliação; só 3 jogadores ficam sem valor até 30/06/2016, porque a última avaliação deles é anterior a 2014 |
+| `fato_transferencia` | 5.717 | Origem, destino, taxa (NULL = não informada, separada de 0 = sem custo), valor de mercado na data |
+
+Limitação registrada: o dataset só tem transferências de 762 dos 2.181 jogadores (nenhuma do David Luiz). Na Validação, a mudança de clube depois de 2016 aparece também nas atuações (o David Luiz joga pelo Chelsea em 2016/17).
+
+**Descartada:** *avaliações desde 2004* (65.909): exigiria aumentar a `dim_data` (revê a D11.3) para salvar 3 valores.
+
+**Ordem das aulas:** 20 `dim_jogador`; 21 `dim_time` e `dim_partida`; 22 `fato_atuacao`; 23 `fato_valor_mercado` e `fato_transferencia`.
