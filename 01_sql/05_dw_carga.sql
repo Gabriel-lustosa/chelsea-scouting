@@ -23,7 +23,8 @@
 --   [x] dw.dim_time        863 clubes só do TM (D19.2, D19.5)   Aula 21
 --   [x] dw.dim_partida     65.470 jogo × clube só do TM (D19.3) Aula 21
 --   [x] dw.dim_jogador     5 do Chelsea 14/15 + atributos TM    Aula 20
---   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
+--   [x] dw.fato_atuacao    329.797 jogador × jogo TM (D19.4)    Aula 22
+--   [ ] dw.fato_valor_mercado, dw.fato_transferencia            Aula 23
 --
 -- Como funciona:
 --   * TRUNCATE antes de cada INSERT: o script pode rodar de novo sem
@@ -1132,6 +1133,35 @@ ORDER BY x.date, x.game_id, x.mando;
 RAISERROR('dw.dim_partida Bloco 2 ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.fato_atuacao: 329.797 linhas jogador × jogo do TM (D19.4)
+-- * Atuações dos 2.181 jogadores do DW desde 2014/15. Cada chave da fonte
+--   vira a sk da dimensão por JOIN; a partida é o lado do clube do
+--   jogador (jogo + clube, D15).
+-- * Depende da dim_partida e da dim_time do Bloco 2.
+-- * Data pela dim_partida, como na fato_desempenho.
+-- * Cartões como o TM grava (2º amarelo = amarelos 2, vermelhos 0).
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0); 0 órfãos.
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.fato_atuacao;
+
+INSERT INTO dw.fato_atuacao (sk_jogador, sk_partida, sk_time, sk_liga, sk_data,
+                             minutos, gols, assistencias, amarelos, vermelhos)
+SELECT j.sk_jogador, p.sk_partida, t.sk_time, l.sk_liga, d.sk_data,
+       a.minutes_played, a.goals, a.assists, a.yellow_cards, a.red_cards
+FROM stg.tm_appearances a
+JOIN stg.tm_games g     ON g.game_id = a.game_id
+JOIN dw.dim_jogador j   ON j.tm_player_id = a.player_id                                -- só os 2.181 do DW (D10.3)
+JOIN dw.dim_partida p   ON p.tm_game_id = a.game_id AND p.tm_club_id = a.player_club_id -- lado do clube do jogador
+JOIN dw.dim_time t      ON t.tm_club_id = a.player_club_id
+JOIN dw.dim_liga l      ON l.tm_competition_id = a.competition_id
+JOIN dw.dim_data d      ON d.data = p.data
+WHERE g.season >= 2014                                                                 -- desde 2014/15 (D19.4)
+ORDER BY j.sk_jogador, p.sk_partida;
+
+RAISERROR('dw.fato_atuacao ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -1671,4 +1701,64 @@ SELECT COUNT(*) AS jogos,
        MIN(tecnico) AS tecnico
 FROM dw.dim_partida
 WHERE tm_club_id = 631 AND temporada = '2016/17' AND liga = N'Premier League';
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_atuacao
+-- Esperado: 329.797 linhas, 2.181 jogadores, 68.504 partidas (toda a
+--           dim_partida), 23.410.343 minutos, 36.452 gols, 27.501
+--           assistências, 2.417 expulsões; 0 órfãos; Chelsea na Premier
+--           League 14/15 531 linhas, 25 jogadores, 37.507 min, 72 gols /
+--           15/16 521, 28, 37.496, 55 / 16/17 529, 23, 37.607, 83 (placar
+--           73, 59 e 85: o resto é gol contra); 2016/17: Kanté Chelsea
+--           40 jogos 3.436 min, David Luiz Chelsea 36 / 3.226 + PSG 4 /
+--           318, Alonso Chelsea 34 / 2.964 + Fiorentina 2 / 180,
+--           Batshuayi Chelsea 25 / 482.
+-- ---------------------------------------------------------------------
+-- 1. Totais
+SELECT COUNT(*) AS linhas,
+       COUNT(DISTINCT sk_jogador) AS jogadores,
+       COUNT(DISTINCT sk_partida) AS partidas,
+       SUM(minutos) AS minutos, SUM(gols) AS gols, SUM(assistencias) AS assistencias,
+       SUM(CASE WHEN amarelos = 2 OR vermelhos = 1 THEN 1 ELSE 0 END) AS expulsoes
+FROM dw.fato_atuacao;
+
+-- 2. Órfãos: tudo 0
+-- LEFT JOIN mantém a linha da fato mesmo sem par na dimensão; aí a sk da dimensão vem NULL
+-- (SUM em volta de NOT EXISTS dá o erro 130: agregação sobre subconsulta)
+SELECT
+    SUM(CASE WHEN j.sk_jogador IS NULL THEN 1 ELSE 0 END) AS sem_jogador,
+    SUM(CASE WHEN p.sk_partida IS NULL THEN 1 ELSE 0 END) AS sem_partida,
+    SUM(CASE WHEN t.sk_time    IS NULL THEN 1 ELSE 0 END) AS sem_time,
+    SUM(CASE WHEN l.sk_liga    IS NULL THEN 1 ELSE 0 END) AS sem_liga,
+    SUM(CASE WHEN d.sk_data    IS NULL THEN 1 ELSE 0 END) AS sem_data
+FROM dw.fato_atuacao f
+LEFT JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+LEFT JOIN dw.dim_partida p ON p.sk_partida = f.sk_partida
+LEFT JOIN dw.dim_time t    ON t.sk_time    = f.sk_time
+LEFT JOIN dw.dim_liga l    ON l.sk_liga    = f.sk_liga
+LEFT JOIN dw.dim_data d    ON d.sk_data    = f.sk_data;
+
+-- 3. Chelsea na Premier League: 14/15 (campeão) × 15/16 (10º) × 16/17 (campeão)
+SELECT p.temporada, COUNT(*) AS linhas, COUNT(DISTINCT f.sk_jogador) AS jogadores,
+       SUM(f.minutos) AS minutos, SUM(f.gols) AS gols, SUM(f.assistencias) AS assistencias
+FROM dw.fato_atuacao f
+JOIN dw.dim_partida p ON p.sk_partida = f.sk_partida
+JOIN dw.dim_time t    ON t.sk_time = f.sk_time
+WHERE t.tm_club_id = 631
+  AND p.liga = N'Premier League'
+  AND p.temporada IN ('2014/15', '2015/16', '2016/17')
+GROUP BY p.temporada
+ORDER BY p.temporada;
+
+-- 4. A janela real de 2016 (Validação): onde jogaram em 2016/17
+SELECT j.nome, t.nome AS clube, COUNT(*) AS jogos, SUM(f.minutos) AS minutos
+FROM dw.fato_atuacao f
+JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+JOIN dw.dim_partida p ON p.sk_partida = f.sk_partida
+JOIN dw.dim_time t    ON t.sk_time = f.sk_time
+WHERE p.temporada = '2016/17'
+  AND j.nome IN (N'N''Golo Kanté', N'David Luiz', N'Marcos Alonso', N'Michy Batshuayi')
+GROUP BY j.nome, t.nome
+ORDER BY j.nome, jogos DESC;
 GO

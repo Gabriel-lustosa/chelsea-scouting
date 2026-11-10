@@ -18,7 +18,8 @@
 --   [x] dw.fato_desempenho (+ coluna posse na dim_partida)     Aula 17
 --   Bloco 2 — Transfermarkt
 --   [x] stg.ligacao_jogadores (D18)                            Aula 19
---   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
+--   [x] dw.fato_atuacao                                        Aula 22
+--   [ ] dw.fato_valor_mercado, dw.fato_transferencia           Aula 23
 --
 -- Padrões (D10.4 e D11):
 --   * Dimensão com chave substituta INT IDENTITY (sk_...) e as chaves das
@@ -314,5 +315,34 @@ CREATE TABLE stg.ligacao_jogadores (
     tm_club_id      INT NOT NULL,
     regra           INT NOT NULL,   -- 1 apelido, 2 nome completo, 3 sobrenome, 4 palavras, 5 exceção
     CONSTRAINT pk_ligacao_jogadores PRIMARY KEY (sb_player_id, sb_team_id)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_atuacao: grão jogador × jogo do Transfermarkt (D6, D19.4),
+-- 329.797 atuações dos 2.181 jogadores do DW, de 2014/15 a 2025/26.
+-- * sk_partida = jogo × clube do jogador (D15, D19.3).
+-- * Sem posição: o TM só dá o jogo. Posição e setor vêm da dim_jogador.
+-- * Cartões como o TM grava: 2º amarelo = amarelos 2 e vermelhos 0;
+--   vermelhos = 1 só no vermelho direto. Expulsão = amarelos = 2 ou
+--   vermelhos = 1 (conferido com os cartões do StatsBomb em 2015/16).
+-- * Temporada: filtrar pela dim_partida (temporada do jogo, D11), não
+--   pela dim_data.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.fato_atuacao;
+CREATE TABLE dw.fato_atuacao (
+    -- chaves: as 2 primeiras formam o grão jogador × jogo
+    sk_jogador      INT  NOT NULL,
+    sk_partida      INT  NOT NULL,   -- jogo × clube do jogador (D15)
+    sk_time         INT  NOT NULL,   -- clube do jogador no jogo
+    sk_liga         INT  NOT NULL,
+    sk_data         INT  NOT NULL,   -- AAAAMMDD
+    -- medidas
+    minutos         INT  NOT NULL,
+    gols            INT  NOT NULL,
+    assistencias    INT  NOT NULL,
+    amarelos        INT  NOT NULL,   -- 2 = expulso pelo 2º amarelo
+    vermelhos       INT  NOT NULL,   -- só vermelho direto
+    CONSTRAINT pk_fato_atuacao PRIMARY KEY (sk_jogador, sk_partida)
 );
 GO

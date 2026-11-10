@@ -86,7 +86,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Download dos dados (4 ligas, 1.517 partidas) | Pronto |
 | Criação dos bancos e carga da staging | Pronto (10 tabelas da staging criadas; carga das partidas das 4 ligas feita: 1.517; escalações: 56.884 linhas; eventos: 5.321.459, com cartões e xG exato, D8 e D9; Transfermarkt: 7 tabelas, 2,9 milhões de linhas) |
 | Desenho do DW: ligação em SQL, dois blocos (D10) | Pronto |
-| DW no SQL Server | Em andamento (Bloco 1 StatsBomb completo: 6 dimensões + `fato_desempenho` com 54.415 linhas, validada contra o levantamento; Bloco 2 Transfermarkt em andamento: jogadores ligados, 2.279 pares, 100% dos minutos; `dim_jogador` com 2.181 jogadores e os atributos do TM; `dim_time` com 943 clubes e `dim_partida` com 68.504 linhas) |
+| DW no SQL Server | Em andamento (Bloco 1 StatsBomb completo: 6 dimensões + `fato_desempenho` com 54.415 linhas, validada contra o levantamento; Bloco 2 Transfermarkt em andamento: jogadores ligados, 2.279 pares, 100% dos minutos; `dim_jogador` com 2.181 jogadores e os atributos do TM; `dim_time` com 943 clubes e `dim_partida` com 68.504 linhas; `fato_atuacao` com 329.797 atuações de 2014/15 a 2025/26) |
 | ETL com SSIS | Pendente |
 | Modelo SSAS Tabular | Pendente |
 | Dashboards Power BI | Pendente |
