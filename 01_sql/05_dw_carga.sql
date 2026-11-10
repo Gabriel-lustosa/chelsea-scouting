@@ -6,7 +6,7 @@
 --           pelo 04_dw_tabelas.sql.
 --
 -- O arquivo é montado aula a aula, junto com o DW no SSMS:
---   Bloco 1 — StatsBomb (D10.2)
+--   Bloco 1 — StatsBomb (D10.2) — completo
 --   [x] dw.dim_data        calendário gerado, sem origem        Aula 10
 --   [x] dw.dim_liga        65 competições TM + 4 faltantes      Aula 11
 --   [x] dw.dim_posicao     25 posições, 9 grupos, 4 setores     Aula 12
@@ -16,7 +16,7 @@
 --   [x] stg.sb_trechos     56.884 trechos, minutos certos (D17) Aula 16
 --   [x] dw.dim_partida     posse por partida × time (D17.4)     Aula 17
 --   [x] dw.fato_desempenho 54.415 jogador × partida × posição   Aula 17
---   [ ] dw.dim_jogador     UPDATE da posição principal (D17.5)  Aula 18
+--   [x] dw.dim_jogador     UPDATE da posição principal (D17.5)  Aula 18
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
@@ -682,6 +682,52 @@ ORDER BY j.sk_jogador, p.sk_partida, po.sk_posicao;
 RAISERROR('dw.fato_desempenho ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador: grupo e posição principais (D16.3 e D17.5)
+-- * Pelos minutos da fato_desempenho (acréscimos e corte dos expulsos).
+-- * Primeiro o grupo com mais minutos, depois a posição com mais minutos
+--   dentro dele: os dois ficam sempre coerentes (Kenedy: Ponta, porque
+--   soma mais em Ponta do que em Lateral, mesmo com Lateral esquerdo
+--   sendo a posição de mais minutos). Pegando a posição primeiro, 68
+--   jogadores ficariam num grupo que não é o de mais minutos.
+-- * É só o rótulo: o mínimo de 900 minutos continua sendo por grupo, em
+--   DAX (D6.3). Kanté tem 1.722 min de Meia central e 1.408 de Volante:
+--   rótulo "Meia central", mas entra na comparação dos dois grupos.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+WITH minutos AS (           -- 1. minutos de cada jogador em cada posição (as 4 ligas)
+    SELECT f.sk_jogador, p.grupo, p.posicao_pt, p.ordem_grupo, p.sb_position_id,
+           SUM(f.minutos) AS minutos
+    FROM dw.fato_desempenho f
+    JOIN dw.dim_posicao p ON p.sk_posicao = f.sk_posicao
+    GROUP BY f.sk_jogador, p.grupo, p.posicao_pt, p.ordem_grupo, p.sb_position_id
+),
+grupos AS (                 -- 2. o grupo com mais minutos (empate: o de menor ordem_grupo)
+    SELECT sk_jogador, grupo,
+           ROW_NUMBER() OVER (PARTITION BY sk_jogador
+                              ORDER BY SUM(minutos) DESC, MIN(ordem_grupo)) AS ordem
+    FROM minutos
+    GROUP BY sk_jogador, grupo
+),
+posicoes AS (               -- 3. dentro desse grupo, a posição com mais minutos
+    SELECT m.sk_jogador, m.grupo, m.posicao_pt,
+           ROW_NUMBER() OVER (PARTITION BY m.sk_jogador
+                              ORDER BY m.minutos DESC, m.sb_position_id) AS ordem
+    FROM minutos m
+    JOIN grupos g ON g.sk_jogador = m.sk_jogador
+                 AND g.grupo = m.grupo
+                 AND g.ordem = 1
+)
+UPDATE j
+SET j.grupo_principal   = x.grupo,
+    j.posicao_principal = x.posicao_pt
+FROM dw.dim_jogador j
+JOIN posicoes x ON x.sk_jogador = j.sk_jogador
+               AND x.ordem = 1;
+
+RAISERROR('dw.dim_jogador posicao principal ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -979,4 +1025,71 @@ LEFT JOIN dw.dim_posicao po ON po.sk_posicao = f.sk_posicao
 LEFT JOIN dw.dim_time t     ON t.sk_time = f.sk_time
 LEFT JOIN dw.dim_liga l     ON l.sk_liga = f.sk_liga
 LEFT JOIN dw.dim_data d     ON d.sk_data = f.sk_data;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_jogador (posição principal) e validação contra o levantamento
+-- Esperado: 2.176 com grupo e posição, 0 posições fora do grupo; Goleiro
+--           182, Zagueiro 349, Lateral 396, Volante 283, Meia central
+--           178, Meia aberto 113, Meia ofensivo 101, Ponta 271, Atacante
+--           303. Zagueiros da Premier League com 900+ min no grupo
+--           (n = 62), percentil em passe progressivo por 90: Terry 0,
+--           Cahill 2, Zouma 5 (levantamento: 0, 0, 5).
+-- ---------------------------------------------------------------------
+-- 1. Todos preenchidos e coerentes (a posição sempre pertence ao grupo)
+SELECT COUNT(*) AS jogadores,
+       COUNT(grupo_principal) AS com_grupo,
+       COUNT(posicao_principal) AS com_posicao,
+       SUM(CASE WHEN p.grupo <> j.grupo_principal THEN 1 ELSE 0 END) AS posicao_fora_do_grupo
+FROM dw.dim_jogador j
+LEFT JOIN dw.dim_posicao p ON p.posicao_pt = j.posicao_principal;
+
+-- 2. Jogadores por grupo principal
+SELECT j.grupo_principal, COUNT(*) AS jogadores
+FROM dw.dim_jogador j
+JOIN (SELECT DISTINCT grupo, ordem_grupo FROM dw.dim_posicao) g ON g.grupo = j.grupo_principal
+GROUP BY j.grupo_principal, g.ordem_grupo
+ORDER BY g.ordem_grupo;
+
+-- 3. Elenco do Chelsea
+SELECT nome, grupo_principal, posicao_principal
+FROM dw.dim_jogador
+WHERE eh_elenco_chelsea_2015_16 = 1
+ORDER BY grupo_principal, nome;
+
+-- 4. Validação: percentil entre os zagueiros da Premier League com 900+ min no grupo
+--    (D6.3). Percentil = % dos outros zagueiros com valor menor, como no levantamento.
+WITH zagueiros AS (
+    SELECT j.nome, j.eh_elenco_chelsea_2015_16,
+           SUM(f.minutos) AS minutos,
+           SUM(f.passes_progressivos)    * 90.0 / SUM(f.minutos) AS passes_prog_90,
+           SUM(f.conducoes_progressivas) * 90.0 / SUM(f.minutos) AS conducoes_prog_90,
+           (SUM(f.desarmes_padj) + SUM(f.interceptacoes_padj)) * 90.0 / SUM(f.minutos) AS desarm_int_padj_90,
+           SUM(f.recuperacoes_padj)      * 90.0 / SUM(f.minutos) AS recuperacoes_padj_90
+    FROM dw.fato_desempenho f
+    JOIN dw.dim_posicao p ON p.sk_posicao = f.sk_posicao
+    JOIN dw.dim_liga l    ON l.sk_liga = f.sk_liga
+    JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+    WHERE p.grupo = N'Zagueiro' AND l.nome = N'Premier League'
+    GROUP BY j.sk_jogador, j.nome, j.eh_elenco_chelsea_2015_16
+    HAVING SUM(f.minutos) >= 900
+),
+percentis AS (
+    SELECT z.*,
+           COUNT(*) OVER () AS n,
+           (RANK() OVER (ORDER BY passes_prog_90)       - 1) * 100.0 / (COUNT(*) OVER () - 1) AS pct_passes_prog,
+           (RANK() OVER (ORDER BY conducoes_prog_90)    - 1) * 100.0 / (COUNT(*) OVER () - 1) AS pct_conducoes_prog,
+           (RANK() OVER (ORDER BY desarm_int_padj_90)   - 1) * 100.0 / (COUNT(*) OVER () - 1) AS pct_desarm_int_padj,
+           (RANK() OVER (ORDER BY recuperacoes_padj_90) - 1) * 100.0 / (COUNT(*) OVER () - 1) AS pct_recuperacoes_padj
+    FROM zagueiros z
+)
+SELECT nome, n, CAST(minutos AS INT) AS minutos,
+       CAST(passes_prog_90 AS DECIMAL(4,2))  AS passes_prog_90,
+       CAST(ROUND(pct_passes_prog, 0) AS INT)          AS pct_passes_prog,
+       CAST(ROUND(pct_conducoes_prog, 0) AS INT)       AS pct_conducoes_prog,
+       CAST(ROUND(pct_desarm_int_padj, 0) AS INT)      AS pct_desarm_int_padj,
+       CAST(ROUND(pct_recuperacoes_padj, 0) AS INT)    AS pct_recuperacoes_padj
+FROM percentis
+WHERE eh_elenco_chelsea_2015_16 = 1
+ORDER BY minutos DESC;
 GO

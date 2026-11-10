@@ -7,7 +7,7 @@
 --           (trocar o USE para chelsea_scouting_ssis).
 --
 -- O arquivo é montado aula a aula, junto com o DW no SSMS:
---   Bloco 1 — StatsBomb (D10.2)
+--   Bloco 1 — StatsBomb (D10.2) — completo
 --   [x] dw.dim_data                                            Aula 10
 --   [x] dw.dim_liga                                            Aula 11
 --   [x] dw.dim_posicao                                         Aula 12

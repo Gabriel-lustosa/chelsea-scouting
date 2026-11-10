@@ -613,3 +613,5 @@ A partida já leva ao time, à liga e à data, mas as chaves diretas deixam a es
 **Descartada:** *posição de mais minutos e o grupo dela*: em 68 jogadores o grupo não seria o de mais minutos.
 
 **Ordem das aulas:** 16 `stg.sb_trechos`; 17 coluna `posse` + `fato_desempenho`; 18 `UPDATE` da posição principal e validação contra o levantamento (percentis de Terry e Cahill em passe progressivo).
+
+**Validação** (Aula 18, 2026-11-10): as contagens da fato para Terry, Cahill e Matić são iguais às do levantamento em todos os indicadores; só os minutos mudam (acréscimos e corte). Entre os 62 zagueiros da Premier League com 900+ minutos no grupo, o percentil em passe progressivo por 90 ficou Terry 0, Cahill 2 e Zouma 5 (levantamento: 0, 0 e 5): o achado da D5 se mantém. Com o PAdj, o Chelsea passa de 20º para 14º em interceptações por jogo, então parte do último lugar era efeito da posse (56%). O Kanté tem 1.722 minutos de Meia central e 1.408 de Volante: o rótulo principal é "Meia central", mas ele entra na comparação dos dois grupos (mínimo de 900 por grupo, D6.3).
