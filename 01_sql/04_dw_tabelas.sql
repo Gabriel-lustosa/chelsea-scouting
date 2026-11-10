@@ -160,7 +160,7 @@ CREATE TABLE dw.dim_partida (
     data                        DATE          NOT NULL,
     temporada                   NVARCHAR(7)   NOT NULL,       -- '2015/16' (do jogo, D11)
     liga                        NVARCHAR(100) NOT NULL,       -- dim_liga.nome
-    rodada                      INT           NULL,           -- 1 a 38
+    rodada                      INT           NULL,           -- 1 a 38; TM: '12. Matchday' -> 12, copa sem rodada
     confronto                   NVARCHAR(200) NOT NULL,       -- 'Chelsea 2 x 2 Swansea City' (mandante primeiro)
     mando                       NVARCHAR(4)   NOT NULL,       -- 'Casa' ou 'Fora'
     adversario                  NVARCHAR(200) NOT NULL,

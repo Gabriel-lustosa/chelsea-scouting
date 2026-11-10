@@ -20,8 +20,8 @@
 --   Bloco 2 — Transfermarkt
 --   [x] stg.ligacao_jogadores 2.279 pares, 5 regras (D18)       Aula 19
 --   [x] dw.dim_jogador     tm_player_id dos 2.176 (D18.4)       Aula 19
---   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
---   [ ] dw.dim_partida     jogos só do TM (sb_match_id NULL)
+--   [x] dw.dim_time        863 clubes só do TM (D19.2, D19.5)   Aula 21
+--   [x] dw.dim_partida     65.470 jogo × clube só do TM (D19.3) Aula 21
 --   [x] dw.dim_jogador     5 do Chelsea 14/15 + atributos TM    Aula 20
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
 --
@@ -954,6 +954,184 @@ JOIN stg.tm_players p ON p.player_id = j.tm_player_id;
 RAISERROR('dw.dim_jogador Bloco 2 ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.dim_time: Bloco 2 (D19.2 e D19.5)
+-- * Os clubes usados como chave nas fatos do TM desde 2014: o clube do
+--   jogador em cada atuação e os clubes de origem e destino das
+--   transferências. Os das avaliações ficam de fora (D19.5): o
+--   current_club_id da tm_player_valuations fica congelado para muitos
+--   jogadores (David Luiz = Fortaleza em todas as linhas).
+-- * nome curto como nos 80 (o mais frequente nas transferências; na
+--   falta, tm_clubs ou jogos); nome_tm na ordem inversa; "clubes"
+--   especiais traduzidos (515 Sem clube, 123 Aposentado, 2113 Pausa na
+--   carreira).
+-- * pais pela liga nacional da tm_clubs ou, na falta, pela liga nacional
+--   mais jogada; liga e posição 2015/16 pelo último jogo de liga nacional
+--   da temporada. O TM só tem as primeiras divisões: clube de divisão
+--   inferior fica sem país.
+-- * Depende da dim_jogador completa (os 5 do Chelsea 2014/15).
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0), 943 clubes.
+-- ---------------------------------------------------------------------
+-- D19.2 + D19.5: clubes das atuações e das transferências (desde 2014) que ainda não estão na dim_time
+WITH clubes AS (            -- 1. clubes usados como chave nas fatos do Bloco 2
+    SELECT a.player_club_id AS tm_club_id
+    FROM stg.tm_appearances a
+    JOIN stg.tm_games g     ON g.game_id = a.game_id
+    JOIN dw.dim_jogador j   ON j.tm_player_id = a.player_id
+    WHERE g.season >= 2014
+    UNION
+    SELECT t.from_club_id
+    FROM stg.tm_transfers t
+    JOIN dw.dim_jogador j   ON j.tm_player_id = t.player_id
+    WHERE t.transfer_date >= '20140101'
+    UNION
+    SELECT t.to_club_id
+    FROM stg.tm_transfers t
+    JOIN dw.dim_jogador j   ON j.tm_player_id = t.player_id
+    WHERE t.transfer_date >= '20140101'
+),
+novos AS (                  -- 2. só os que faltam (os 80 do StatsBomb já estão)
+    SELECT c.tm_club_id
+    FROM clubes c
+    WHERE NOT EXISTS (SELECT 1 FROM dw.dim_time d WHERE d.tm_club_id = c.tm_club_id)
+),
+nome_transf AS (            -- 3. nome curto: o mais frequente nas transferências ('Roma', 'Dortmund')
+    SELECT club_id, nome,
+           ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY COUNT(*) DESC, nome) AS lugar
+    FROM (SELECT from_club_id AS club_id, from_club_name AS nome FROM stg.tm_transfers
+          UNION ALL
+          SELECT to_club_id, to_club_name FROM stg.tm_transfers) x
+    GROUP BY club_id, nome
+),
+nome_jogo AS (              -- 4. nome nos jogos ('Associazione Sportiva Roma'), o mais frequente
+    SELECT club_id, nome,
+           ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY COUNT(*) DESC, nome) AS lugar
+    FROM (SELECT home_club_id AS club_id, home_club_name AS nome FROM stg.tm_games
+          UNION ALL
+          SELECT away_club_id, away_club_name FROM stg.tm_games) x
+    GROUP BY club_id, nome
+),
+liga_jogos AS (             -- 5. jogos de liga nacional de cada clube, com a posição depois do jogo
+    SELECT g.home_club_id AS club_id, g.season, g.date, g.competition_id, g.home_club_position AS posicao
+    FROM stg.tm_games g JOIN dw.dim_liga l ON l.tm_competition_id = g.competition_id
+    WHERE l.tipo = N'Liga nacional'
+    UNION ALL
+    SELECT g.away_club_id, g.season, g.date, g.competition_id, g.away_club_position
+    FROM stg.tm_games g JOIN dw.dim_liga l ON l.tm_competition_id = g.competition_id
+    WHERE l.tipo = N'Liga nacional'
+),
+liga_2015 AS (              -- 6. último jogo de liga em 2015/16: liga e posição final
+    SELECT club_id, competition_id, posicao,
+           ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY date DESC) AS ultimo
+    FROM liga_jogos
+    WHERE season = 2015
+),
+liga_mais_jogada AS (       -- 7. para o país de quem não está na tm_clubs: a liga nacional mais jogada
+    SELECT club_id, competition_id,
+           ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY COUNT(*) DESC, competition_id) AS lugar
+    FROM liga_jogos
+    GROUP BY club_id, competition_id
+)
+INSERT INTO dw.dim_time (sb_team_id, tm_club_id, nome, nome_tm, pais, liga_2015_16,
+                         posicao_2015_16, eh_time_do_estudo)
+SELECT NULL,
+       n.tm_club_id,
+       CASE n.tm_club_id WHEN 515  THEN N'Sem clube'            -- "clubes" especiais do TM
+                         WHEN 123  THEN N'Aposentado'
+                         WHEN 2113 THEN N'Pausa na carreira'
+                         ELSE COALESCE(nt.nome, c.name, nj.nome) END,
+       COALESCE(c.name, nj.nome, nt.nome),
+       COALESCE(lc.pais, lm.pais),
+       l15.nome,
+       p15.posicao,
+       0
+FROM novos n
+LEFT JOIN stg.tm_clubs c         ON c.club_id = n.tm_club_id
+LEFT JOIN nome_transf nt         ON nt.club_id = n.tm_club_id AND nt.lugar = 1
+LEFT JOIN nome_jogo nj           ON nj.club_id = n.tm_club_id AND nj.lugar = 1
+LEFT JOIN dw.dim_liga lc         ON lc.tm_competition_id = c.domestic_competition_id
+LEFT JOIN liga_mais_jogada m     ON m.club_id = n.tm_club_id AND m.lugar = 1
+LEFT JOIN dw.dim_liga lm         ON lm.tm_competition_id = m.competition_id
+LEFT JOIN liga_2015 p15          ON p15.club_id = n.tm_club_id AND p15.ultimo = 1
+LEFT JOIN dw.dim_liga l15        ON l15.tm_competition_id = p15.competition_id
+ORDER BY n.tm_club_id;
+
+RAISERROR('dw.dim_time Bloco 2 ok', 0, 1) WITH NOWAIT;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_partida: Bloco 2 (D19.3)
+-- * Cada jogo × clube em que um jogador do DW atuou desde 2014, só do
+--   lado do clube do jogador (grão da D15); os 3.034 do StatsBomb ficam.
+-- * Nomes do confronto e do adversário pela dim_time quando o clube está
+--   lá (por isso vem depois do bloco da dim_time); senão, o nome do jogo.
+-- * Rodada de 'N. Matchday'; jogo de copa sem rodada. Formação sem o
+--   prefixo 'Starting Line-up: ' (88 casos no TM). Posse e chaves do
+--   StatsBomb NULL.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0), 68.504 linhas.
+-- ---------------------------------------------------------------------
+-- D19.3: jogos das atuações (desde 2014), só o lado do clube do jogador, que ainda não estão na dim_partida
+WITH lados AS (             -- 1. cada jogo × clube em que um jogador do DW atuou
+    SELECT DISTINCT a.game_id, a.player_club_id AS tm_club_id
+    FROM stg.tm_appearances a
+    JOIN stg.tm_games g   ON g.game_id = a.game_id
+    JOIN dw.dim_jogador j ON j.tm_player_id = a.player_id
+    WHERE g.season >= 2014
+),
+jogos AS (                  -- 2. o jogo visto do lado desse clube ("casa" = mandante, "fora" = visitante)
+    SELECT x.game_id, x.tm_club_id, g.date, g.season, g.competition_id, g.round,
+           CASE WHEN g.home_club_id = x.tm_club_id THEN 1 ELSE 0 END AS em_casa,
+           COALESCE(tc.nome, g.home_club_name) AS nome_casa,     -- nome curto da dim_time, se o clube estiver lá
+           COALESCE(tf.nome, g.away_club_name) AS nome_fora,
+           tc.posicao_2015_16 AS posicao_casa, tf.posicao_2015_16 AS posicao_fora,
+           g.home_club_goals AS gols_casa, g.away_club_goals AS gols_fora,
+           g.home_club_manager_name AS tecnico_casa, g.away_club_manager_name AS tecnico_fora,
+           REPLACE(g.home_club_formation, N'Starting Line-up: ', N'') AS formacao_casa,
+           REPLACE(g.away_club_formation, N'Starting Line-up: ', N'') AS formacao_fora
+    FROM lados x
+    JOIN stg.tm_games g      ON g.game_id = x.game_id
+    LEFT JOIN dw.dim_time tc ON tc.tm_club_id = g.home_club_id
+    LEFT JOIN dw.dim_time tf ON tf.tm_club_id = g.away_club_id
+    WHERE NOT EXISTS (SELECT 1 FROM dw.dim_partida p          -- os 3.034 do StatsBomb já estão
+                      WHERE p.tm_game_id = x.game_id AND p.tm_club_id = x.tm_club_id)
+),
+lado AS (                   -- 3. troca casa/fora por "deste lado" e "do adversário"
+    SELECT game_id, tm_club_id, date, season, competition_id, round,
+           nome_casa, nome_fora, gols_casa, gols_fora,
+           CASE WHEN em_casa = 1 THEN N'Casa' ELSE N'Fora' END AS mando,
+           CASE WHEN em_casa = 1 THEN nome_fora     ELSE nome_casa     END AS adversario,
+           CASE WHEN em_casa = 1 THEN posicao_fora  ELSE posicao_casa  END AS posicao_adversario,
+           CASE WHEN em_casa = 1 THEN tecnico_casa  ELSE tecnico_fora  END AS tecnico,
+           CASE WHEN em_casa = 1 THEN tecnico_fora  ELSE tecnico_casa  END AS tecnico_adversario,
+           CASE WHEN em_casa = 1 THEN formacao_casa ELSE formacao_fora END AS formacao,
+           CASE WHEN em_casa = 1 THEN formacao_fora ELSE formacao_casa END AS formacao_adversario,
+           CASE WHEN em_casa = 1 THEN gols_casa     ELSE gols_fora     END AS gols_pro,
+           CASE WHEN em_casa = 1 THEN gols_fora     ELSE gols_casa     END AS gols_contra
+    FROM jogos
+)
+INSERT INTO dw.dim_partida (sb_match_id, sb_team_id, tm_game_id, tm_club_id, data, temporada, liga,
+                            rodada, confronto, mando, adversario, posicao_adversario_2015_16,
+                            tecnico, tecnico_adversario, formacao, formacao_adversario,
+                            gols_pro, gols_contra, resultado)
+SELECT NULL, NULL, x.game_id, x.tm_club_id, x.date,
+       CONCAT(x.season, '/', RIGHT(x.season + 1, 2)),
+       l.nome,
+       -- '12. Matchday' -> 12; jogo de copa ('First Round', 'Group A') fica sem rodada
+       CASE WHEN x.round LIKE N'%. Matchday' THEN CAST(LEFT(x.round, CHARINDEX(N'.', x.round) - 1) AS INT) END,
+       CONCAT(x.nome_casa, ' ', x.gols_casa, ' x ', x.gols_fora, ' ', x.nome_fora),
+       x.mando, x.adversario, x.posicao_adversario,
+       x.tecnico, x.tecnico_adversario, x.formacao, x.formacao_adversario,
+       x.gols_pro, x.gols_contra,
+       CASE WHEN x.gols_pro > x.gols_contra THEN N'Vitória'
+            WHEN x.gols_pro = x.gols_contra THEN N'Empate'
+            ELSE N'Derrota' END
+FROM lado x
+JOIN dw.dim_liga l ON l.tm_competition_id = x.competition_id
+ORDER BY x.date, x.game_id, x.mando;
+
+RAISERROR('dw.dim_partida Bloco 2 ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -1431,4 +1609,66 @@ SELECT nome, data_nascimento, pe, altura_cm
 FROM dw.dim_jogador
 WHERE data_nascimento IS NULL OR pe IS NULL OR altura_cm IS NULL
 ORDER BY nome;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_time e dw.dim_partida (Bloco 2)
+-- Esperado: 943 clubes (80 do StatsBomb, 863 só do TM), 512 com país,
+--           208 com liga 2015/16; 515 Sem clube, 123 Aposentado, 2113
+--           Pausa na carreira, 10870 (Fortaleza) ausente; 68.504 linhas
+--           na dim_partida, 43.457 jogos, 57.327 com rodada, 3.034 com
+--           posse, 0 órfãos; Chelsea PL 2016/17: 38 jogos, 30/3/5,
+--           85 x 33, Antonio Conte.
+-- ---------------------------------------------------------------------
+-- 1. dim_time: totais
+SELECT COUNT(*) AS clubes,
+       SUM(CASE WHEN sb_team_id IS NOT NULL THEN 1 ELSE 0 END) AS do_statsbomb,
+       SUM(CASE WHEN sb_team_id IS NULL THEN 1 ELSE 0 END) AS so_do_tm,
+       COUNT(nome_tm) AS com_nome_tm,
+       COUNT(pais) AS com_pais,
+       COUNT(liga_2015_16) AS com_liga_2015_16,
+       SUM(CAST(eh_time_do_estudo AS INT)) AS do_estudo
+FROM dw.dim_time;
+
+-- 2. dim_time: clubes especiais e alguns exemplos
+SELECT tm_club_id, nome, nome_tm, pais, liga_2015_16, posicao_2015_16
+FROM dw.dim_time
+WHERE tm_club_id IN (515, 123, 2113, 12, 16, 27, 583, 10870)
+ORDER BY tm_club_id;
+
+-- 3. dim_partida: totais
+SELECT COUNT(*) AS linhas,
+       COUNT(sb_match_id) AS do_statsbomb,
+       COUNT(DISTINCT tm_game_id) AS jogos,
+       COUNT(rodada) AS com_rodada,
+       COUNT(posse) AS com_posse,
+       MIN(data) AS primeira, MAX(data) AS ultima,
+       SUM(CASE WHEN formacao LIKE N'Starting%' THEN 1 ELSE 0 END) AS formacao_com_prefixo
+FROM dw.dim_partida;
+
+-- 4. Órfãos: todo clube das linhas novas tem que estar na dim_time
+SELECT COUNT(*) AS partidas_sem_clube
+FROM dw.dim_partida p
+WHERE NOT EXISTS (SELECT 1 FROM dw.dim_time t WHERE t.tm_club_id = p.tm_club_id);
+
+-- 5. Chelsea por temporada (todas as competições)
+SELECT p.temporada, COUNT(*) AS jogos,
+       SUM(CASE WHEN p.resultado = N'Vitória' THEN 1 ELSE 0 END) AS v,
+       SUM(CASE WHEN p.resultado = N'Empate'  THEN 1 ELSE 0 END) AS e,
+       SUM(CASE WHEN p.resultado = N'Derrota' THEN 1 ELSE 0 END) AS d,
+       SUM(p.gols_pro) AS gols_pro, SUM(p.gols_contra) AS gols_contra
+FROM dw.dim_partida p
+WHERE p.tm_club_id = 631
+GROUP BY p.temporada
+ORDER BY p.temporada;
+
+-- 6. Chelsea 2016/17 na Premier League (campeão, D2)
+SELECT COUNT(*) AS jogos,
+       SUM(CASE WHEN resultado = N'Vitória' THEN 1 ELSE 0 END) AS v,
+       SUM(CASE WHEN resultado = N'Empate'  THEN 1 ELSE 0 END) AS e,
+       SUM(CASE WHEN resultado = N'Derrota' THEN 1 ELSE 0 END) AS d,
+       SUM(gols_pro) AS gols_pro, SUM(gols_contra) AS gols_contra,
+       MIN(tecnico) AS tecnico
+FROM dw.dim_partida
+WHERE tm_club_id = 631 AND temporada = '2016/17' AND liga = N'Premier League';
 GO
