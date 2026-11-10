@@ -13,7 +13,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D7 | 2026-11-04 | Carga: JSONs do StatsBomb por `OPENJSON` no SQL Server, staging com colunas achatadas, Transfermarkt descompactado e carregado por `BULK INSERT` | Decidida |
 | D8 | 2026-11-08 | Cartões na staging de eventos: coluna `card` juntando `foul_committed.card` e `bad_behaviour.card`, para cortar os minutos dos expulsos | Decidida |
 | D9 | 2026-11-08 | xG na staging como `DECIMAL(11,10)`, lido como `FLOAT` no `OPENJSON` (há valores em notação científica e com até 10 casas) | Decidida |
-| D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida |
+| D10 | 2026-11-09 | DW no SQL Server: ligação de jogadores em SQL por time × temporada, construção em dois blocos (StatsBomb, depois Transfermarkt), Transfermarkt só dos jogadores ligados, tabelas no `dw` por scripts com chave substituta | Decidida (exceções da D10.1 em lista `VALUES`, D18.2) |
 | D11 | 2026-11-09 | Padrões do DW: estrutura e carga em scripts separados, sem FK declarada (conferência de órfãos), `dim_data` com chave AAAAMMDD de 2014 a 2026 e colunas de temporada e do cenário | Decidida |
 | D12 | 2026-11-09 | `dim_liga`: as 65 competições do Transfermarkt mais as 4 que faltam no CSV, com nome por regra (e exceções) e tipo em português | Decidida |
 | D13 | 2026-11-09 | `dim_posicao`: 9 grupos com os setores do levantamento (meia aberto no Meio, ponta e atacante no Ataque), nomes em português, lado, escopo e ordem de exibição | Decidida |
@@ -21,6 +21,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D15 | 2026-11-09 | `dim_partida` no grão partida × time (2 linhas por partida), as 1.517 do StatsBomb agora e os jogos do TM no Bloco 2, com técnico e formação do Transfermarkt | Decidida |
 | D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
+| D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
 
 ---
 
@@ -615,3 +616,42 @@ A partida já leva ao time, à liga e à data, mas as chaves diretas deixam a es
 **Ordem das aulas:** 16 `stg.sb_trechos`; 17 coluna `posse` + `fato_desempenho`; 18 `UPDATE` da posição principal e validação contra o levantamento (percentis de Terry e Cahill em passe progressivo).
 
 **Validação** (Aula 18, 2026-11-10): as contagens da fato para Terry, Cahill e Matić são iguais às do levantamento em todos os indicadores; só os minutos mudam (acréscimos e corte). Entre os 62 zagueiros da Premier League com 900+ minutos no grupo, o percentil em passe progressivo por 90 ficou Terry 0, Cahill 2 e Zouma 5 (levantamento: 0, 0 e 5): o achado da D5 se mantém. Com o PAdj, o Chelsea passa de 20º para 14º em interceptações por jogo, então parte do último lugar era efeito da posse (56%). O Kanté tem 1.722 minutos de Meia central e 1.408 de Volante: o rótulo principal é "Meia central", mas ele entra na comparação dos dois grupos (mínimo de 900 por grupo, D6.3).
+
+---
+
+## D18 — Ligação dos jogadores StatsBomb × Transfermarkt: regras, exceções e resultado
+
+**Contexto** (2026-11-10, medido no banco antes de decidir, sem alterar nada): o StatsBomb tem 2.279 pares jogador × time (2.176 jogadores; os 103 que trocaram de time aparecem duas vezes). No Transfermarkt, 2.374 jogadores atuaram pelos 80 clubes em 2015/16. As regras da D10.1, sem acento (`COLLATE Latin1_General_100_CI_AI`), dentro do clube na temporada e só quando há um candidato de cada lado:
+
+| Regra | Pares | % dos minutos (acumulado) |
+|---|---|---|
+| 1. Nome TM = apelido SB | 2.136 | |
+| 2. Nome TM = nome completo SB | 10 | |
+| 3. Último sobrenome igual | 57 | 97,01% |
+| 4. Todas as palavras do nome TM aparecem no apelido + nome completo SB (hífen separa palavras, ponto sai) | 54 | 99,30% |
+
+Nenhum jogador ficou com dois `tm_player_id` (os 103 que trocaram de time caíram no mesmo jogador nos dois clubes) e em nenhum dos 2.257 pares a diferença de minutos de liga entre as fontes passa de 25% + 90. A regra 4 resolve o Mikel (`John Obi Mikel` × `Mikel John Obi`), "Juanfran Torres", "Adrián San Miguel", "Emmanuel Badu". Sobram 22: 4 com a letra sérvia `Đ` (o `CI_AI` não a troca por "Dj"), 14 apelidos diferentes (Xabi Etxeita, Juankar, Chicharito...), 2 mudanças de nome (Jiang Guangtai = Tyias Browning, naturalizado chinês; Assane Gnoukouri = "Alassane Traoré" no TM, mesma data de nascimento, 28/09/1996) e 2 sem atuação no TM em 2015/16 (Markel Susaeta, Rushian Hepburn-Murphy, que existem na `tm_players`). O StatsBomb também grava `David N"Gog` e `Charles N"Zogbia` com aspas duplas no lugar do apóstrofo.
+
+### D18.1 — Regras 1 a 3 da D10.1 + regra 4 + `Đ` → `Dj`
+
+A regra 4 entra depois das três da D10.1. Antes de comparar, `Đ`/`đ` viram `Dj`/`dj` nos nomes do StatsBomb (Đoković = Djokovic). Ficam 18 casos para a lista de exceções.
+
+**Descartadas:** *só as regras da D10.1*: 97,01%, abaixo da meta de 98%, e 76 casos à mão; *`JARO_WINKLER_SIMILARITY`*: já descartada na D10 (exige `PREVIEW_FEATURES`).
+
+### D18.2 — Exceções numa lista `VALUES` no script (revê a D10.1)
+
+Cada exceção é uma linha com `sb_player_id`, `tm_player_id` e o motivo, no próprio script de carga, como os grupos da `dim_posicao`. Fica versionada no repositório e o SQL Server não precisa ler nenhum arquivo novo.
+
+**Descartadas:** *CSV no repositório* (D10.1): o serviço do SQL Server só lê `C:\dados` (D7), então seria preciso copiar o arquivo ou dar permissão na pasta do OneDrive; *CSV em `C:\dados`*: fora do Git.
+
+### D18.3 — Aspas duplas viram apóstrofo na `dim_jogador`
+
+A regra do apóstrofo da D16 passa a trocar também `"` por `'` ("David N'Gog", "Charles N'Zogbia"): uma linha a mais na carga e um `UPDATE` de 2 linhas no banco.
+
+**Descartada:** *deixar como veio*: "David N"Gog" nos relatórios.
+
+### D18.4 — Tabela `stg.ligacao_jogadores` + `UPDATE` do `tm_player_id`
+
+Uma linha por par jogador × time do StatsBomb (`sb_player_id`, `sb_team_id`, `tm_player_id`, `tm_club_id`, `regra`, com regra 5 = exceção). Depois, o `UPDATE` do `tm_player_id` na `dim_jogador`. A coluna `regra` permite auditar e é o que o SSIS compara por `EXCEPT` (D10.1).
+
+**Descartada:** *`UPDATE` direto na `dim_jogador`*: mais curto, mas perde a regra de cada par e a comparação com o SSIS.
