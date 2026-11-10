@@ -15,7 +15,7 @@
 --   [x] dw.dim_partida                                         Aula 14
 --   [x] dw.dim_jogador                                         Aula 15
 --   [x] stg.sb_trechos (intermediário da fato)                 Aula 16
---   [ ] dw.fato_desempenho
+--   [x] dw.fato_desempenho (+ coluna posse na dim_partida)     Aula 17
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.fato_valor_mercado, dw.fato_atuacao, dw.fato_transferencia
@@ -147,6 +147,8 @@ GO
 -- * As chaves únicas têm duas colunas: a mesma partida aparece duas
 --   vezes (uma por time), mas o par partida + time só uma vez.
 -- * Contar partidas no Power BI: DISTINCTCOUNT(sb_match_id).
+-- * posse: acrescentada na Aula 17 (D17.4) para o PAdj da fato; o 05
+--   preenche por UPDATE depois da carga da dim_partida.
 -- ---------------------------------------------------------------------
 DROP TABLE IF EXISTS dw.dim_partida;
 CREATE TABLE dw.dim_partida (
@@ -170,6 +172,7 @@ CREATE TABLE dw.dim_partida (
     gols_pro                    INT           NOT NULL,
     gols_contra                 INT           NOT NULL,
     resultado                   NVARCHAR(10)  NOT NULL,       -- 'Vitória', 'Empate', 'Derrota'
+    posse                       DECIMAL(5,4)  NULL,           -- participação nos passes, sem lateral (D17.4); NULL nos jogos só do TM
     CONSTRAINT pk_dim_partida PRIMARY KEY (sk_partida),
     CONSTRAINT uq_dim_partida_tm UNIQUE (tm_game_id, tm_club_id)
 );
@@ -239,5 +242,60 @@ CREATE TABLE stg.sb_trechos (
     cortado_expulsao    BIT NOT NULL,   -- 1 = trecho encerrado (ou zerado) pelo vermelho / 2º amarelo
     segundos            INT NOT NULL,   -- tempo jogado no trecho, com os acréscimos dos dois tempos
     CONSTRAINT pk_sb_trechos PRIMARY KEY (match_id, player_id, position_seq)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_desempenho: grão jogador × partida × posição (D6.1), 54.415
+-- linhas do StatsBomb 2015/16 (D17).
+-- * Contagens com numerador e denominador (passes e passes certos,
+--   duelos aéreos ganhos e perdidos): o "por 90" e os % saem no DAX e
+--   somam certo em qualquer filtro (D6.2).
+-- * sk_partida já leva ao time, à liga e à data, mas as chaves diretas
+--   deixam a estrela simples no SSAS e no Power BI (D17.4).
+-- * As 4 colunas _padj já vêm ajustadas por posse (D6.5).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.fato_desempenho;
+CREATE TABLE dw.fato_desempenho (
+    -- chaves (D17.4): as 3 primeiras formam o grão jogador × partida × posição
+    sk_jogador                  INT            NOT NULL,
+    sk_partida                  INT            NOT NULL,   -- partida × time (D15)
+    sk_posicao                  INT            NOT NULL,
+    sk_time                     INT            NOT NULL,
+    sk_liga                     INT            NOT NULL,
+    sk_data                     INT            NOT NULL,   -- AAAAMMDD
+    -- tempo
+    minutos                     DECIMAL(6,2)   NOT NULL,
+    -- passe
+    passes                      INT            NOT NULL,   -- sem lateral
+    passes_certos               INT            NOT NULL,
+    passes_progressivos         INT            NOT NULL,
+    passes_chave                INT            NOT NULL,   -- assistência para chute ou gol
+    passes_area                 INT            NOT NULL,
+    -- condução e drible
+    conducoes_progressivas      INT            NOT NULL,
+    dribles                     INT            NOT NULL,
+    dribles_certos              INT            NOT NULL,
+    -- defesa
+    desarmes_ganhos             INT            NOT NULL,
+    interceptacoes              INT            NOT NULL,
+    recuperacoes                INT            NOT NULL,
+    pressoes                    INT            NOT NULL,
+    duelos_aereos_ganhos        INT            NOT NULL,
+    duelos_aereos_perdidos      INT            NOT NULL,
+    -- erros
+    perdas_bola                 INT            NOT NULL,   -- Dispossessed + Miscontrol
+    erros_levaram_chute         INT            NOT NULL,
+    -- ataque (visão por setor)
+    chutes                      INT            NOT NULL,
+    gols                        INT            NOT NULL,
+    xg                          DECIMAL(12,10) NOT NULL,
+    assistencias                INT            NOT NULL,
+    -- ajustados por posse (D6.5): contagem × 0,5 / (1 − posse)
+    desarmes_padj               DECIMAL(9,4)   NOT NULL,
+    interceptacoes_padj         DECIMAL(9,4)   NOT NULL,
+    recuperacoes_padj           DECIMAL(9,4)   NOT NULL,
+    pressoes_padj               DECIMAL(9,4)   NOT NULL,
+    CONSTRAINT pk_fato_desempenho PRIMARY KEY (sk_jogador, sk_partida, sk_posicao)
 );
 GO

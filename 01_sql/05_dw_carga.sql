@@ -14,7 +14,9 @@
 --   [x] dw.dim_partida     1.517 partidas SB x 2 lados (D15)    Aula 14
 --   [x] dw.dim_jogador     2.176 jogadores SB, atributos 15/16  Aula 15
 --   [x] stg.sb_trechos     56.884 trechos, minutos certos (D17) Aula 16
---   [ ] dw.fato_desempenho (+ UPDATE da posição principal na dim_jogador)
+--   [x] dw.dim_partida     posse por partida × time (D17.4)     Aula 17
+--   [x] dw.fato_desempenho 54.415 jogador × partida × posição   Aula 17
+--   [ ] dw.dim_jogador     UPDATE da posição principal (D17.5)  Aula 18
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
 --   [ ] dw.dim_time        clubes só do TM (sb_team_id NULL)
@@ -380,6 +382,35 @@ RAISERROR('dw.dim_partida ok', 0, 1) WITH NOWAIT;
 GO
 
 -- ---------------------------------------------------------------------
+-- dw.dim_partida: posse (D17.4), base do PAdj da fato_desempenho
+-- * Posse = participação do time nos passes da partida, sem lateral,
+--   como no levantamento (D6.5).
+-- * SUM(...) OVER (PARTITION BY match_id) soma os passes dos dois
+--   times sem agrupar as linhas.
+-- Conferido em 2026-11-10: 3.034/3.034 iguais ao gabarito.
+-- ---------------------------------------------------------------------
+WITH passes AS (
+    SELECT match_id, team_id, COUNT(*) AS passes
+    FROM stg.sb_events
+    WHERE type_name = N'Pass'
+      AND (pass_type IS NULL OR pass_type <> N'Throw-in')
+    GROUP BY match_id, team_id
+),
+posse AS (
+    SELECT match_id, team_id,
+           passes * 1.0 / SUM(passes) OVER (PARTITION BY match_id) AS posse
+    FROM passes
+)
+UPDATE p
+SET p.posse = CAST(x.posse AS DECIMAL(5,4))
+FROM dw.dim_partida p
+JOIN posse x ON x.match_id = p.sb_match_id
+            AND x.team_id  = p.sb_team_id;
+
+RAISERROR('dw.dim_partida posse ok', 0, 1) WITH NOWAIT;
+GO
+
+-- ---------------------------------------------------------------------
 -- dw.dim_jogador: os 2.176 jogadores do StatsBomb 2015/16 (D16)
 -- * Só as colunas do StatsBomb; as outras 7 ficam NULL até o UPDATE da
 --   aula da fato_desempenho e do Bloco 2.
@@ -529,6 +560,126 @@ FROM cortados
 ORDER BY match_id, player_id, position_seq;
 
 RAISERROR('stg.sb_trechos ok', 0, 1) WITH NOWAIT;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_desempenho: 54.415 linhas jogador × partida × posição (D17)
+-- * Base = stg.sb_trechos (minutos, D17.1); os lances entram por LEFT
+--   JOIN pela position_id do próprio evento (D17.2): quem jogou sem
+--   lance de indicador fica com 0.
+-- * Regras dos indicadores = levantamento (00_dados/levantamento/
+--   Levantamento.cs): passe sem lateral; certo = sem pass_outcome;
+--   progressivo = certo, fora de bola parada, termina com x >= 60 e
+--   25% mais perto do centro do gol (120, 40); condução progressiva =
+--   idem e avança >= 5; desarme e interceptação com Won / Success In
+--   Play / Success Out; perda = Dispossessed + Miscontrol.
+-- * PAdj = contagem × 0,5 / (1 − posse) com a posse da dim_partida.
+-- * Ficam 587 linhas com 0 minuto (troca tática no mesmo segundo ou
+--   trecho depois do cartão): 225 têm lances e o "por 90" usa os
+--   minutos, então não distorcem.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0); contagens de
+-- Terry, Cahill e Matić iguais às do levantamento; 0 órfãos.
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.fato_desempenho;
+
+WITH minutos AS (           -- 1. minutos por jogador × partida × posição (soma dos trechos)
+    SELECT match_id, team_id, player_id, position_id,
+           SUM(segundos) / 60.0 AS minutos
+    FROM stg.sb_trechos
+    GROUP BY match_id, team_id, player_id, position_id
+),
+lances AS (                 -- 2. os lances que entram nos indicadores, com as contas de apoio
+    SELECT match_id, team_id, player_id, position_id, type_name,
+           pass_type, pass_outcome, pass_shot_assist, pass_goal_assist,
+           dribble_outcome, duel_type, duel_outcome, interception_outcome,
+           ball_recovery_recovery_failure, aerial_won, shot_outcome, shot_statsbomb_xg,
+           location_x, pass_end_location_x, carry_end_location_x,
+           CASE WHEN type_name = N'Pass' AND (pass_type IS NULL OR pass_type <> N'Throw-in')
+                THEN 1 ELSE 0 END AS eh_passe,
+           -- distância até o centro do gol (120, 40)
+           SQRT(SQUARE(120 - location_x)           + SQUARE(40 - location_y))           AS dist_inicio,
+           SQRT(SQUARE(120 - pass_end_location_x)  + SQUARE(40 - pass_end_location_y))  AS dist_fim_passe,
+           SQRT(SQUARE(120 - carry_end_location_x) + SQUARE(40 - carry_end_location_y)) AS dist_fim_conducao,
+           -- área: x >= 102 e y entre 18 e 62
+           CASE WHEN location_x >= 102 AND location_y BETWEEN 18 AND 62
+                THEN 1 ELSE 0 END AS inicio_na_area,
+           CASE WHEN pass_end_location_x >= 102 AND pass_end_location_y BETWEEN 18 AND 62
+                THEN 1 ELSE 0 END AS fim_na_area
+    FROM stg.sb_events
+    WHERE player_id IS NOT NULL
+      AND type_name IN (N'Pass', N'Carry', N'Dribble', N'Duel', N'Interception', N'Ball Recovery',
+                        N'Pressure', N'Error', N'Dispossessed', N'Miscontrol', N'Clearance', N'Shot')
+),
+contagens AS (              -- 3. as contagens por jogador × partida × posição (regras do levantamento)
+    SELECT match_id, team_id, player_id, position_id,
+           SUM(eh_passe) AS passes,
+           SUM(CASE WHEN eh_passe = 1 AND pass_outcome IS NULL THEN 1 ELSE 0 END) AS passes_certos,
+           SUM(CASE WHEN eh_passe = 1 AND pass_outcome IS NULL
+                     AND (pass_type IS NULL OR pass_type NOT IN (N'Corner', N'Free Kick', N'Goal Kick', N'Kick Off'))
+                     AND pass_end_location_x >= 60
+                     AND dist_fim_passe <= 0.75 * dist_inicio THEN 1 ELSE 0 END) AS passes_progressivos,
+           SUM(CASE WHEN eh_passe = 1 AND (pass_shot_assist = 1 OR pass_goal_assist = 1)
+                    THEN 1 ELSE 0 END) AS passes_chave,
+           SUM(CASE WHEN eh_passe = 1 AND pass_outcome IS NULL
+                     AND inicio_na_area = 0 AND fim_na_area = 1 THEN 1 ELSE 0 END) AS passes_area,
+           SUM(CASE WHEN type_name = N'Carry'
+                     AND carry_end_location_x >= 60
+                     AND dist_fim_conducao <= 0.75 * dist_inicio
+                     AND carry_end_location_x - location_x >= 5 THEN 1 ELSE 0 END) AS conducoes_progressivas,
+           SUM(CASE WHEN type_name = N'Dribble' THEN 1 ELSE 0 END) AS dribles,
+           SUM(CASE WHEN type_name = N'Dribble' AND dribble_outcome = N'Complete' THEN 1 ELSE 0 END) AS dribles_certos,
+           SUM(CASE WHEN type_name = N'Duel' AND duel_type = N'Tackle'
+                     AND duel_outcome IN (N'Won', N'Success In Play', N'Success Out') THEN 1 ELSE 0 END) AS desarmes_ganhos,
+           SUM(CASE WHEN type_name = N'Interception'
+                     AND interception_outcome IN (N'Won', N'Success In Play', N'Success Out') THEN 1 ELSE 0 END) AS interceptacoes,
+           SUM(CASE WHEN type_name = N'Ball Recovery' AND ball_recovery_recovery_failure IS NULL
+                    THEN 1 ELSE 0 END) AS recuperacoes,
+           SUM(CASE WHEN type_name = N'Pressure' THEN 1 ELSE 0 END) AS pressoes,
+           SUM(CASE WHEN aerial_won = 1 THEN 1 ELSE 0 END) AS duelos_aereos_ganhos,
+           SUM(CASE WHEN type_name = N'Duel' AND duel_type = N'Aerial Lost' THEN 1 ELSE 0 END) AS duelos_aereos_perdidos,
+           SUM(CASE WHEN type_name IN (N'Dispossessed', N'Miscontrol') THEN 1 ELSE 0 END) AS perdas_bola,
+           SUM(CASE WHEN type_name = N'Error' THEN 1 ELSE 0 END) AS erros_levaram_chute,
+           SUM(CASE WHEN type_name = N'Shot' THEN 1 ELSE 0 END) AS chutes,
+           SUM(CASE WHEN type_name = N'Shot' AND shot_outcome = N'Goal' THEN 1 ELSE 0 END) AS gols,
+           SUM(CASE WHEN type_name = N'Shot' THEN shot_statsbomb_xg ELSE 0 END) AS xg,
+           SUM(CASE WHEN eh_passe = 1 AND pass_goal_assist = 1 THEN 1 ELSE 0 END) AS assistencias
+    FROM lances
+    GROUP BY match_id, team_id, player_id, position_id
+)
+INSERT INTO dw.fato_desempenho (
+    sk_jogador, sk_partida, sk_posicao, sk_time, sk_liga, sk_data, minutos,
+    passes, passes_certos, passes_progressivos, passes_chave, passes_area,
+    conducoes_progressivas, dribles, dribles_certos,
+    desarmes_ganhos, interceptacoes, recuperacoes, pressoes, duelos_aereos_ganhos, duelos_aereos_perdidos,
+    perdas_bola, erros_levaram_chute, chutes, gols, xg, assistencias,
+    desarmes_padj, interceptacoes_padj, recuperacoes_padj, pressoes_padj)
+SELECT j.sk_jogador, p.sk_partida, po.sk_posicao, t.sk_time, l.sk_liga, d.sk_data,
+       CAST(m.minutos AS DECIMAL(6,2)),
+       ISNULL(c.passes, 0), ISNULL(c.passes_certos, 0), ISNULL(c.passes_progressivos, 0),
+       ISNULL(c.passes_chave, 0), ISNULL(c.passes_area, 0),
+       ISNULL(c.conducoes_progressivas, 0), ISNULL(c.dribles, 0), ISNULL(c.dribles_certos, 0),
+       ISNULL(c.desarmes_ganhos, 0), ISNULL(c.interceptacoes, 0), ISNULL(c.recuperacoes, 0),
+       ISNULL(c.pressoes, 0), ISNULL(c.duelos_aereos_ganhos, 0), ISNULL(c.duelos_aereos_perdidos, 0),
+       ISNULL(c.perdas_bola, 0), ISNULL(c.erros_levaram_chute, 0),
+       ISNULL(c.chutes, 0), ISNULL(c.gols, 0), ISNULL(c.xg, 0), ISNULL(c.assistencias, 0),
+       -- 5. PAdj com a posse do time na partida
+       ISNULL(c.desarmes_ganhos, 0) * 0.5 / (1 - p.posse),
+       ISNULL(c.interceptacoes, 0)  * 0.5 / (1 - p.posse),
+       ISNULL(c.recuperacoes, 0)    * 0.5 / (1 - p.posse),
+       ISNULL(c.pressoes, 0)        * 0.5 / (1 - p.posse)
+FROM minutos m              -- 4. a base são os trechos; os lances entram por LEFT JOIN
+JOIN dw.dim_jogador j   ON j.sb_player_id = m.player_id
+JOIN dw.dim_partida p   ON p.sb_match_id = m.match_id AND p.sb_team_id = m.team_id
+JOIN dw.dim_posicao po  ON po.sb_position_id = m.position_id
+JOIN dw.dim_time t      ON t.sb_team_id = m.team_id
+JOIN stg.sb_matches sm  ON sm.match_id = m.match_id
+JOIN dw.dim_liga l      ON l.sb_competition_id = sm.competition_id
+JOIN dw.dim_data d      ON d.data = p.data
+LEFT JOIN contagens c   ON c.match_id = m.match_id AND c.team_id = m.team_id
+                       AND c.player_id = m.player_id AND c.position_id = m.position_id
+ORDER BY j.sk_jogador, p.sk_partida, po.sk_posicao;
+
+RAISERROR('dw.fato_desempenho ok', 0, 1) WITH NOWAIT;
 GO
 
 -- =====================================================================
@@ -758,4 +909,74 @@ JOIN dw.dim_time dt   ON dt.sb_team_id = t.team_id
 WHERE dt.nome = N'Chelsea'
 GROUP BY j.nome
 ORDER BY minutos DESC;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.dim_partida (posse) e dw.fato_desempenho
+-- Esperado: posse em 3.034/3.034 (0,2218 a 0,7782); fato com 54.415
+--           linhas = grão dos trechos, 3.163.699,69 minutos, 1.411.553
+--           passes, 3.869 gols, xG 3.746,8447146780, 587 linhas com 0
+--           minuto; Terry, Cahill e Matić com as contagens do
+--           levantamento; interceptações por jogo do Chelsea 5,92 (20º
+--           na Premier League) e 6,73 com PAdj (14º); 0 órfãos.
+-- ---------------------------------------------------------------------
+-- 1. Posse na dim_partida
+SELECT COUNT(*) AS linhas, COUNT(posse) AS com_posse,
+       MIN(posse) AS menor, MAX(posse) AS maior
+FROM dw.dim_partida;
+
+-- 2. Totais da fato (nenhuma linha perdida nos JOINs: tem que ser igual ao grão dos trechos)
+SELECT COUNT(*) AS linhas,
+       (SELECT COUNT(*) FROM (SELECT DISTINCT match_id, team_id, player_id, position_id
+                              FROM stg.sb_trechos) g) AS grao_trechos,
+       SUM(minutos) AS minutos,
+       SUM(passes) AS passes, SUM(gols) AS gols, SUM(xg) AS xg,
+       SUM(CASE WHEN minutos = 0 THEN 1 ELSE 0 END) AS linhas_0_minuto
+FROM dw.fato_desempenho;
+
+-- 3. Mesmos números do levantamento (Terry, Cahill e Matić na Premier League)
+SELECT j.nome, SUM(f.minutos) AS minutos, SUM(f.passes) AS passes, SUM(f.passes_certos) AS certos,
+       SUM(f.passes_progressivos) AS progressivos, SUM(f.conducoes_progressivas) AS conducoes,
+       SUM(f.desarmes_ganhos) AS desarmes, SUM(f.interceptacoes) AS intercept,
+       SUM(f.recuperacoes) AS recuperacoes, SUM(f.pressoes) AS pressoes,
+       SUM(f.duelos_aereos_ganhos) AS aereos_ganhos, SUM(f.duelos_aereos_perdidos) AS aereos_perdidos
+FROM dw.fato_desempenho f
+JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+WHERE j.nome IN (N'John Terry', N'Gary Cahill', N'Nemanja Matić')
+GROUP BY j.nome
+ORDER BY j.nome;
+
+-- 4. Interceptações por jogo na Premier League: bruta × ajustada por posse (PAdj)
+WITH por_time AS (
+    SELECT t.nome,
+           SUM(f.interceptacoes) * 1.0 / COUNT(DISTINCT f.sk_partida)      AS intercept_jogo,
+           SUM(f.interceptacoes_padj) / COUNT(DISTINCT f.sk_partida)       AS intercept_padj_jogo
+    FROM dw.fato_desempenho f
+    JOIN dw.dim_time t ON t.sk_time = f.sk_time
+    JOIN dw.dim_liga l ON l.sk_liga = f.sk_liga
+    WHERE l.nome = N'Premier League'
+    GROUP BY t.nome
+)
+SELECT nome,
+       CAST(intercept_jogo AS DECIMAL(5,2))      AS intercept_jogo,
+       RANK() OVER (ORDER BY intercept_jogo DESC)      AS lugar_bruto,
+       CAST(intercept_padj_jogo AS DECIMAL(5,2)) AS intercept_padj_jogo,
+       RANK() OVER (ORDER BY intercept_padj_jogo DESC) AS lugar_padj
+FROM por_time
+ORDER BY lugar_padj;
+
+-- Órfãos (D11.2): toda chave da fato existe na dimensão
+SELECT SUM(CASE WHEN j.sk_jogador IS NULL THEN 1 ELSE 0 END)  AS orfaos_jogador,
+       SUM(CASE WHEN p.sk_partida IS NULL THEN 1 ELSE 0 END)  AS orfaos_partida,
+       SUM(CASE WHEN po.sk_posicao IS NULL THEN 1 ELSE 0 END) AS orfaos_posicao,
+       SUM(CASE WHEN t.sk_time IS NULL THEN 1 ELSE 0 END)     AS orfaos_time,
+       SUM(CASE WHEN l.sk_liga IS NULL THEN 1 ELSE 0 END)     AS orfaos_liga,
+       SUM(CASE WHEN d.sk_data IS NULL THEN 1 ELSE 0 END)     AS orfaos_data
+FROM dw.fato_desempenho f
+LEFT JOIN dw.dim_jogador j  ON j.sk_jogador = f.sk_jogador
+LEFT JOIN dw.dim_partida p  ON p.sk_partida = f.sk_partida
+LEFT JOIN dw.dim_posicao po ON po.sk_posicao = f.sk_posicao
+LEFT JOIN dw.dim_time t     ON t.sk_time = f.sk_time
+LEFT JOIN dw.dim_liga l     ON l.sk_liga = f.sk_liga
+LEFT JOIN dw.dim_data d     ON d.sk_data = f.sk_data;
 GO
