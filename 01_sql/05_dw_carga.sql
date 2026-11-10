@@ -13,6 +13,7 @@
 --   [x] dw.dim_time        80 times SB ligados ao TM por votação Aula 13
 --   [x] dw.dim_partida     1.517 partidas SB x 2 lados (D15)    Aula 14
 --   [x] dw.dim_jogador     2.176 jogadores SB, atributos 15/16  Aula 15
+--   [x] stg.sb_trechos     56.884 trechos, minutos certos (D17) Aula 16
 --   [ ] dw.fato_desempenho (+ UPDATE da posição principal na dim_jogador)
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
@@ -444,6 +445,92 @@ ORDER BY t.player_id;
 RAISERROR('dw.dim_jogador ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- stg.sb_trechos: os 56.884 trechos de posição com os minutos certos
+-- (D17.1 e D17.3), base dos minutos da fato_desempenho.
+-- * Fim de cada tempo = último lance do período: entram os acréscimos
+--   dos dois tempos (o relógio do 2º tempo recomeça em 45:00 = 2700, e
+--   o método do levantamento perdia o acréscimo do 1º tempo).
+-- * Trecho sem hora de fim vai até o fim do 2º tempo.
+-- * 9 trechos vêm da origem com início e fim trocados (começam no 2º
+--   tempo e terminam no 1º); os eventos confirmam que vão do fim do 1º
+--   tempo ao começo do 2º. A CTE 4 desfaz a troca.
+-- * Corte dos expulsos (D8): todo trecho que termina depois do vermelho
+--   ou do 2º amarelo passa a terminar no cartão. A escalação quase nunca
+--   registra a expulsão (Courtois, Chelsea 2 x 2 Swansea City: vermelho
+--   aos 51:37, mas segue no gol até 53:40 e depois "vira meia" até o
+--   apito). Trecho que começa depois do cartão fica com 0 segundo
+--   (segundo_fim menor que segundo_inicio).
+-- * periodo * 10000 + segundo compara momentos de tempos diferentes
+--   (o 2º tempo sempre vem depois do 1º).
+-- * GREATEST (SQL Server 2022+) impede tempo negativo.
+-- Conferido em 2026-11-10: igual ao gabarito (EXCEPT 0/0).
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE stg.sb_trechos;
+
+WITH fim_tempo AS (         -- 1. fim de cada tempo = último lance do período
+    SELECT match_id,
+           MAX(CASE WHEN period = 1 THEN minute * 60 + second END) AS fim_1t,
+           MAX(CASE WHEN period = 2 THEN minute * 60 + second END) AS fim_2t
+    FROM stg.sb_events
+    GROUP BY match_id
+),
+expulsoes AS (              -- 2. momento do vermelho ou do 2º amarelo (D8)
+    SELECT match_id, player_id, period AS periodo, minute * 60 + second AS segundo
+    FROM stg.sb_events
+    WHERE card IN (N'Red Card', N'Second Yellow')
+),
+relogio AS (                -- 3. início e fim em segundos do relógio (o 2º tempo começa em 45:00 = 2700)
+    SELECT l.match_id, l.team_id, l.player_id, l.position_seq, l.position_id,
+           l.from_period AS periodo_de,
+           CAST(LEFT(l.from_time, CHARINDEX(':', l.from_time) - 1) AS INT) * 60
+             + CAST(RIGHT(l.from_time, 2) AS INT) AS segundo_de,
+           COALESCE(l.to_period, 2) AS periodo_ate,                  -- sem fim = até o apito
+           COALESCE(CAST(LEFT(l.to_time, CHARINDEX(':', l.to_time) - 1) AS INT) * 60
+             + CAST(RIGHT(l.to_time, 2) AS INT), f.fim_2t) AS segundo_ate,
+           f.fim_1t
+    FROM stg.sb_lineups l
+    JOIN fim_tempo f ON f.match_id = l.match_id
+),
+trechos AS (                -- 4. desfaz os 9 trechos com início e fim trocados (do 2º tempo para o 1º)
+    SELECT r.match_id, r.team_id, r.player_id, r.position_seq, r.position_id, r.fim_1t,
+           IIF(r.periodo_de > r.periodo_ate, r.periodo_ate, r.periodo_de)   AS periodo_inicio,
+           IIF(r.periodo_de > r.periodo_ate, r.segundo_ate, r.segundo_de)   AS segundo_inicio,
+           IIF(r.periodo_de > r.periodo_ate, r.periodo_de,  r.periodo_ate)  AS periodo_fim,
+           IIF(r.periodo_de > r.periodo_ate, r.segundo_de,  r.segundo_ate)  AS segundo_fim,
+           x.periodo AS periodo_cartao, x.segundo AS segundo_cartao
+    FROM relogio r
+    LEFT JOIN expulsoes x ON x.match_id = r.match_id AND x.player_id = r.player_id
+),
+cortados AS (               -- 5. se o cartão veio antes do fim do trecho, o trecho termina no cartão
+    SELECT match_id, team_id, player_id, position_seq, position_id, fim_1t,
+           periodo_inicio, segundo_inicio,
+           CASE WHEN periodo_cartao * 10000 + segundo_cartao < periodo_fim * 10000 + segundo_fim
+                THEN 1 ELSE 0 END AS cortado_expulsao,
+           CASE WHEN periodo_cartao * 10000 + segundo_cartao < periodo_fim * 10000 + segundo_fim
+                THEN periodo_cartao ELSE periodo_fim END AS periodo_fim,
+           CASE WHEN periodo_cartao * 10000 + segundo_cartao < periodo_fim * 10000 + segundo_fim
+                THEN segundo_cartao ELSE segundo_fim END AS segundo_fim
+    FROM trechos
+)
+INSERT INTO stg.sb_trechos (match_id, team_id, player_id, position_seq, position_id,
+                             periodo_inicio, segundo_inicio, periodo_fim, segundo_fim,
+                             cortado_expulsao, segundos)
+SELECT match_id, team_id, player_id, position_seq, position_id,
+       periodo_inicio, segundo_inicio, periodo_fim, segundo_fim, cortado_expulsao,
+       -- 6. parte no 1º tempo + parte no 2º tempo (nunca negativa)
+       CASE WHEN periodo_inicio = 1
+            THEN GREATEST(0, IIF(periodo_fim = 1, segundo_fim, fim_1t) - segundo_inicio)
+            ELSE 0 END
+     + CASE WHEN periodo_fim = 2
+            THEN GREATEST(0, segundo_fim - IIF(periodo_inicio = 2, segundo_inicio, 2700))
+            ELSE 0 END
+FROM cortados
+ORDER BY match_id, player_id, position_seq;
+
+RAISERROR('stg.sb_trechos ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -607,4 +694,68 @@ SELECT nome, time_fim_2015_16, trocou_de_time_2015_16
 FROM dw.dim_jogador
 WHERE eh_elenco_chelsea_2015_16 = 1
 ORDER BY nome;
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.sb_trechos
+-- Esperado: 56.884 trechos, 3.163.699,0 minutos, 751 trechos cortados
+--           de 406 expulsos, 736 trechos com 0 segundo, 2.176 jogadores,
+--           1.517 partidas. Em campo por jogo × time: 2.909 normais, 94
+--           abaixo de 10,5 (todos com expulsão), 31 acima de 11 (erro da
+--           origem, ex.: Waguè, Udinese), nenhum abaixo sem expulsão.
+-- ---------------------------------------------------------------------
+-- 1. Totais
+SELECT COUNT(*)                                     AS trechos,
+       CAST(SUM(segundos) / 60.0 AS DECIMAL(10,1))  AS minutos,
+       SUM(CAST(cortado_expulsao AS INT))           AS trechos_cortados,
+       COUNT(DISTINCT CASE WHEN cortado_expulsao = 1
+                           THEN CONCAT(match_id, '-', player_id) END) AS expulsos,
+       SUM(CASE WHEN segundos = 0 THEN 1 ELSE 0 END) AS trechos_zerados,
+       COUNT(DISTINCT player_id)                    AS jogadores,
+       COUNT(DISTINCT match_id)                     AS partidas
+FROM stg.sb_trechos;
+
+-- 2. Jogadores em campo por jogo × time (minutos do time / duração do jogo)
+WITH duracao AS (
+    SELECT match_id,
+           MAX(CASE WHEN period = 1 THEN minute * 60 + second END)
+         + MAX(CASE WHEN period = 2 THEN minute * 60 + second END) - 2700 AS segundos_jogo
+    FROM stg.sb_events
+    GROUP BY match_id
+),
+por_time AS (
+    SELECT t.match_id, t.team_id,
+           SUM(t.segundos) * 1.0 / d.segundos_jogo AS em_campo,
+           MAX(CAST(t.cortado_expulsao AS INT))    AS teve_expulsao
+    FROM stg.sb_trechos t
+    JOIN duracao d ON d.match_id = t.match_id
+    GROUP BY t.match_id, t.team_id, d.segundos_jogo
+),
+faixas AS (
+    SELECT CASE WHEN em_campo > 11.01 THEN N'acima de 11 (erro da origem)'
+                WHEN em_campo < 10.5 AND teve_expulsao = 1 THEN N'abaixo de 10,5, com expulsão'
+                WHEN em_campo < 10.5 THEN N'abaixo de 10,5, SEM expulsão'
+                ELSE N'normal' END AS faixa
+    FROM por_time
+)
+SELECT faixa, COUNT(*) AS jogos_x_time
+FROM faixas
+GROUP BY faixa
+ORDER BY faixa;
+
+-- 3. Courtois no Chelsea 2 x 2 Swansea City (08/08/2015): vermelho aos 51:37 do 2º tempo
+SELECT position_seq, position_id, periodo_inicio, segundo_inicio,
+       periodo_fim, segundo_fim, cortado_expulsao, segundos
+FROM stg.sb_trechos
+WHERE match_id = 3754078 AND player_id = 3509
+ORDER BY position_seq;
+
+-- 4. Chelsea: quem mais jogou
+SELECT TOP 5 j.nome, CAST(SUM(t.segundos) / 60.0 AS DECIMAL(7,1)) AS minutos
+FROM stg.sb_trechos t
+JOIN dw.dim_jogador j ON j.sb_player_id = t.player_id
+JOIN dw.dim_time dt   ON dt.sb_team_id = t.team_id
+WHERE dt.nome = N'Chelsea'
+GROUP BY j.nome
+ORDER BY minutos DESC;
 GO

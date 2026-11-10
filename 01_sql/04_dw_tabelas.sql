@@ -14,6 +14,7 @@
 --   [x] dw.dim_time                                            Aula 13
 --   [x] dw.dim_partida                                         Aula 14
 --   [x] dw.dim_jogador                                         Aula 15
+--   [x] stg.sb_trechos (intermediário da fato)                 Aula 16
 --   [ ] dw.fato_desempenho
 --   Bloco 2 — Transfermarkt
 --   [ ] ligação dos jogadores (times e partidas já no Bloco 1)
@@ -215,4 +216,28 @@ CREATE UNIQUE INDEX uq_dim_jogador_sb_player_id
 CREATE UNIQUE INDEX uq_dim_jogador_tm_player_id
     ON dw.dim_jogador (tm_player_id)
     WHERE tm_player_id IS NOT NULL;
+GO
+
+-- ---------------------------------------------------------------------
+-- stg.sb_trechos: intermediário da fato_desempenho (D17.3), um trecho
+-- de posição por linha (56.884), com os minutos certos (D17.1).
+-- * Fica na stg (D10.4): é passo da carga, não tabela do modelo.
+-- * Tempos em segundos do relógio do StatsBomb: o 2º tempo começa em
+--   2700 (45:00).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS stg.sb_trechos;
+CREATE TABLE stg.sb_trechos (
+    match_id            INT NOT NULL,
+    team_id             INT NOT NULL,
+    player_id           INT NOT NULL,
+    position_seq        INT NOT NULL,   -- ordem do trecho do jogador na partida (1, 2, ...)
+    position_id         INT NOT NULL,
+    periodo_inicio      INT NOT NULL,   -- 1 ou 2
+    segundo_inicio      INT NOT NULL,   -- segundos do relógio: o 2º tempo começa em 2700 (45:00)
+    periodo_fim         INT NOT NULL,
+    segundo_fim         INT NOT NULL,
+    cortado_expulsao    BIT NOT NULL,   -- 1 = trecho encerrado (ou zerado) pelo vermelho / 2º amarelo
+    segundos            INT NOT NULL,   -- tempo jogado no trecho, com os acréscimos dos dois tempos
+    CONSTRAINT pk_sb_trechos PRIMARY KEY (match_id, player_id, position_seq)
+);
 GO
