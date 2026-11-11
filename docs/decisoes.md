@@ -23,6 +23,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 | D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
 | D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida (D19.6, 2026-11-11: fatos de mercado na faixa da `dim_data`, `situacao_taxa` na `fato_transferencia`) |
+| D20 | 2026-11-11 | ETL com SSIS: abordagem híbrida (regra de negócio na consulta de origem, ETL nos componentes), 5 pacotes por bloco + master, Pesquisa Difusa no lugar das regras 1 a 4 da ligação | Decidida |
 
 ---
 
@@ -717,3 +718,38 @@ Decisão:
 Registrado para a etapa do Power BI: 59 dos 2.181 jogadores ficam sem valor até 30/06/2016; 56 nunca tinham sido avaliados até essa data (entre eles Tomori, Abraham e Clarke-Salter, da base do Chelsea) e 3 só têm avaliação antes de 2014 (Curro Sánchez, Kévin Rimane, Wilfried Zahibo, como previsto na D19.4).
 
 **Descartadas:** *corte na data do dataset* (06/07/2026): tiraria também a transferência anunciada do Griezmann; *aumentar a `dim_data` até 2027*: revê a D11.3 para salvar uma linha; *sem `situacao_taxa`*: separar NULL de 0 ficaria para o DAX; *temporada do TM na fato*: difere da `dim_data` em 78 de 5.716 casos (janela da pandemia em 2020 e voltas de empréstimo em 30/06), e a regra das temporadas do DW é a da D11.4.
+
+---
+
+## D20 — ETL com SSIS: abordagem, pacotes e ligação dos jogadores
+
+**Contexto** (2026-11-11, com o DW em SQL completo): o SSIS refaz a carga inteira no banco `chelsea_scouting_ssis` (D3, criado vazio na D7 com os schemas `stg` e `dw`), e o resultado é comparado com o DW oficial por `EXCEPT` nos dois sentidos, como no Olist. Já estavam decididos: staging do StatsBomb por Foreach Loop chamando o mesmo SQL de `OPENJSON` (D7.1), Transfermarkt pela Origem de Arquivo Simples (D7.3), estrutura criada pelos mesmos `01_staging_tabelas.sql` e `04_dw_tabelas.sql` trocando o `USE` (D11.1) e ligação dos jogadores refeita com a Pesquisa Difusa (D10.1). Ambiente conferido: SQL Server 2025 Enterprise Developer (a Pesquisa Difusa é recurso Enterprise), DTExec 170 instalado, conexão OLE DB pelo Microsoft OLE DB Driver 18 (pegadinha do Olist: o Driver 19 não funciona no designer).
+
+### D20.1 — Abordagem híbrida
+
+Cada Fluxo de Dados lê a staging com uma Origem OLE DB cuja consulta aplica a regra de negócio que o SQL já validou (votação dos times, trechos com corte dos expulsos, contagens dos eventos). O trabalho clássico de ETL fica nos componentes do SSIS: Pesquisa para trocar as chaves das fontes pelas SKs (linhas sem par desviadas para uma Contagem de Linhas, que tem de dar 0), Coluna Derivada (PAdj, textos em português), Divisão Condicional e Pesquisa Difusa na ligação. A ordem das linhas é a mesma do SQL (`ORDER BY` na origem), para as SKs `IDENTITY` saírem iguais; se alguma sair em outra ordem, a comparação usa a chave da fonte (lição do Olist).
+
+**Descartadas:** *tudo em componentes*: o SSIS não tem junção por faixa (trechos × eventos), seriam 2 a 3 vezes mais aulas e mais risco de divergência; *só orquestração* (Executar SQL rodando os scripts 02, 03 e 05): mostra pouco de SSIS.
+
+### D20.2 — Pacotes por bloco, na ordem da D10.2
+
+| Pacote | Conteúdo |
+|---|---|
+| `00_master` | Executa os outros em ordem (Tarefa Executar Pacote) |
+| `01_staging_statsbomb` | `sb_matches` (4 arquivos de partidas), `sb_lineups` e `sb_events` (Foreach Loop partida a partida, D7.1) |
+| `02_staging_transfermarkt` | As 7 `tm_*` (Origem de Arquivo Simples → Destino OLE DB) |
+| `03_bloco1_statsbomb` | `dim_data`, `dim_liga`, `dim_posicao`, `dim_time`, `dim_partida`, `dim_jogador`, `sb_trechos`, `fato_desempenho` e o `UPDATE` da posição principal |
+| `04_ligacao_jogadores` | `stg.ligacao_jogadores` pela Pesquisa Difusa (D20.3) + `tm_player_id` |
+| `05_bloco2_transfermarkt` | `dim_jogador`, `dim_time` e `dim_partida` do TM + `fato_atuacao`, `fato_valor_mercado`, `fato_transferencia` |
+
+Projeto `chelsea_etl` em `02_ssis/`, uma conexão de projeto para o banco do SSIS e o parâmetro de projeto `PastaDados` (`C:\dados\chelsea_scouting\`). Cada pacote roda e é conferido sozinho.
+
+**Descartadas:** *por camada, como no Olist* (staging, dimensões, fatos): o Bloco 2 atualiza dimensões depois da `fato_desempenho`, então as dimensões rodariam em duas partes; *um pacote por tabela* (~17): muito pacote pequeno para manter.
+
+### D20.3 — A Pesquisa Difusa substitui as regras 1 a 4
+
+Casamento exato no clube do TM e aproximado no nome, dentro do time × temporada (D10.1), mais as mesmas 18 exceções da D18.2. O limite de semelhança é ajustado na aula, com a mesma meta (≥ 98% dos minutos do StatsBomb). O resultado alimenta o DW do SSIS. Cada par diferente da ligação em SQL é listado e decidido: vira exceção ou fica como divergência documentada (como o vendedor de `sao paulo` no Olist), e as fatos do Bloco 2 são comparadas sabendo dessas diferenças.
+
+**Descartada:** *Pesquisa Difusa só em paralelo, como auditoria*: o DW do SSIS ficaria 0/0 em tudo, mas a Pesquisa Difusa não decidiria nada, ao contrário do que a D10.1 prevê.
+
+**Ordem das aulas:** 24 preparação (tabelas no banco do SSIS, projeto, conexão, parâmetro); 25 `01_staging_statsbomb`; 26 `02_staging_transfermarkt`; 27 e 28 `03_bloco1_statsbomb` (dimensões; trechos + fato); 29 `04_ligacao_jogadores`; 30 `05_bloco2_transfermarkt`; 31 `00_master`, DTExec e comparação final.
