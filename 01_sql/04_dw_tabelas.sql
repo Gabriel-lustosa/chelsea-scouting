@@ -16,10 +16,10 @@
 --   [x] dw.dim_jogador                                         Aula 15
 --   [x] stg.sb_trechos (intermediário da fato)                 Aula 16
 --   [x] dw.fato_desempenho (+ coluna posse na dim_partida)     Aula 17
---   Bloco 2 — Transfermarkt
+--   Bloco 2 — Transfermarkt — completo
 --   [x] stg.ligacao_jogadores (D18)                            Aula 19
 --   [x] dw.fato_atuacao                                        Aula 22
---   [ ] dw.fato_valor_mercado, dw.fato_transferencia           Aula 23
+--   [x] dw.fato_valor_mercado, dw.fato_transferencia           Aula 23
 --
 -- Padrões (D10.4 e D11):
 --   * Dimensão com chave substituta INT IDENTITY (sk_...) e as chaves das
@@ -344,5 +344,47 @@ CREATE TABLE dw.fato_atuacao (
     amarelos        INT  NOT NULL,   -- 2 = expulso pelo 2º amarelo
     vermelhos       INT  NOT NULL,   -- só vermelho direto
     CONSTRAINT pk_fato_atuacao PRIMARY KEY (sk_jogador, sk_partida)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_valor_mercado: grão jogador × data da avaliação (D19.4),
+-- 46.741 avaliações dos jogadores do DW, de 2014 a 2026.
+-- * Sem chave de clube (D19.5): o current_club_id do TM não é confiável;
+--   o clube na data fica como texto.
+-- * O valor do cenário (última avaliação até 30/06/2016, D6.6) sai de
+--   uma medida DAX sobre esta fato.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.fato_valor_mercado;
+CREATE TABLE dw.fato_valor_mercado (
+    sk_jogador          INT           NOT NULL,
+    sk_data             INT           NOT NULL,   -- AAAAMMDD da avaliação
+    valor_eur           BIGINT        NOT NULL,   -- euros
+    clube_na_avaliacao  NVARCHAR(200) NOT NULL,   -- nome do clube no TM, como texto (D19.5)
+    CONSTRAINT pk_fato_valor_mercado PRIMARY KEY (sk_jogador, sk_data)
+);
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_transferencia: grão jogador × transferência (D19.4, D19.6),
+-- 5.716 transferências de 762 jogadores, de 2014 a 2026.
+-- * A dim_time entra duas vezes (origem e destino): dimensão de papel
+--   duplo. No SSAS e no Power BI uma das relações fica inativa e é
+--   usada com USERELATIONSHIP.
+-- * taxa_eur NULL = não informada; 0 = sem custo (empréstimo, fim de
+--   contrato). A situacao_taxa traz isso em texto.
+-- * Chave com 4 colunas: o mesmo jogador pode ter 2 transferências no
+--   mesmo dia (Cristante em 01/07/2018), com clubes diferentes.
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS dw.fato_transferencia;
+CREATE TABLE dw.fato_transferencia (
+    sk_jogador         INT           NOT NULL,
+    sk_data            INT           NOT NULL,   -- AAAAMMDD da transferência
+    sk_time_origem     INT           NOT NULL,   -- dim_time no papel de origem
+    sk_time_destino    INT           NOT NULL,   -- dim_time no papel de destino
+    taxa_eur           BIGINT        NULL,       -- NULL = não informada
+    valor_mercado_eur  BIGINT        NULL,       -- valor do TM na data (229 sem valor)
+    situacao_taxa      NVARCHAR(20)  NOT NULL,   -- 'Paga', 'Sem custo', 'Não informada'
+    CONSTRAINT pk_fato_transferencia PRIMARY KEY (sk_jogador, sk_data, sk_time_origem, sk_time_destino)
 );
 GO

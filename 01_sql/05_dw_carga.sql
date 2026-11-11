@@ -17,14 +17,15 @@
 --   [x] dw.dim_partida     posse por partida × time (D17.4)     Aula 17
 --   [x] dw.fato_desempenho 54.415 jogador × partida × posição   Aula 17
 --   [x] dw.dim_jogador     UPDATE da posição principal (D17.5)  Aula 18
---   Bloco 2 — Transfermarkt
+--   Bloco 2 — Transfermarkt — completo
 --   [x] stg.ligacao_jogadores 2.279 pares, 5 regras (D18)       Aula 19
 --   [x] dw.dim_jogador     tm_player_id dos 2.176 (D18.4)       Aula 19
 --   [x] dw.dim_time        863 clubes só do TM (D19.2, D19.5)   Aula 21
 --   [x] dw.dim_partida     65.470 jogo × clube só do TM (D19.3) Aula 21
 --   [x] dw.dim_jogador     5 do Chelsea 14/15 + atributos TM    Aula 20
 --   [x] dw.fato_atuacao    329.797 jogador × jogo TM (D19.4)    Aula 22
---   [ ] dw.fato_valor_mercado, dw.fato_transferencia            Aula 23
+--   [x] dw.fato_valor_mercado 46.741 avaliações (D19.4)        Aula 23
+--   [x] dw.fato_transferencia 5.716 transferências (D19.6)     Aula 23
 --
 -- Como funciona:
 --   * TRUNCATE antes de cada INSERT: o script pode rodar de novo sem
@@ -1162,6 +1163,54 @@ ORDER BY j.sk_jogador, p.sk_partida;
 RAISERROR('dw.fato_atuacao ok', 0, 1) WITH NOWAIT;
 GO
 
+-- ---------------------------------------------------------------------
+-- dw.fato_valor_mercado: 46.741 avaliações (D19.4, D19.5)
+-- * Avaliações dos jogadores do DW na faixa da dim_data (D19.6).
+-- * Clube como texto: o current_club_id do TM não é confiável (D19.5).
+-- Conferido em 2026-11-11: igual ao gabarito (EXCEPT 0/0); 0 órfãos.
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.fato_valor_mercado;
+
+INSERT INTO dw.fato_valor_mercado (sk_jogador, sk_data, valor_eur, clube_na_avaliacao)
+SELECT j.sk_jogador, d.sk_data, v.market_value_in_eur, v.current_club_name
+FROM stg.tm_player_valuations v
+JOIN dw.dim_jogador j ON j.tm_player_id = v.player_id      -- só os 2.181 do DW (D10.3)
+JOIN dw.dim_data d    ON d.data = v.date
+WHERE v.date BETWEEN '20140101' AND '20261231'             -- faixa da dim_data (D19.4, D19.6)
+ORDER BY j.sk_jogador, d.sk_data;
+
+RAISERROR('dw.fato_valor_mercado ok', 0, 1) WITH NOWAIT;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_transferencia: 5.716 transferências (D19.4, D19.6)
+-- * A dim_time entra duas vezes (origem e destino), cada uma com um
+--   apelido: dimensão de papel duplo.
+-- * Faixa da dim_data: sai a do Wass em 01/07/2027 (D19.6).
+-- * situacao_taxa separa NULL (não informada) de 0 (sem custo).
+-- Conferido em 2026-11-11: igual ao gabarito (EXCEPT 0/0); 0 órfãos.
+-- ---------------------------------------------------------------------
+TRUNCATE TABLE dw.fato_transferencia;
+
+INSERT INTO dw.fato_transferencia (sk_jogador, sk_data, sk_time_origem, sk_time_destino,
+                                   taxa_eur, valor_mercado_eur, situacao_taxa)
+SELECT j.sk_jogador, d.sk_data, ori.sk_time, des.sk_time,
+       CAST(t.transfer_fee AS BIGINT),                     -- nenhum valor tem centavos
+       CAST(t.market_value_in_eur AS BIGINT),
+       CASE WHEN t.transfer_fee IS NULL THEN N'Não informada'
+            WHEN t.transfer_fee = 0     THEN N'Sem custo'
+            ELSE N'Paga' END
+FROM stg.tm_transfers t
+JOIN dw.dim_jogador j  ON j.tm_player_id = t.player_id
+JOIN dw.dim_data d     ON d.data = t.transfer_date
+JOIN dw.dim_time ori   ON ori.tm_club_id = t.from_club_id   -- dim_time no papel de origem
+JOIN dw.dim_time des   ON des.tm_club_id = t.to_club_id     -- dim_time no papel de destino
+WHERE t.transfer_date BETWEEN '20140101' AND '20261231'     -- sai o Wass (01/07/2027, D19.6)
+ORDER BY j.sk_jogador, d.sk_data;
+
+RAISERROR('dw.fato_transferencia ok', 0, 1) WITH NOWAIT;
+GO
+
 -- =====================================================================
 -- CONFERÊNCIAS
 -- =====================================================================
@@ -1761,4 +1810,104 @@ WHERE p.temporada = '2016/17'
   AND j.nome IN (N'N''Golo Kanté', N'David Luiz', N'Marcos Alonso', N'Michy Batshuayi')
 GROUP BY j.nome, t.nome
 ORDER BY j.nome, jogos DESC;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_valor_mercado
+-- Esperado: 46.741 linhas, 2.180 jogadores (o Imanol Corral não tem
+--           avaliação), de 20140102 a 20260608; 0 órfãos; na janela
+--           (última avaliação até 30/06/2016) 2.122 jogadores com valor,
+--           25 do elenco do Chelsea 2015/16 = € 523,5 mi (Tomori, Abraham
+--           e Clarke-Salter só são avaliados depois); Hazard 65 mi,
+--           David Luiz 30 mi (PSG), Kanté 20 mi, Batshuayi 15 mi, Alonso
+--           8 mi, Terry 3 mi.
+-- ---------------------------------------------------------------------
+-- 1. Totais
+SELECT COUNT(*) AS linhas, COUNT(DISTINCT sk_jogador) AS jogadores,
+       MIN(sk_data) AS primeira, MAX(sk_data) AS ultima
+FROM dw.fato_valor_mercado;
+
+-- 2. Órfãos: tudo 0
+SELECT
+    SUM(CASE WHEN j.sk_jogador IS NULL THEN 1 ELSE 0 END) AS sem_jogador,
+    SUM(CASE WHEN d.sk_data    IS NULL THEN 1 ELSE 0 END) AS sem_data
+FROM dw.fato_valor_mercado f
+LEFT JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+LEFT JOIN dw.dim_data d    ON d.sk_data    = f.sk_data;
+
+-- 3. O que a diretoria via em 30/06/2016: a última avaliação de cada jogador
+WITH ultima AS (
+    SELECT f.sk_jogador, f.sk_data, f.valor_eur, f.clube_na_avaliacao,
+           ROW_NUMBER() OVER (PARTITION BY f.sk_jogador ORDER BY f.sk_data DESC) AS ordem
+    FROM dw.fato_valor_mercado f
+    WHERE f.sk_data <= 20160630
+)
+SELECT COUNT(*) AS jogadores_com_valor,
+       SUM(CASE WHEN j.eh_elenco_chelsea_2015_16 = 1 THEN 1 ELSE 0 END) AS chelsea_com_valor,
+       SUM(CASE WHEN j.eh_elenco_chelsea_2015_16 = 1 THEN u.valor_eur ELSE 0 END) AS valor_elenco_chelsea
+FROM ultima u
+JOIN dw.dim_jogador j ON j.sk_jogador = u.sk_jogador
+WHERE u.ordem = 1;
+
+WITH ultima AS (
+    SELECT f.sk_jogador, f.sk_data, f.valor_eur, f.clube_na_avaliacao,
+           ROW_NUMBER() OVER (PARTITION BY f.sk_jogador ORDER BY f.sk_data DESC) AS ordem
+    FROM dw.fato_valor_mercado f
+    WHERE f.sk_data <= 20160630
+)
+SELECT j.nome, d.data, u.valor_eur, u.clube_na_avaliacao
+FROM ultima u
+JOIN dw.dim_jogador j ON j.sk_jogador = u.sk_jogador
+JOIN dw.dim_data d    ON d.sk_data = u.sk_data
+WHERE u.ordem = 1
+  AND j.nome IN (N'N''Golo Kanté', N'David Luiz', N'Marcos Alonso', N'Michy Batshuayi',
+                 N'Eden Hazard', N'John Terry')
+ORDER BY u.valor_eur DESC;
+GO
+
+-- ---------------------------------------------------------------------
+-- dw.fato_transferencia
+-- Esperado: 5.716 linhas, 762 jogadores, de 20140101 a 20260710
+--           (Griezmann -> Orlando); Sem custo 3.482, Paga 1.389
+--           (€ 16.066.497.000), Não informada 845 (taxa NULL); 229 sem
+--           valor de mercado; 0 órfãos; janela de 2016 do Chelsea:
+--           Batshuayi 39 mi (2,60× o valor TM), Kanté 35,8 mi (1,79×),
+--           Alonso 23 mi (2,56×).
+-- ---------------------------------------------------------------------
+-- 1. Totais e situação da taxa
+SELECT COUNT(*) AS linhas, COUNT(DISTINCT sk_jogador) AS jogadores,
+       MIN(sk_data) AS primeira, MAX(sk_data) AS ultima
+FROM dw.fato_transferencia;
+
+SELECT situacao_taxa, COUNT(*) AS linhas, SUM(taxa_eur) AS taxas_eur,
+       SUM(CASE WHEN valor_mercado_eur IS NULL THEN 1 ELSE 0 END) AS sem_valor_mercado
+FROM dw.fato_transferencia
+GROUP BY situacao_taxa
+ORDER BY linhas DESC;
+
+-- 2. Órfãos: tudo 0 (a dim_time duas vezes, uma por papel)
+SELECT
+    SUM(CASE WHEN j.sk_jogador IS NULL THEN 1 ELSE 0 END) AS sem_jogador,
+    SUM(CASE WHEN d.sk_data    IS NULL THEN 1 ELSE 0 END) AS sem_data,
+    SUM(CASE WHEN o.sk_time    IS NULL THEN 1 ELSE 0 END) AS sem_origem,
+    SUM(CASE WHEN t.sk_time    IS NULL THEN 1 ELSE 0 END) AS sem_destino
+FROM dw.fato_transferencia f
+LEFT JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+LEFT JOIN dw.dim_data d    ON d.sk_data    = f.sk_data
+LEFT JOIN dw.dim_time o    ON o.sk_time    = f.sk_time_origem
+LEFT JOIN dw.dim_time t    ON t.sk_time    = f.sk_time_destino;
+
+-- 3. A janela real de 2016: taxa paga × valor de mercado na data
+SELECT j.nome, d.data, o.nome AS origem, t.nome AS destino,
+       f.taxa_eur, f.valor_mercado_eur,
+       CAST(1.0 * f.taxa_eur / f.valor_mercado_eur AS DECIMAL(4,2)) AS taxa_sobre_valor
+FROM dw.fato_transferencia f
+JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+JOIN dw.dim_data d    ON d.sk_data    = f.sk_data
+JOIN dw.dim_time o    ON o.sk_time    = f.sk_time_origem
+JOIN dw.dim_time t    ON t.sk_time    = f.sk_time_destino
+WHERE t.tm_club_id = 631
+  AND f.situacao_taxa = N'Paga'
+  AND d.data BETWEEN '20160701' AND '20160831'
+ORDER BY f.taxa_eur DESC;
 GO
