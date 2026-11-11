@@ -22,7 +22,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D16 | 2026-11-09 | `dim_jogador`: nome de exibição (apelido ou nome, apóstrofo corrigido) e nome completo, país, time do fim de 2015/16 e marcações de troca de time e do elenco do Chelsea; posição principal depois da fato; colunas do TM criadas agora e preenchidas no Bloco 2 | Decidida |
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 | D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
-| D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida |
+| D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida (D19.6, 2026-11-11: fatos de mercado na faixa da `dim_data`, `situacao_taxa` na `fato_transferencia`) |
 
 ---
 
@@ -687,7 +687,7 @@ Entram o clube do jogador em cada atuação, os clubes de origem e destino das t
 |---|---|---|
 | `fato_atuacao` | 329.797 | Minutos, gols, assistências, amarelos, vermelhos (2014/15 a 2025/26) |
 | `fato_valor_mercado` | 46.741 | Valor em cada avaliação; só 3 jogadores ficam sem valor até 30/06/2016, porque a última avaliação deles é anterior a 2014 |
-| `fato_transferencia` | 5.717 | Origem, destino, taxa (NULL = não informada, separada de 0 = sem custo), valor de mercado na data |
+| `fato_transferencia` | 5.717 (5.716 pela D19.6) | Origem, destino, taxa (NULL = não informada, separada de 0 = sem custo), valor de mercado na data |
 
 Limitação registrada: o dataset só tem transferências de 762 dos 2.181 jogadores (nenhuma do David Luiz). Na Validação, a mudança de clube depois de 2016 aparece também nas atuações (o David Luiz joga pelo Chelsea em 2016/17).
 
@@ -702,3 +702,18 @@ Decisão: a `fato_valor_mercado` fica sem chave de clube, com o nome do clube na
 **Descartadas:** *clube deduzido pelas atuações perto da data* (erra perto das janelas e para quem ficou sem jogar); *nome convertido em ID pelos nomes dos jogos e transferências* (grafias diferentes: "Chelsea FC", "Chelsea", "Associazione Sportiva Roma"); *confiar no ID* (errado em centenas de jogadores).
 
 **Ordem das aulas:** 20 `dim_jogador`; 21 `dim_time` e `dim_partida`; 22 `fato_atuacao`; 23 `fato_valor_mercado` e `fato_transferencia`.
+
+### D19.6 — Recorte e colunas das fatos de mercado (revê o número da D19.4)
+
+Achado na preparação da Aula 23 (2026-11-11, medido no banco sem alterar nada): duas transferências têm data posterior ao fim do dataset (06/07/2026): Griezmann, Atlético → Orlando, em 10/07/2026, e Daniel Wass, Brøndby → Aposentado, em 01/07/2027. A do Wass fica fora da `dim_data` (D11.3, até 31/12/2026) e seria órfã.
+
+Decisão:
+
+- **As duas fatos valem na faixa da `dim_data`** (01/01/2014 a 31/12/2026): `fato_transferencia` com 5.716 linhas (sai só o Wass); `fato_valor_mercado` sem mudança (46.741, última avaliação em 08/06/2026).
+- **`fato_transferencia`:** `sk_jogador`, `sk_data`, `sk_time_origem`, `sk_time_destino` (a `dim_time` duas vezes, como dimensão de papel duplo: no SSAS e no Power BI uma relação fica inativa e é usada com `USERELATIONSHIP`), `taxa_eur` (NULL = não informada), `valor_mercado_eur` (229 NULL na origem) e `situacao_taxa` em texto: 'Paga' (1.389), 'Sem custo' (3.482, empréstimo ou fim de contrato) ou 'Não informada' (845; 229 linhas sem valor de mercado no total). Chave: jogador + data + origem + destino (única; o Cristante tem duas linhas em 01/07/2018, com clubes diferentes). Valores em `BIGINT` (nenhum tem centavos).
+- **`fato_valor_mercado`:** `sk_jogador`, `sk_data`, `valor_eur` e `clube_na_avaliacao` (D19.5); chave jogador + data. A liga da avaliação (`player_club_domestic_competition_id`) fica fora: acompanha o mesmo `current_club_id` não confiável (1.080 NULL e 97 fora da `dim_liga`).
+- Temporada da transferência pela `dim_data` (01/07 a 30/06, D11.4), sem a coluna `transfer_season` do TM.
+
+Registrado para a etapa do Power BI: 59 dos 2.181 jogadores ficam sem valor até 30/06/2016; 56 nunca tinham sido avaliados até essa data (entre eles Tomori, Abraham e Clarke-Salter, da base do Chelsea) e 3 só têm avaliação antes de 2014 (Curro Sánchez, Kévin Rimane, Wilfried Zahibo, como previsto na D19.4).
+
+**Descartadas:** *corte na data do dataset* (06/07/2026): tiraria também a transferência anunciada do Griezmann; *aumentar a `dim_data` até 2027*: revê a D11.3 para salvar uma linha; *sem `situacao_taxa`*: separar NULL de 0 ficaria para o DAX; *temporada do TM na fato*: difere da `dim_data` em 78 de 5.716 casos (janela da pandemia em 2020 e voltas de empréstimo em 30/06), e a regra das temporadas do DW é a da D11.4.
