@@ -63,6 +63,7 @@ As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem constr
 ```
 00_dados/        download dos dados e scripts do levantamento
 01_sql/          DW em T-SQL: bancos, staging, dimensões e fatos
+02_ssis/         projeto SSIS chelsea_etl: o mesmo ETL em pacotes, num banco de teste
 docs/            log de decisões e documentação dos dados
 ```
 
@@ -87,7 +88,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | Criação dos bancos e carga da staging | Pronto (10 tabelas da staging criadas; carga das partidas das 4 ligas feita: 1.517; escalações: 56.884 linhas; eventos: 5.321.459, com cartões e xG exato, D8 e D9; Transfermarkt: 7 tabelas, 2,9 milhões de linhas) |
 | Desenho do DW: ligação em SQL, dois blocos (D10) | Pronto |
 | DW no SQL Server | Pronto (6 dimensões e 4 fatos: `fato_desempenho` com 54.415 linhas jogador × partida × posição do StatsBomb 2015/16, validada contra o levantamento; jogadores ligados ao Transfermarkt em 100% dos minutos; `fato_atuacao` com 329.797 atuações, `fato_valor_mercado` com 46.741 avaliações e `fato_transferencia` com 5.716 transferências, de 2014 a 2026; 0 órfãos em todas as fatos) |
-| ETL com SSIS | Em andamento (desenho decidido na D20: 5 pacotes por bloco + master, ligação dos jogadores pela Pesquisa Difusa) |
+| ETL com SSIS | Em andamento (desenho decidido na D20: 5 pacotes por bloco + master, ligação dos jogadores pela Pesquisa Difusa; `01_staging_statsbomb` pronto: 2 Loops Foreach carregam as 1.517 partidas, 56.884 escalações e 5.321.459 eventos, iguais ao SQL) |
 | Modelo SSAS Tabular | Pendente |
 | Dashboards Power BI | Pendente |
 

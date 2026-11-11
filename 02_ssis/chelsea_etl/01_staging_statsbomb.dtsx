@@ -11,12 +11,279 @@
   DTS:LocaleID="1046"
   DTS:ObjectName="01_staging_statsbomb"
   DTS:PackageType="5"
-  DTS:VersionBuild="1"
-  DTS:VersionGUID="{0AAB1AC8-8C52-45A3-A50F-3C92A1CE10A0}">
+  DTS:VersionBuild="9"
+  DTS:VersionGUID="{C35D7644-D10A-4E59-B726-699E300E1BD4}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
-  <DTS:Variables />
-  <DTS:Executables />
+  <DTS:Variables>
+    <DTS:Variable
+      DTS:CreationName=""
+      DTS:DTSID="{B32A074D-E04B-46F4-BF1D-DB1E27EE6476}"
+      DTS:IncludeInDebugDump="2345"
+      DTS:Namespace="User"
+      DTS:ObjectName="ArquivoPartidas">
+      <DTS:VariableValue
+        DTS:DataType="8"
+        xml:space="preserve"></DTS:VariableValue>
+    </DTS:Variable>
+    <DTS:Variable
+      DTS:CreationName=""
+      DTS:DTSID="{5466A261-137F-4709-8531-3F2B816411C8}"
+      DTS:IncludeInDebugDump="6789"
+      DTS:Namespace="User"
+      DTS:ObjectName="ListaPartidas">
+      <DTS:VariableValue
+        DTS:DataSubType="ManagedSerializable"
+        DTS:DataType="13">
+        <SOAP-ENV:Envelope xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+          <SOAP-ENV:Body>
+            <xsd:anyType
+              id="ref-1"></xsd:anyType>
+          </SOAP-ENV:Body>
+        </SOAP-ENV:Envelope>
+      </DTS:VariableValue>
+    </DTS:Variable>
+    <DTS:Variable
+      DTS:CreationName=""
+      DTS:DTSID="{9572371C-AFDA-49F7-B221-E0C4699A6EB3}"
+      DTS:IncludeInDebugDump="6789"
+      DTS:Namespace="User"
+      DTS:ObjectName="MatchId">
+      <DTS:VariableValue
+        DTS:DataType="3">0</DTS:VariableValue>
+    </DTS:Variable>
+  </DTS:Variables>
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\Limpar staging StatsBomb"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Tarefa Executar SQL"
+      DTS:DTSID="{A0C04212-90AF-425D-9B52-EE49DD015EBE}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Limpar staging StatsBomb"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="TRUNCATE TABLE stg.sb_matches;&#xA;TRUNCATE TABLE stg.sb_lineups;&#xA;TRUNCATE TABLE stg.sb_events;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Listar partidas"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Tarefa Executar SQL"
+      DTS:DTSID="{51F4A3F3-06D1-4434-A75B-BC317FBC50B3}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Listar partidas"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="SELECT match_id FROM stg.sb_matches ORDER BY match_id;"
+          SQLTask:ResultType="ResultSetType_Rowset" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask">
+          <SQLTask:ResultBinding
+            SQLTask:ResultName="0"
+            SQLTask:DtsVariableName="User::ListaPartidas" />
+        </SQLTask:SqlTaskData>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Loop arquivos de partidas"
+      DTS:CreationName="STOCK:FOREACHLOOP"
+      DTS:Description="Contêiner do Loop Foreach"
+      DTS:DTSID="{1F65E03C-52B0-476C-819A-5C3A156A0816}"
+      DTS:ExecutableType="STOCK:FOREACHLOOP"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Loop arquivos de partidas">
+      <DTS:ForEachEnumerator
+        DTS:CreationName="Microsoft.ForEachFileEnumerator"
+        DTS:DTSID="{FCD4B3AA-7CFC-4A68-9086-5B0CD9F14E30}"
+        DTS:ObjectName="{FCD4B3AA-7CFC-4A68-9086-5B0CD9F14E30}">
+        <DTS:PropertyExpression
+          DTS:Name="Directory">@[$Project::PastaDados] + "statsbomb\\matches"</DTS:PropertyExpression>
+        <DTS:ObjectData>
+          <ForEachFileEnumeratorProperties>
+            <FEFEProperty
+              Folder="C:\dados\chelsea_scouting\statsbomb\matches" />
+            <FEFEProperty
+              FileSpec="*_27.json" />
+            <FEFEProperty
+              FileNameRetrievalType="0" />
+            <FEFEProperty
+              Recurse="0" />
+          </ForEachFileEnumeratorProperties>
+        </DTS:ObjectData>
+      </DTS:ForEachEnumerator>
+      <DTS:Variables />
+      <DTS:Executables>
+        <DTS:Executable
+          DTS:refId="Package\Loop arquivos de partidas\Ler arquivos de partidas"
+          DTS:CreationName="Microsoft.ExecuteSQLTask"
+          DTS:Description="Tarefa Executar SQL"
+          DTS:DTSID="{7BDE9FA7-148B-4F89-87DD-A0DF45982E9B}"
+          DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+          DTS:LocaleID="-1"
+          DTS:ObjectName="Ler arquivos de partidas"
+          DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+          DTS:ThreadHint="0">
+          <DTS:Variables />
+          <DTS:ObjectData>
+            <SQLTask:SqlTaskData
+              SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+              SQLTask:SqlStatementSource="SET NOCOUNT ON;&#xA;DECLARE @arquivo NVARCHAR(400) = ?;&#xA;DECLARE @sql NVARCHAR(MAX), @json VARCHAR(MAX);&#xA;&#xA;-- leitura dinâmica: o OPENROWSET só aceita o caminho escrito direto&#xA;SET @sql = N'SELECT @json = CAST(BulkColumn AS varchar(max)) FROM OPENROWSET(BULK ''' + @arquivo + N''', SINGLE_BLOB) AS arq;';&#xA;EXEC sp_executesql @sql, N'@json VARCHAR(MAX) OUTPUT', @json = @json OUTPUT;&#xA;&#xA;INSERT INTO stg.sb_matches&#xA;SELECT m.*&#xA;FROM OPENJSON(@json)&#xA;WITH (&#xA;    match_id               INT           '$.match_id',&#xA;    match_date             DATE          '$.match_date',&#xA;    kick_off               TIME(3)       '$.kick_off',&#xA;    competition_id         INT           '$.competition.competition_id',&#xA;    competition_name       NVARCHAR(50)  '$.competition.competition_name',&#xA;    country_name           NVARCHAR(50)  '$.competition.country_name',&#xA;    season_id              INT           '$.season.season_id',&#xA;    season_name            NVARCHAR(20)  '$.season.season_name',&#xA;    match_week             INT           '$.match_week',&#xA;    competition_stage      NVARCHAR(50)  '$.competition_stage.name',&#xA;    home_team_id           INT           '$.home_team.home_team_id',&#xA;    home_team_name         NVARCHAR(100) '$.home_team.home_team_name',&#xA;    home_manager_id        INT           '$.home_team.managers[0].id',&#xA;    home_manager_name      NVARCHAR(150) '$.home_team.managers[0].name',&#xA;    home_manager_nickname  NVARCHAR(100) '$.home_team.managers[0].nickname',&#xA;    away_team_id           INT           '$.away_team.away_team_id',&#xA;    away_team_name         NVARCHAR(100) '$.away_team.away_team_name',&#xA;    away_manager_id        INT           '$.away_team.managers[0].id',&#xA;    away_manager_name      NVARCHAR(150) '$.away_team.managers[0].name',&#xA;    away_manager_nickname  NVARCHAR(100) '$.away_team.managers[0].nickname',&#xA;    home_score             INT           '$.home_score',&#xA;    away_score             INT           '$.away_score',&#xA;    stadium_name           NVARCHAR(150) '$.stadium.name',&#xA;    referee_name           NVARCHAR(150) '$.referee.name',&#xA;    data_version           NVARCHAR(10)  '$.metadata.data_version'&#xA;) AS m;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask">
+              <SQLTask:ParameterBinding
+                SQLTask:ParameterName="0"
+                SQLTask:DtsVariableName="User::ArquivoPartidas"
+                SQLTask:ParameterDirection="Input"
+                SQLTask:DataType="130"
+                SQLTask:ParameterSize="-1" />
+            </SQLTask:SqlTaskData>
+          </DTS:ObjectData>
+        </DTS:Executable>
+      </DTS:Executables>
+      <DTS:ForEachVariableMappings>
+        <DTS:ForEachVariableMapping
+          DTS:CreationName=""
+          DTS:DTSID="{4CD02129-AB40-4F2E-A5F0-1823FF1E6431}"
+          DTS:ObjectName="{4CD02129-AB40-4F2E-A5F0-1823FF1E6431}"
+          DTS:ValueIndex="0"
+          DTS:VariableName="User::ArquivoPartidas" />
+      </DTS:ForEachVariableMappings>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Loop partidas"
+      DTS:CreationName="STOCK:FOREACHLOOP"
+      DTS:Description="Contêiner do Loop Foreach"
+      DTS:DTSID="{A8AD2DF1-0B0E-4772-BC46-24B16CBFA1AE}"
+      DTS:ExecutableType="STOCK:FOREACHLOOP"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Loop partidas">
+      <DTS:ForEachEnumerator
+        DTS:CreationName="Microsoft.ForEachADOEnumerator"
+        DTS:DTSID="{62DF0306-BD8E-413D-AD73-D1097803E11E}"
+        DTS:ObjectName="{62DF0306-BD8E-413D-AD73-D1097803E11E}">
+        <DTS:ObjectData>
+          <FEEADO
+            EnumType="EnumerateRowsInFirstTable"
+            VarName="User::ListaPartidas" />
+        </DTS:ObjectData>
+      </DTS:ForEachEnumerator>
+      <DTS:Variables />
+      <DTS:Executables>
+        <DTS:Executable
+          DTS:refId="Package\Loop partidas\Ler escalação"
+          DTS:CreationName="Microsoft.ExecuteSQLTask"
+          DTS:Description="Tarefa Executar SQL"
+          DTS:DTSID="{10738C14-849F-432C-A9CE-A1A1773F1809}"
+          DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+          DTS:LocaleID="-1"
+          DTS:ObjectName="Ler escalação"
+          DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+          DTS:ThreadHint="0">
+          <DTS:Variables />
+          <DTS:ObjectData>
+            <SQLTask:SqlTaskData
+              SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+              SQLTask:SqlStatementSource="SET NOCOUNT ON;&#xA;DECLARE @pasta NVARCHAR(400) = ?;&#xA;DECLARE @match_id INT = ?;&#xA;DECLARE @sql NVARCHAR(MAX), @json VARCHAR(MAX);&#xA;&#xA;-- leitura dinâmica do arquivo lineups\&lt;match_id&gt;.json&#xA;SET @sql = N'SELECT @json = CAST(BulkColumn AS varchar(max)) FROM OPENROWSET(BULK ''' + @pasta&#xA;         + N'statsbomb\lineups\' + CAST(@match_id AS NVARCHAR(10)) + N'.json'', SINGLE_BLOB) AS arq;';&#xA;EXEC sp_executesql @sql, N'@json VARCHAR(MAX) OUTPUT', @json = @json OUTPUT;&#xA;&#xA;INSERT INTO stg.sb_lineups&#xA;SELECT @match_id, t.team_id, t.team_name,&#xA;       j.player_id, j.player_name, j.player_nickname, j.jersey_number, j.country_name,&#xA;       CAST(p.[key] AS INT) + 1,&#xA;       pos.position_id, pos.position, pos.from_time, pos.to_time,&#xA;       pos.from_period, pos.to_period, pos.start_reason, pos.end_reason&#xA;FROM OPENJSON(@json)&#xA;WITH (&#xA;    team_id    INT           '$.team_id',&#xA;    team_name  NVARCHAR(100) '$.team_name',&#xA;    lineup     NVARCHAR(MAX) '$.lineup' AS JSON&#xA;) AS t&#xA;CROSS APPLY OPENJSON(t.lineup)&#xA;WITH (&#xA;    player_id        INT           '$.player_id',&#xA;    player_name      NVARCHAR(150) '$.player_name',&#xA;    player_nickname  NVARCHAR(100) '$.player_nickname',&#xA;    jersey_number    INT           '$.jersey_number',&#xA;    country_name     NVARCHAR(100) '$.country.name',&#xA;    positions        NVARCHAR(MAX) '$.positions' AS JSON&#xA;) AS j&#xA;CROSS APPLY OPENJSON(j.positions) AS p&#xA;CROSS APPLY OPENJSON(p.value)&#xA;WITH (&#xA;    position_id   INT           '$.position_id',&#xA;    position      NVARCHAR(50)  '$.position',&#xA;    from_time     VARCHAR(10)   '$.from',&#xA;    to_time       VARCHAR(10)   '$.to',&#xA;    from_period   INT           '$.from_period',&#xA;    to_period     INT           '$.to_period',&#xA;    start_reason  NVARCHAR(100) '$.start_reason',&#xA;    end_reason    NVARCHAR(100) '$.end_reason'&#xA;) AS pos;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask">
+              <SQLTask:ParameterBinding
+                SQLTask:ParameterName="0"
+                SQLTask:DtsVariableName="$Project::PastaDados"
+                SQLTask:ParameterDirection="Input"
+                SQLTask:DataType="130"
+                SQLTask:ParameterSize="-1" />
+              <SQLTask:ParameterBinding
+                SQLTask:ParameterName="1"
+                SQLTask:DtsVariableName="User::MatchId"
+                SQLTask:ParameterDirection="Input"
+                SQLTask:DataType="3"
+                SQLTask:ParameterSize="-1" />
+            </SQLTask:SqlTaskData>
+          </DTS:ObjectData>
+        </DTS:Executable>
+        <DTS:Executable
+          DTS:refId="Package\Loop partidas\Ler eventos"
+          DTS:CreationName="Microsoft.ExecuteSQLTask"
+          DTS:Description="Tarefa Executar SQL"
+          DTS:DTSID="{EED38BE9-3D84-4C91-9D01-8C346ABF0229}"
+          DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+          DTS:LocaleID="-1"
+          DTS:ObjectName="Ler eventos"
+          DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+          DTS:ThreadHint="0">
+          <DTS:Variables />
+          <DTS:ObjectData>
+            <SQLTask:SqlTaskData
+              SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+              SQLTask:SqlStatementSource="SET NOCOUNT ON;&#xA;DECLARE @pasta NVARCHAR(400) = ?;&#xA;DECLARE @match_id INT = ?;&#xA;DECLARE @sql NVARCHAR(MAX), @json VARCHAR(MAX);&#xA;&#xA;-- leitura dinâmica do arquivo events\&lt;match_id&gt;.json&#xA;SET @sql = N'SELECT @json = CAST(BulkColumn AS varchar(max)) FROM OPENROWSET(BULK ''' + @pasta&#xA;         + N'statsbomb\events\' + CAST(@match_id AS NVARCHAR(10)) + N'.json'', SINGLE_BLOB) AS arq;';&#xA;EXEC sp_executesql @sql, N'@json VARCHAR(MAX) OUTPUT', @json = @json OUTPUT;&#xA;&#xA;INSERT INTO stg.sb_events&#xA;SELECT @match_id, e.event_index, e.id, e.period, e.[timestamp], e.minute, e.second,&#xA;       e.type_id, e.type_name, e.possession, e.possession_team_id, e.play_pattern,&#xA;       e.team_id, e.player_id, e.position_id, e.location_x, e.location_y,&#xA;       e.under_pressure, e.counterpress,&#xA;       e.pass_end_location_x, e.pass_end_location_y, e.pass_outcome, e.pass_type,&#xA;       e.pass_height, e.pass_cross, e.pass_shot_assist, e.pass_goal_assist,&#xA;       e.carry_end_location_x, e.carry_end_location_y,&#xA;       e.dribble_outcome, e.duel_type, e.duel_outcome, e.interception_outcome,&#xA;       e.ball_recovery_recovery_failure,&#xA;       COALESCE(e.pass_aerial_won, e.shot_aerial_won, e.clearance_aerial_won, e.miscontrol_aerial_won),&#xA;       CAST(e.shot_statsbomb_xg AS DECIMAL(11,10)), e.shot_type, e.shot_outcome,&#xA;       COALESCE(e.foul_committed_card, e.bad_behaviour_card)&#xA;FROM OPENJSON(@json)&#xA;WITH (&#xA;    event_index                     INT              '$.index',&#xA;    id                              UNIQUEIDENTIFIER '$.id',&#xA;    period                          INT              '$.period',&#xA;    [timestamp]                     TIME(3)          '$.timestamp',&#xA;    minute                          INT              '$.minute',&#xA;    second                          INT              '$.second',&#xA;    type_id                         INT              '$.type.id',&#xA;    type_name                       NVARCHAR(50)     '$.type.name',&#xA;    possession                      INT              '$.possession',&#xA;    possession_team_id              INT              '$.possession_team.id',&#xA;    play_pattern                    NVARCHAR(50)     '$.play_pattern.name',&#xA;    team_id                         INT              '$.team.id',&#xA;    player_id                       INT              '$.player.id',&#xA;    position_id                     INT              '$.position.id',&#xA;    location_x                      DECIMAL(5,2)     '$.location[0]',&#xA;    location_y                      DECIMAL(5,2)     '$.location[1]',&#xA;    under_pressure                  BIT              '$.under_pressure',&#xA;    counterpress                    BIT              '$.counterpress',&#xA;    pass_end_location_x             DECIMAL(5,2)     '$.pass.end_location[0]',&#xA;    pass_end_location_y             DECIMAL(5,2)     '$.pass.end_location[1]',&#xA;    pass_outcome                    NVARCHAR(50)     '$.pass.outcome.name',&#xA;    pass_type                       NVARCHAR(50)     '$.pass.type.name',&#xA;    pass_height                     NVARCHAR(50)     '$.pass.height.name',&#xA;    pass_cross                      BIT              '$.pass.cross',&#xA;    pass_shot_assist                BIT              '$.pass.shot_assist',&#xA;    pass_goal_assist                BIT              '$.pass.goal_assist',&#xA;    carry_end_location_x            DECIMAL(5,2)     '$.carry.end_location[0]',&#xA;    carry_end_location_y            DECIMAL(5,2)     '$.carry.end_location[1]',&#xA;    dribble_outcome                 NVARCHAR(50)     '$.dribble.outcome.name',&#xA;    duel_type                       NVARCHAR(50)     '$.duel.type.name',&#xA;    duel_outcome                    NVARCHAR(50)     '$.duel.outcome.name',&#xA;    interception_outcome            NVARCHAR(50)     '$.interception.outcome.name',&#xA;    ball_recovery_recovery_failure  BIT              '$.ball_recovery.recovery_failure',&#xA;    pass_aerial_won                 BIT              '$.pass.aerial_won',&#xA;    shot_aerial_won                 BIT              '$.shot.aerial_won',&#xA;    clearance_aerial_won            BIT              '$.clearance.aerial_won',&#xA;    miscontrol_aerial_won           BIT              '$.miscontrol.aerial_won',&#xA;    shot_statsbomb_xg               FLOAT            '$.shot.statsbomb_xg',   -- D9&#xA;    shot_type                       NVARCHAR(50)     '$.shot.type.name',&#xA;    shot_outcome                    NVARCHAR(50)     '$.shot.outcome.name',&#xA;    foul_committed_card             NVARCHAR(50)     '$.foul_committed.card.name',&#xA;    bad_behaviour_card              NVARCHAR(50)     '$.bad_behaviour.card.name'&#xA;) AS e;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask">
+              <SQLTask:ParameterBinding
+                SQLTask:ParameterName="1"
+                SQLTask:DtsVariableName="User::MatchId"
+                SQLTask:ParameterDirection="Input"
+                SQLTask:DataType="3"
+                SQLTask:ParameterSize="-1" />
+              <SQLTask:ParameterBinding
+                SQLTask:ParameterName="0"
+                SQLTask:DtsVariableName="$Project::PastaDados"
+                SQLTask:ParameterDirection="Input"
+                SQLTask:DataType="130"
+                SQLTask:ParameterSize="-1" />
+            </SQLTask:SqlTaskData>
+          </DTS:ObjectData>
+        </DTS:Executable>
+      </DTS:Executables>
+      <DTS:PrecedenceConstraints>
+        <DTS:PrecedenceConstraint
+          DTS:refId="Package\Loop partidas.PrecedenceConstraints[Restrição]"
+          DTS:CreationName=""
+          DTS:DTSID="{7C14C473-A623-40EB-AA45-33745ADE28B9}"
+          DTS:From="Package\Loop partidas\Ler escalação"
+          DTS:LogicalAnd="True"
+          DTS:ObjectName="Restrição"
+          DTS:To="Package\Loop partidas\Ler eventos" />
+      </DTS:PrecedenceConstraints>
+      <DTS:ForEachVariableMappings>
+        <DTS:ForEachVariableMapping
+          DTS:CreationName=""
+          DTS:DTSID="{6DE68655-6045-4891-896E-F324346DA4A1}"
+          DTS:ObjectName="{6DE68655-6045-4891-896E-F324346DA4A1}"
+          DTS:ValueIndex="0"
+          DTS:VariableName="User::MatchId" />
+      </DTS:ForEachVariableMappings>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição]"
+      DTS:CreationName=""
+      DTS:DTSID="{063958E5-7369-40A8-A50E-0E60DA8311A6}"
+      DTS:From="Package\Limpar staging StatsBomb"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição"
+      DTS:To="Package\Loop arquivos de partidas" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{FB0704F4-59C9-4A12-8433-A014EAC146E3}"
+      DTS:From="Package\Loop arquivos de partidas"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 1"
+      DTS:To="Package\Listar partidas" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{48256863-6187-4896-AC4F-20E96BBEEA29}"
+      DTS:From="Package\Listar partidas"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 2"
+      DTS:To="Package\Loop partidas" />
+  </DTS:PrecedenceConstraints>
   <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
 <!--Esta seção CDATA contém as informações de layout do pacote. A seção inclui informações como coordenadas (x,y), largura e altura.-->
 <!--Se você editar manualmente esta seção e cometer algum erro, poderá excluí-la. -->
@@ -24,5 +291,159 @@
 <Objects
   Version="8">
   <!--Cada nó abaixo conterá propriedades que não afetam o comportamento em tempo de execução.-->
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="16" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="202,42"
+          Id="Package\Limpar staging StatsBomb"
+          TopLeft="201,45" />
+        <NodeLayout
+          Size="192,42"
+          Id="Package\Loop arquivos de partidas\Ler arquivos de partidas"
+          TopLeft="57,29" />
+        <ContainerLayout
+          HeaderHeight="43"
+          IsExpanded="True"
+          PanelSize="298,125"
+          Size="298,168"
+          Id="Package\Loop arquivos de partidas"
+          TopLeft="159,148" />
+        <NodeLayout
+          Size="145,42"
+          Id="Package\Listar partidas"
+          TopLeft="500.5,202.5" />
+        <NodeLayout
+          Size="142,42"
+          Id="Package\Loop partidas\Ler escalação"
+          TopLeft="88,17.5" />
+        <NodeLayout
+          Size="134,42"
+          Id="Package\Loop partidas\Ler eventos"
+          TopLeft="96,93" />
+        <EdgeLayout
+          Id="Package\Loop partidas.PrecedenceConstraints[Restrição]"
+          TopLeft="161,59.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,33.5"
+              Start="0,0"
+              End="0,26">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,26" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <ContainerLayout
+          HeaderHeight="43"
+          IsExpanded="True"
+          PanelSize="322,191"
+          Size="322,234"
+          Id="Package\Loop partidas"
+          TopLeft="686,116" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição]"
+          TopLeft="305,87">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,61"
+              Start="0,0"
+              End="0,53.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,53.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 1]"
+          TopLeft="457,232">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="43.5,-8.5"
+              Start="0,0"
+              End="36,-8.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="17.75,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="17.75,0"
+                    Point2="21.75,0"
+                    Point3="21.75,-4" />
+                  <mssgle:LineSegment
+                    End="21.75,-4.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="21.75,-4.5"
+                    Point2="21.75,-8.5"
+                    Point3="25.75,-8.5" />
+                  <mssgle:LineSegment
+                    End="36,-8.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 2]"
+          TopLeft="645.5,223.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="40.5,9.5"
+              Start="0,0"
+              End="33,9.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="16.25,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="16.25,0"
+                    Point2="20.25,0"
+                    Point3="20.25,4" />
+                  <mssgle:LineSegment
+                    End="20.25,5.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="20.25,5.5"
+                    Point2="20.25,9.5"
+                    Point3="24.25,9.5" />
+                  <mssgle:LineSegment
+                    End="33,9.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
 </Objects>]]></DTS:DesignTimeProperties>
 </DTS:Executable>
