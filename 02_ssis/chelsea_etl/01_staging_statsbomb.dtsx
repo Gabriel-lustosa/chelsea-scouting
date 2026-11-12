@@ -5,14 +5,14 @@
   DTS:CreationName="Microsoft.Package"
   DTS:CreatorComputerName="DESKTOP-BR098OM"
   DTS:CreatorName="DESKTOP-BR098OM\Lustosa"
-  DTS:DTSID="{1F6996E0-6ED9-400D-8E2E-71053D0017C1}"
+  DTS:DTSID="{CF129016-5A94-4858-8B1F-8A1F580DAE77}"
   DTS:ExecutableType="Microsoft.Package"
   DTS:LastModifiedProductVersion="17.0.1016.0"
   DTS:LocaleID="1046"
   DTS:ObjectName="01_staging_statsbomb"
   DTS:PackageType="5"
-  DTS:VersionBuild="9"
-  DTS:VersionGUID="{C35D7644-D10A-4E59-B726-699E300E1BD4}">
+  DTS:VersionBuild="13"
+  DTS:VersionGUID="{2D5BEEAD-6AA9-4CDE-806E-CA554A4FF240}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:Variables>
@@ -242,7 +242,7 @@
         <DTS:PrecedenceConstraint
           DTS:refId="Package\Loop partidas.PrecedenceConstraints[Restrição]"
           DTS:CreationName=""
-          DTS:DTSID="{7C14C473-A623-40EB-AA45-33745ADE28B9}"
+          DTS:DTSID="{1D5396B2-EAB2-4A49-9449-CE6B16060F7D}"
           DTS:From="Package\Loop partidas\Ler escalação"
           DTS:LogicalAnd="True"
           DTS:ObjectName="Restrição"
