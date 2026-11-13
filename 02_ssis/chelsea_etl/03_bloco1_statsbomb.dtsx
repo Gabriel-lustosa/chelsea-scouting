@@ -1,0 +1,2708 @@
+﻿<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="11/12/2026 10:48:44 PM"
+  DTS:CreationName="Microsoft.Package"
+  DTS:CreatorComputerName="DESKTOP-BR098OM"
+  DTS:CreatorName="DESKTOP-BR098OM\Lustosa"
+  DTS:DTSID="{8D67C2DF-3067-4283-BE2A-9594788C13A8}"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LastModifiedProductVersion="17.0.1016.0"
+  DTS:LocaleID="1046"
+  DTS:ObjectName="03_bloco1_statsbomb"
+  DTS:PackageType="5"
+  DTS:VersionBuild="11"
+  DTS:VersionGUID="{113D4966-4674-48BD-848F-223F286936CA}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Variables>
+    <DTS:Variable
+      DTS:CreationName=""
+      DTS:DTSID="{68D1C50B-9362-4E42-B57F-38F76E40016E}"
+      DTS:IncludeInDebugDump="6789"
+      DTS:Namespace="User"
+      DTS:ObjectName="SemGrupo">
+      <DTS:VariableValue
+        DTS:DataType="3">0</DTS:VariableValue>
+    </DTS:Variable>
+  </DTS:Variables>
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\Alerta sem grupo"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Tarefa Executar SQL"
+      DTS:DTSID="{568B281C-0E6F-4716-A9FE-90CF4961BDDE}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Alerta sem grupo"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="THROW 50001, 'dim_posicao com posicao sem grupo. Veja a variavel SemGrupo.', 1;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\dim_data"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Tarefa Fluxo de Dados"
+      DTS:DTSID="{1654B338-DC77-405C-A629-F9C11677CB9C}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="dim_data"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\dim_data\Datas"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="Origem OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;7"
+              description="Origem OLE DB"
+              name="Datas"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT DATEADD(DAY, value, CAST('20140101' AS DATE)) AS data
+FROM GENERATE_SERIES(0, DATEDIFF(DAY, '20140101', '20261231'))</property>
+                <property
+                  dataType="System.String"
+                  description="A variável que contém o comando SQL a ser executado."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="Os mapeamentos entre os parâmetros no comando SQL e as variáveis."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_data\Datas.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB]"
+                  name="Saída de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]"
+                      dataType="dbDate"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].ExternalColumns[data]"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]"
+                      name="data"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].ExternalColumns[data]"
+                      dataType="dbDate"
+                      name="data" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB]"
+                  isErrorOut="true"
+                  name="Saída de Erro de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[data]"
+                      dataType="dbDate"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[data]"
+                      name="data" />
+                    <outputColumn
+                      refId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_data\Dw_dim_data"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="Dw_dim_data"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[dw].[dim_data]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_data\Dw_dim_data.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[data]"
+                      cachedDataType="dbDate"
+                      cachedName="data"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[data]"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[sk_data]"
+                      cachedDataType="i4"
+                      cachedName="sk_data"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[sk_data]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[sk_data]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[ano]"
+                      cachedDataType="i4"
+                      cachedName="ano"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[ano]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[ano]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[trimestre]"
+                      cachedDataType="i4"
+                      cachedName="trimestre"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[trimestre]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[trimestre]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[mes]"
+                      cachedDataType="i4"
+                      cachedName="mes"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[mes]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[dia]"
+                      cachedDataType="i4"
+                      cachedName="dia"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[dia_semana]"
+                      cachedDataType="i4"
+                      cachedName="dia_semana"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia_semana]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[temporada_ano_inicio]"
+                      cachedDataType="i4"
+                      cachedName="temporada_ano_inicio"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[temporada_ano_inicio]"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[mes_nome]"
+                      cachedDataType="wstr"
+                      cachedLength="9"
+                      cachedName="mes_nome"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[mes_nome]"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[mes_nome]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[dia_semana_nome]"
+                      cachedDataType="wstr"
+                      cachedLength="13"
+                      cachedName="dia_semana_nome"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia_semana_nome]"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[dia_semana_nome]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[temporada]"
+                      cachedDataType="wstr"
+                      cachedLength="7"
+                      cachedName="temporada"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[temporada]"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[temporada]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[periodo_cenario]"
+                      cachedDataType="wstr"
+                      cachedLength="20"
+                      cachedName="periodo_cenario"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_cenario]"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[periodo_cenario]" />
+                    <inputColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].Columns[eh_fim_semana]"
+                      cachedDataType="bool"
+                      cachedName="eh_fim_semana"
+                      externalMetadataColumnId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_fim_semana]"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[eh_fim_semana]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[sk_data]"
+                      dataType="i4"
+                      name="sk_data" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[data]"
+                      dataType="dbDate"
+                      name="data" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[ano]"
+                      dataType="i4"
+                      name="ano" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[trimestre]"
+                      dataType="i4"
+                      name="trimestre" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[mes]"
+                      dataType="i4"
+                      name="mes" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[mes_nome]"
+                      dataType="wstr"
+                      length="20"
+                      name="mes_nome" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia]"
+                      dataType="i4"
+                      name="dia" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia_semana]"
+                      dataType="i4"
+                      name="dia_semana" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[dia_semana_nome]"
+                      dataType="wstr"
+                      length="20"
+                      name="dia_semana_nome" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_fim_semana]"
+                      dataType="bool"
+                      name="eh_fim_semana" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[temporada]"
+                      dataType="wstr"
+                      length="7"
+                      name="temporada" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[temporada_ano_inicio]"
+                      dataType="i4"
+                      name="temporada_ano_inicio" />
+                    <externalMetadataColumn
+                      refId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_cenario]"
+                      dataType="wstr"
+                      length="30"
+                      name="periodo_cenario" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_data\Dw_dim_data.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Dw_dim_data.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Dw_dim_data.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_data\Dw_dim_data.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Dw_dim_data.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_data\Nomes e temporada"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Nomes e temporada"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada].Columns[data]"
+                      cachedDataType="dbDate"
+                      cachedName="data"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]" />
+                    <inputColumn
+                      refId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada].Columns[mes]"
+                      cachedDataType="i4"
+                      cachedName="mes"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]" />
+                    <inputColumn
+                      refId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada].Columns[dia_semana]"
+                      cachedDataType="i4"
+                      cachedName="dia_semana"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]" />
+                    <inputColumn
+                      refId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada].Columns[temporada_ano_inicio]"
+                      cachedDataType="i4"
+                      cachedName="temporada_ano_inicio"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[mes_nome]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      length="9"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[mes_nome]"
+                      name="mes_nome"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 1 ? "Janeiro" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 2 ? "Fevereiro" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 3 ? "Março" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 4 ? "Abril" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 5 ? "Maio" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 6 ? "Junho" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 7 ? "Julho" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 8 ? "Agosto" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 9 ? "Setembro" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 10 ? "Outubro" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]} == 11 ? "Novembro" : "Dezembro"</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">mes == 1 ? "Janeiro" : mes == 2 ? "Fevereiro" : mes == 3 ? "Março" : mes == 4 ? "Abril" : mes == 5 ? "Maio" : mes == 6 ? "Junho" : mes == 7 ? "Julho" : mes == 8 ? "Agosto" : mes == 9 ? "Setembro" : mes == 10 ? "Outubro" : mes == 11 ? "Novembro" : "Dezembro"</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[dia_semana_nome]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      length="13"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[dia_semana_nome]"
+                      name="dia_semana_nome"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 1 ? "Domingo" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 2 ? "Segunda-Feira" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 3 ? "Terça-Feira" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 4 ? "Quarta-Feira" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 5 ? "Quinta-Feira" : #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 6 ? "Sexta-Feira" : "Sábado"</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">dia_semana == 1 ? "Domingo" : dia_semana == 2 ? "Segunda-Feira" : dia_semana == 3 ? "Terça-Feira" : dia_semana == 4 ? "Quarta-Feira" : dia_semana == 5 ? "Quinta-Feira" : dia_semana == 6 ? "Sexta-Feira" : "Sábado"</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[eh_fim_semana]"
+                      dataType="bool"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[eh_fim_semana]"
+                      name="eh_fim_semana"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 1 || #{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]} == 7</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">dia_semana == 1 || dia_semana == 7</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[temporada]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      length="7"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[temporada]"
+                      name="temporada"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">(DT_WSTR,4)#{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]} + "/" + [RIGHT]((DT_WSTR,4)(#{Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]} + 1),2)</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">(DT_WSTR,4)temporada_ano_inicio + "/" + RIGHT((DT_WSTR,4)(temporada_ano_inicio + 1),2)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[periodo_cenario]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      length="20"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada].Columns[periodo_cenario]"
+                      name="periodo_cenario"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]} &lt;= (DT_DBDATE)"2016-06-30" ? "Até a janela de 2016" : "Depois"</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">data &lt;= (DT_DBDATE)"2016-06-30" ? "Até a janela de 2016" : "Depois"</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_data\Nomes e temporada.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Nomes e temporada.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_data\Partes da data"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Partes da data"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\dim_data\Partes da data.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_data\Partes da data.Inputs[Entrada de Coluna Derivada].Columns[data]"
+                      cachedDataType="dbDate"
+                      cachedName="data"
+                      lineageId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\dim_data\Partes da data.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[sk_data]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[sk_data]"
+                      name="sk_data"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[YEAR](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]}) * 10000 + [MONTH](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]}) * 100 + [DAY](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">YEAR(data) * 10000 + MONTH(data) * 100 + DAY(data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[ano]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[ano]"
+                      name="ano"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[YEAR](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">YEAR(data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[trimestre]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[trimestre]"
+                      name="trimestre"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[DATEPART]("qq",#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">DATEPART("qq",data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[mes]"
+                      name="mes"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[MONTH](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">MONTH(data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia]"
+                      name="dia"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[DAY](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">DAY(data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[dia_semana]"
+                      name="dia_semana"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[DATEPART]("dw",#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]})</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">DATEPART("dw",data)</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada].Columns[temporada_ano_inicio]"
+                      name="temporada_ano_inicio"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[MONTH](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]}) &gt;= 7 ? [YEAR](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]}) : [YEAR](#{Package\dim_data\Datas.Outputs[Saída de Origem OLE DB].Columns[data]}) - 1</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">MONTH(data) &gt;= 7 ? YEAR(data) : YEAR(data) - 1</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\dim_data\Partes da data.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\dim_data\Partes da data.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_data\Partes da data.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_data\Partes da data.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\dim_data.Paths[Saída de Coluna Derivada]"
+              endId="Package\dim_data\Nomes e temporada.Inputs[Entrada de Coluna Derivada]"
+              name="Saída de Coluna Derivada"
+              startId="Package\dim_data\Partes da data.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\dim_data.Paths[Saída de Coluna Derivada1]"
+              endId="Package\dim_data\Dw_dim_data.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Coluna Derivada"
+              startId="Package\dim_data\Nomes e temporada.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\dim_data.Paths[Saída de Origem OLE DB]"
+              endId="Package\dim_data\Partes da data.Inputs[Entrada de Coluna Derivada]"
+              name="Saída de Origem OLE DB"
+              startId="Package\dim_data\Datas.Outputs[Saída de Origem OLE DB]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\dim_liga"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Tarefa Fluxo de Dados"
+      DTS:DTSID="{289AAA1E-F209-46B8-A720-B2AF85EA0400}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="dim_liga"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\dim_liga\dw_dim_liga"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="dw_dim_liga"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[dw].[dim_liga]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_liga\dw_dim_liga.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[tm_competition_id]"
+                      cachedDataType="wstr"
+                      cachedLength="10"
+                      cachedName="tm_competition_id"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_competition_id]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tm_competition_id]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[sb_competition_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_competition_id"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_competition_id]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[sb_competition_id]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[nome]"
+                      cachedDataType="wstr"
+                      cachedLength="4000"
+                      cachedName="nome"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[nome]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[nome]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[tipo]"
+                      cachedDataType="wstr"
+                      cachedLength="19"
+                      cachedName="tipo"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[tipo]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tipo]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[pais]"
+                      cachedDataType="wstr"
+                      cachedLength="100"
+                      cachedName="pais"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[pais]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[pais]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[confederacao]"
+                      cachedDataType="wstr"
+                      cachedLength="8"
+                      cachedName="confederacao"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[confederacao]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[confederacao]" />
+                    <inputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].Columns[eh_liga_do_estudo]"
+                      cachedDataType="i4"
+                      cachedName="eh_liga_do_estudo"
+                      externalMetadataColumnId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_liga_do_estudo]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[eh_liga_do_estudo]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[sk_liga]"
+                      dataType="i4"
+                      name="sk_liga" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_competition_id]"
+                      dataType="wstr"
+                      length="10"
+                      name="tm_competition_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_competition_id]"
+                      dataType="i4"
+                      name="sb_competition_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[nome]"
+                      dataType="wstr"
+                      length="100"
+                      name="nome" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[tipo]"
+                      dataType="wstr"
+                      length="30"
+                      name="tipo" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[pais]"
+                      dataType="wstr"
+                      length="100"
+                      name="pais" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[confederacao]"
+                      dataType="wstr"
+                      length="20"
+                      name="confederacao" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_liga_do_estudo]"
+                      dataType="bool"
+                      name="eh_liga_do_estudo" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_liga\dw_dim_liga.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\dw_dim_liga.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_liga\dw_dim_liga.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\dw_dim_liga.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_liga\Ligas"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="Origem OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;7"
+              description="Origem OLE DB"
+              name="Ligas"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">WITH competicoes AS (
+    SELECT competition_id, name, sub_type, type, country_name, confederation
+    FROM stg.tm_competitions
+    UNION ALL
+    SELECT competition_id, name, sub_type, type, country_name, confederation
+    FROM (VALUES
+        (N'CGB',  N'efl-cup',             N'league_cup',         N'domestic_cup',      N'England',  N'europa'),
+        (N'POCP', N'taca-da-liga',        N'league_cup',         N'domestic_cup',      N'Portugal', N'europa'),
+        (N'KLUB', N'fifa-club-world-cup', N'club_world_cup',     N'international_cup', NULL,        N'fifa'),
+        (N'UKRS', N'ukrainian-super-cup', N'domestic_super_cup', N'other',             N'Ukraine',  N'europa')
+    ) AS faltantes (competition_id, name, sub_type, type, country_name, confederation)
+),
+nomes AS (
+    SELECT c.*,
+           (SELECT STRING_AGG(UPPER(LEFT(p.value, 1)) + SUBSTRING(p.value, 2, 100), ' ')
+                   WITHIN GROUP (ORDER BY p.ordinal)
+            FROM STRING_SPLIT(c.name, '-', 1) AS p) AS nome_regra
+    FROM competicoes c
+)
+SELECT competition_id AS tm_competition_id,
+       CASE competition_id WHEN 'GB1' THEN 2 WHEN 'ES1' THEN 11
+                           WHEN 'IT1' THEN 12 WHEN 'FR1' THEN 7 END AS sb_competition_id,
+       CASE competition_id
+            WHEN 'GB1'  THEN N'Premier League'
+            WHEN 'ES1'  THEN N'La Liga'
+            WHEN 'IT1'  THEN N'Serie A'
+            WHEN 'FR1'  THEN N'Ligue 1'
+            WHEN 'CGB'  THEN N'EFL Cup'
+            WHEN 'POCP' THEN N'Taça da Liga'
+            WHEN 'KLUB' THEN N'FIFA Club World Cup'
+            WHEN 'FAC'  THEN N'FA Cup'
+            WHEN 'AFAC' THEN N'AFC Asian Cup'
+            WHEN 'AFCN' THEN N'Africa Cup of Nations'
+            WHEN 'CDR'  THEN N'Copa del Rey'
+            ELSE REPLACE(REPLACE(nome_regra, N'Uefa', N'UEFA'), N'Dfb', N'DFB')
+       END AS nome,
+       CASE WHEN competition_id = 'KLUB'                              THEN N'Mundial de Clubes'
+            WHEN type = 'domestic_league'                             THEN N'Liga nacional'
+            WHEN type = 'domestic_cup'                                THEN N'Copa nacional'
+            WHEN sub_type IN ('domestic_super_cup', 'uefa_super_cup') THEN N'Supercopa'
+            WHEN type = 'national_team_competition'                   THEN N'Seleções'
+            WHEN sub_type = 'play_off'                                THEN N'Playoff'
+            WHEN sub_type LIKE 'uefa%'                                THEN N'Competição europeia'
+            ELSE N'Outra'
+       END AS tipo,
+       country_name AS pais,
+       CASE confederation WHEN 'europa'  THEN N'Europa'
+                          WHEN 'amerika' THEN N'Américas'
+                          WHEN 'asien'   THEN N'Ásia'
+                          WHEN 'afrika'  THEN N'África'
+                          WHEN 'fifa'    THEN N'FIFA' END AS confederacao,
+       CASE WHEN competition_id IN ('GB1', 'ES1', 'IT1', 'FR1') THEN 1 ELSE 0 END AS eh_liga_do_estudo
+FROM nomes
+ORDER BY competition_id;</property>
+                <property
+                  dataType="System.String"
+                  description="A variável que contém o comando SQL a ser executado."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="Os mapeamentos entre os parâmetros no comando SQL e as variáveis."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_liga\Ligas.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB]"
+                  name="Saída de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tm_competition_id]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[tm_competition_id]"
+                      length="10"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tm_competition_id]"
+                      name="tm_competition_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[sb_competition_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_competition_id]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[sb_competition_id]"
+                      name="sb_competition_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[nome]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[nome]"
+                      length="4000"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[nome]"
+                      name="nome"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tipo]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[tipo]"
+                      length="19"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[tipo]"
+                      name="tipo"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[pais]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[pais]"
+                      length="100"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[pais]"
+                      name="pais"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[confederacao]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[confederacao]"
+                      length="8"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[confederacao]"
+                      name="confederacao"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[eh_liga_do_estudo]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[eh_liga_do_estudo]"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].Columns[eh_liga_do_estudo]"
+                      name="eh_liga_do_estudo"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[tm_competition_id]"
+                      dataType="wstr"
+                      length="10"
+                      name="tm_competition_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_competition_id]"
+                      dataType="i4"
+                      name="sb_competition_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[nome]"
+                      dataType="wstr"
+                      length="4000"
+                      name="nome" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[tipo]"
+                      dataType="wstr"
+                      length="19"
+                      name="tipo" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[pais]"
+                      dataType="wstr"
+                      length="100"
+                      name="pais" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[confederacao]"
+                      dataType="wstr"
+                      length="8"
+                      name="confederacao" />
+                    <externalMetadataColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB].ExternalColumns[eh_liga_do_estudo]"
+                      dataType="i4"
+                      name="eh_liga_do_estudo" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB]"
+                  isErrorOut="true"
+                  name="Saída de Erro de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[tm_competition_id]"
+                      dataType="wstr"
+                      length="10"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[tm_competition_id]"
+                      name="tm_competition_id" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_competition_id]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_competition_id]"
+                      name="sb_competition_id" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[nome]"
+                      dataType="wstr"
+                      length="4000"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[nome]"
+                      name="nome" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[tipo]"
+                      dataType="wstr"
+                      length="19"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[tipo]"
+                      name="tipo" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[pais]"
+                      dataType="wstr"
+                      length="100"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[pais]"
+                      name="pais" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[confederacao]"
+                      dataType="wstr"
+                      length="8"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[confederacao]"
+                      name="confederacao" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[eh_liga_do_estudo]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[eh_liga_do_estudo]"
+                      name="eh_liga_do_estudo" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_liga\Ligas.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\dim_liga.Paths[Saída de Origem OLE DB]"
+              endId="Package\dim_liga\dw_dim_liga.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Origem OLE DB"
+              startId="Package\dim_liga\Ligas.Outputs[Saída de Origem OLE DB]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\dim_posicao"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Tarefa Fluxo de Dados"
+      DTS:DTSID="{3F95A665-F6E7-4B0B-9E60-A785AFCB7092}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="dim_posicao"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\dim_posicao\dw_dim_posicao"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="dw_dim_posicao"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[dw].[dim_posicao]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">true</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_posicao\dw_dim_posicao.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[sb_position_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_position_id"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_position_id]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sb_position_id]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[posicao]"
+                      cachedDataType="wstr"
+                      cachedLength="25"
+                      cachedName="posicao"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[posicao]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[posicao_pt]"
+                      cachedDataType="wstr"
+                      cachedLength="22"
+                      cachedName="posicao_pt"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[posicao_pt]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao_pt]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[sigla]"
+                      cachedDataType="wstr"
+                      cachedLength="3"
+                      cachedName="sigla"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[sigla]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sigla]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[grupo]"
+                      cachedDataType="wstr"
+                      cachedLength="13"
+                      cachedName="grupo"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[grupo]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[grupo]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[lado]"
+                      cachedDataType="wstr"
+                      cachedLength="8"
+                      cachedName="lado"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[lado]"
+                      lineageId="Package\dim_posicao\Lado.Outputs[Saída de Coluna Derivada].Columns[lado]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[eh_escopo]"
+                      cachedDataType="i4"
+                      cachedName="eh_escopo"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_escopo]"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[eh_escopo]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[ordem_setor]"
+                      cachedDataType="i4"
+                      cachedName="ordem_setor"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[ordem_setor]"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_setor]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[ordem_grupo]"
+                      cachedDataType="i4"
+                      cachedName="ordem_grupo"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[ordem_grupo]"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_grupo]" />
+                    <inputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].Columns[setor]"
+                      cachedDataType="wstr"
+                      cachedLength="7"
+                      cachedName="setor"
+                      externalMetadataColumnId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[setor]"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[setor]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[sk_posicao]"
+                      dataType="i4"
+                      name="sk_posicao" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_position_id]"
+                      dataType="i4"
+                      name="sb_position_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[posicao]"
+                      dataType="wstr"
+                      length="40"
+                      name="posicao" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[posicao_pt]"
+                      dataType="wstr"
+                      length="40"
+                      name="posicao_pt" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[sigla]"
+                      dataType="wstr"
+                      length="5"
+                      name="sigla" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[lado]"
+                      dataType="wstr"
+                      length="10"
+                      name="lado" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[grupo]"
+                      dataType="wstr"
+                      length="20"
+                      name="grupo" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[setor]"
+                      dataType="wstr"
+                      length="10"
+                      name="setor" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[eh_escopo]"
+                      dataType="bool"
+                      name="eh_escopo" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[ordem_grupo]"
+                      dataType="i4"
+                      name="ordem_grupo" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB].ExternalColumns[ordem_setor]"
+                      dataType="i4"
+                      name="ordem_setor" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_posicao\dw_dim_posicao.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\dw_dim_posicao.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_posicao\dw_dim_posicao.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\dw_dim_posicao.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_posicao\Lado"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Lado"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\dim_posicao\Lado.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_posicao\Lado.Inputs[Entrada de Coluna Derivada].Columns[posicao]"
+                      cachedDataType="wstr"
+                      cachedLength="25"
+                      cachedName="posicao"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_posicao\Lado.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\dim_posicao\Lado.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Lado.Outputs[Saída de Coluna Derivada].Columns[lado]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      length="8"
+                      lineageId="Package\dim_posicao\Lado.Outputs[Saída de Coluna Derivada].Columns[lado]"
+                      name="lado"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">[LEFT](#{Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]},6) == "Right " ? "Direito" : [LEFT](#{Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]},5) == "Left " ? "Esquerdo" : "Centro"</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">LEFT(posicao,6) == "Right " ? "Direito" : LEFT(posicao,5) == "Left " ? "Esquerdo" : "Centro"</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\dim_posicao\Lado.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\dim_posicao\Lado.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Lado.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Lado.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Lado.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Lado.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_posicao\Posições"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="Origem OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;7"
+              description="Origem OLE DB"
+              name="Posições"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT *
+FROM (VALUES
+    ( 1, N'Goalkeeper',                N'Goleiro',                N'GK',  N'Goleiro'),
+    ( 2, N'Right Back',                N'Lateral direito',        N'RB',  N'Lateral'),
+    ( 3, N'Right Center Back',         N'Zagueiro direito',       N'RCB', N'Zagueiro'),
+    ( 4, N'Center Back',               N'Zagueiro central',       N'CB',  N'Zagueiro'),
+    ( 5, N'Left Center Back',          N'Zagueiro esquerdo',      N'LCB', N'Zagueiro'),
+    ( 6, N'Left Back',                 N'Lateral esquerdo',       N'LB',  N'Lateral'),
+    ( 7, N'Right Wing Back',           N'Ala direito',            N'RWB', N'Lateral'),
+    ( 8, N'Left Wing Back',            N'Ala esquerdo',           N'LWB', N'Lateral'),
+    ( 9, N'Right Defensive Midfield',  N'Volante direito',        N'RDM', N'Volante'),
+    (10, N'Center Defensive Midfield', N'Volante central',        N'CDM', N'Volante'),
+    (11, N'Left Defensive Midfield',   N'Volante esquerdo',       N'LDM', N'Volante'),
+    (12, N'Right Midfield',            N'Meia aberto direito',    N'RM',  N'Meia aberto'),
+    (13, N'Right Center Midfield',     N'Meia central direito',   N'RCM', N'Meia central'),
+    (14, N'Center Midfield',           N'Meia central',           N'CM',  N'Meia central'),
+    (15, N'Left Center Midfield',      N'Meia central esquerdo',  N'LCM', N'Meia central'),
+    (16, N'Left Midfield',             N'Meia aberto esquerdo',   N'LM',  N'Meia aberto'),
+    (17, N'Right Wing',                N'Ponta direita',          N'RW',  N'Ponta'),
+    (18, N'Right Attacking Midfield',  N'Meia ofensivo direito',  N'RAM', N'Meia ofensivo'),
+    (19, N'Center Attacking Midfield', N'Meia ofensivo central',  N'CAM', N'Meia ofensivo'),
+    (20, N'Left Attacking Midfield',   N'Meia ofensivo esquerdo', N'LAM', N'Meia ofensivo'),
+    (21, N'Left Wing',                 N'Ponta esquerda',         N'LW',  N'Ponta'),
+    (22, N'Right Center Forward',      N'Atacante direito',       N'RCF', N'Atacante'),
+    (23, N'Center Forward',            N'Centroavante',           N'CF',  N'Atacante'),
+    (24, N'Left Center Forward',       N'Atacante esquerdo',      N'LCF', N'Atacante'),
+    (25, N'Secondary Striker',         N'Segundo atacante',       N'SS',  N'Atacante')
+) AS p (sb_position_id, posicao, posicao_pt, sigla, grupo)
+ORDER BY sb_position_id;</property>
+                <property
+                  dataType="System.String"
+                  description="A variável que contém o comando SQL a ser executado."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="Os mapeamentos entre os parâmetros no comando SQL e as variáveis."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_posicao\Posições.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB]"
+                  name="Saída de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sb_position_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_position_id]"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sb_position_id]"
+                      name="sb_position_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[posicao]"
+                      length="25"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao]"
+                      name="posicao"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao_pt]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[posicao_pt]"
+                      length="22"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[posicao_pt]"
+                      name="posicao_pt"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sigla]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[sigla]"
+                      length="3"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[sigla]"
+                      name="sigla"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[grupo]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[grupo]"
+                      length="13"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[grupo]"
+                      name="grupo"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_position_id]"
+                      dataType="i4"
+                      name="sb_position_id" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[posicao]"
+                      dataType="wstr"
+                      length="25"
+                      name="posicao" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[posicao_pt]"
+                      dataType="wstr"
+                      length="22"
+                      name="posicao_pt" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[sigla]"
+                      dataType="wstr"
+                      length="3"
+                      name="sigla" />
+                    <externalMetadataColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].ExternalColumns[grupo]"
+                      dataType="wstr"
+                      length="13"
+                      name="grupo" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB]"
+                  isErrorOut="true"
+                  name="Saída de Erro de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_position_id]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_position_id]"
+                      name="sb_position_id" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[posicao]"
+                      dataType="wstr"
+                      length="25"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[posicao]"
+                      name="posicao" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[posicao_pt]"
+                      dataType="wstr"
+                      length="22"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[posicao_pt]"
+                      name="posicao_pt" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[sigla]"
+                      dataType="wstr"
+                      length="3"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[sigla]"
+                      name="sigla" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[grupo]"
+                      dataType="wstr"
+                      length="13"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[grupo]"
+                      name="grupo" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_posicao\Sem grupo"
+              componentClassID="Microsoft.RowCount"
+              contactInfo="Contagem de Linhas;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Conta as linhas à medida que elas passam por um fluxo de dados. Por exemplo, use o número de linhas processado para determinar se operações de limpeza devem ser executadas ou não, ou atualize o texto em uma mensagem de email para comunicar o status de processamento."
+              name="Sem grupo">
+              <properties>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que conterá a contagem de linhas."
+                  name="VariableName">User::SemGrupo</property>
+              </properties>
+              <inputs>
+                <input
+                  refId="Package\dim_posicao\Sem grupo.Inputs[Contagem de Linhas Entrada 1]"
+                  hasSideEffects="true"
+                  name="Contagem de Linhas Entrada 1">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_posicao\Sem grupo.Outputs[Contagem de Linhas Saída 1]"
+                  name="Contagem de Linhas Saída 1"
+                  synchronousInputId="Package\dim_posicao\Sem grupo.Inputs[Contagem de Linhas Entrada 1]">
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\dim_posicao\Setor do grupo"
+              componentClassID="Microsoft.Lookup"
+              contactInfo="Pesquisa;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;6"
+              description="Une colunas adicionais aos fluxos de dados pesquisando valores de uma tabela. Por exemplo, una à coluna 'employee id' a tabela de funcionários para obter 'hire date' e 'employee name'. Essa transformação é recomendada quando a tabela de pesquisa está de acordo com a memória."
+              name="Setor do grupo"
+              usesDispositions="true"
+              version="6">
+              <properties>
+                <property
+                  dataType="System.String"
+                  description="Especifica a instrução SQL que gera a tabela de pesquisa."
+                  expressionType="Notify"
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT *
+FROM (VALUES
+    (N'Goleiro',       N'Goleiro', 1, 1, 0),
+    (N'Zagueiro',      N'Defesa',  2, 2, 1),
+    (N'Lateral',       N'Defesa',  3, 2, 1),
+    (N'Volante',       N'Meio',    4, 3, 1),
+    (N'Meia central',  N'Meio',    5, 3, 0),
+    (N'Meia aberto',   N'Meio',    6, 3, 0),
+    (N'Meia ofensivo', N'Meio',    7, 3, 0),
+    (N'Ponta',         N'Ataque',  8, 4, 0),
+    (N'Atacante',      N'Ataque',  9, 4, 0)
+) AS g (grupo, setor, ordem_grupo, ordem_setor, eh_escopo);</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica uma instrução SQL que usa parâmetros para gerar a tabela de pesquisa."
+                  expressionType="Notify"
+                  name="SqlCommandParam"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">select * from (SELECT *
+FROM (VALUES
+    (N'Goleiro',       N'Goleiro', 1, 1, 0),
+    (N'Zagueiro',      N'Defesa',  2, 2, 1),
+    (N'Lateral',       N'Defesa',  3, 2, 1),
+    (N'Volante',       N'Meio',    4, 3, 1),
+    (N'Meia central',  N'Meio',    5, 3, 0),
+    (N'Meia aberto',   N'Meio',    6, 3, 0),
+    (N'Meia ofensivo', N'Meio',    7, 3, 0),
+    (N'Ponta',         N'Ataque',  8, 4, 0),
+    (N'Atacante',      N'Ataque',  9, 4, 0)
+) AS g (grupo, setor, ordem_grupo, ordem_setor, eh_escopo);) [refTable]
+where [refTable].[grupo] = ?</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o tipo de conexão usado para acessar o conjunto de dados de referência."
+                  name="ConnectionType"
+                  typeConverter="LookupConnectionType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o tipo de cache da tabela de pesquisa."
+                  name="CacheType"
+                  typeConverter="CacheType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica como a transformação Pesquisa trata as linhas sem entradas correspondentes no conjunto de dados de referência."
+                  name="NoMatchBehavior"
+                  typeConverter="LookupNoMatchBehavior">1</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a porcentagem do cache alocada para linhas sem entradas correspondentes no conjunto de dados de referência."
+                  name="NoMatchCachePercentage">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Uso Máximo de Memória para o Cache de Referência em uma plataforma de 32 bits."
+                  name="MaxMemoryUsage">25</property>
+                <property
+                  dataType="System.Int64"
+                  description="Uso Máximo de Memória para o Cache de Referência em uma plataforma de 64 bits."
+                  name="MaxMemoryUsage64">25</property>
+                <property
+                  dataType="System.String"
+                  description="Indica se os metadados de referência em um formato XML devem ser referenciados."
+                  name="ReferenceMetadataXml">&lt;referenceMetadata&gt;&lt;referenceColumns&gt;&lt;referenceColumn name="grupo" dataType="DT_WSTR" length="13" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="setor" dataType="DT_WSTR" length="7" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="ordem_grupo" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="ordem_setor" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="eh_escopo" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;/referenceColumns&gt;&lt;/referenceMetadata&gt;</property>
+                <property
+                  containsID="true"
+                  dataType="System.String"
+                  description="Especifica a lista de identificadores de linhagem mapeados para os parâmetros usados pela instrução SQL na propriedade SQLCommand. As entradas na lista são separadas por ponto e vírgulas."
+                  name="ParameterMap">#{Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[grupo]};</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Determina se as chaves duplicadas nos dados de referência devem ser tratadas como erros quando o modo de cache cheio é usado."
+                  name="TreatDuplicateKeysAsError">false</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\dim_posicao\Setor do grupo.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="O gerenciador de conexões usado para acessar dados de pesquisa."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa]"
+                  name="Entrada de Pesquisa">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa].Columns[grupo]"
+                      cachedDataType="wstr"
+                      cachedLength="13"
+                      cachedName="grupo"
+                      lineageId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB].Columns[grupo]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência que uma coluna une."
+                          name="JoinToReferenceColumn">grupo</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn" />
+                      </properties>
+                    </inputColumn>
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa]"
+                  errorOrTruncationOperation="Pesquisa"
+                  exclusionGroup="1"
+                  name="Saída de Correspondência de Pesquisa"
+                  synchronousInputId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[setor]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      length="7"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[setor]"
+                      name="setor"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">setor</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_grupo]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_grupo]"
+                      name="ordem_grupo"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">ordem_grupo</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_setor]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[ordem_setor]"
+                      name="ordem_setor"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">ordem_setor</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[eh_escopo]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa].Columns[eh_escopo]"
+                      name="eh_escopo"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">eh_escopo</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\dim_posicao\Setor do grupo.Outputs[Saída Sem Correspondência de Pesquisa]"
+                  description="A saída de Pesquisa que trata as linhas sem entradas correspondentes no conjunto de dados de referência. Use essa saída quando a propriedade NoMatchBehavior estiver definida como &quot;Enviar as linhas sem entradas correspondentes para a saída sem correspondência&quot;."
+                  exclusionGroup="1"
+                  name="Saída Sem Correspondência de Pesquisa"
+                  synchronousInputId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa]">
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Erro de Pesquisa]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Pesquisa"
+                  synchronousInputId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Erro de Pesquisa].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Erro de Pesquisa].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Erro de Pesquisa].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Erro de Pesquisa].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\dim_posicao.Paths[Saída de Coluna Derivada]"
+              endId="Package\dim_posicao\dw_dim_posicao.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Coluna Derivada"
+              startId="Package\dim_posicao\Lado.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\dim_posicao.Paths[Saída de Correspondência de Pesquisa]"
+              endId="Package\dim_posicao\Lado.Inputs[Entrada de Coluna Derivada]"
+              name="Saída de Correspondência de Pesquisa"
+              startId="Package\dim_posicao\Setor do grupo.Outputs[Saída de Correspondência de Pesquisa]" />
+            <path
+              refId="Package\dim_posicao.Paths[Saída de Origem OLE DB]"
+              endId="Package\dim_posicao\Setor do grupo.Inputs[Entrada de Pesquisa]"
+              name="Saída de Origem OLE DB"
+              startId="Package\dim_posicao\Posições.Outputs[Saída de Origem OLE DB]" />
+            <path
+              refId="Package\dim_posicao.Paths[Saída Sem Correspondência de Pesquisa]"
+              endId="Package\dim_posicao\Sem grupo.Inputs[Contagem de Linhas Entrada 1]"
+              name="Saída Sem Correspondência de Pesquisa"
+              startId="Package\dim_posicao\Setor do grupo.Outputs[Saída Sem Correspondência de Pesquisa]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Limpar dimensoes"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Tarefa Executar SQL"
+      DTS:DTSID="{90173ABE-451D-47BD-AF02-5C55AC351E15}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Limpar dimensoes"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="TRUNCATE TABLE dw.dim_data;&#xA;TRUNCATE TABLE dw.dim_liga;&#xA;TRUNCATE TABLE dw.dim_posicao;&#xA;TRUNCATE TABLE dw.dim_time;&#xA;TRUNCATE TABLE dw.dim_partida;&#xA;TRUNCATE TABLE dw.dim_jogador;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição]"
+      DTS:CreationName=""
+      DTS:DTSID="{74653F7D-46A5-4A9F-9BDA-27548BECF54A}"
+      DTS:From="Package\Limpar dimensoes"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição"
+      DTS:To="Package\dim_data" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{B74DF640-4C87-4290-A66F-E35B99711A58}"
+      DTS:From="Package\dim_data"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 1"
+      DTS:To="Package\dim_liga" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{13DFA740-B8E3-40A5-9F74-C183D933B32D}"
+      DTS:From="Package\dim_liga"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 2"
+      DTS:To="Package\dim_posicao" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 3]"
+      DTS:CreationName=""
+      DTS:DTSID="{0FFE5C6F-A42F-4A9F-B3EB-268C5DD40366}"
+      DTS:EvalOp="3"
+      DTS:Expression="@[User::SemGrupo] &gt; 0"
+      DTS:From="Package\dim_posicao"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 3"
+      DTS:To="Package\Alerta sem grupo" />
+  </DTS:PrecedenceConstraints>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<!--Esta seção CDATA contém as informações de layout do pacote. A seção inclui informações como coordenadas (x,y), largura e altura.-->
+<!--Se você editar manualmente esta seção e cometer algum erro, poderá excluí-la. -->
+<!--O pacote ainda poderá ser carregado normalmente, mas as informações de layout anteriores serão perdidas e o designer reorganizará automaticamente os elementos na superfície de design.-->
+<Objects
+  Version="8">
+  <!--Cada nó abaixo conterá propriedades que não afetam o comportamento em tempo de execução.-->
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="16" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        <NodeLayout
+          Size="164,42"
+          Id="Package\Limpar dimensoes"
+          TopLeft="6.5,5.5" />
+        <NodeLayout
+          Size="123,42"
+          Id="Package\dim_data"
+          TopLeft="28,93" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição]"
+          TopLeft="89,47.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,45.5"
+              Start="0,0"
+              End="0,38">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,38" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="118,42"
+          Id="Package\dim_liga"
+          TopLeft="32,172" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 1]"
+          TopLeft="90.25,135">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,37"
+              Start="0,0"
+              End="0,29.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,29.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="137,42"
+          Id="Package\dim_posicao"
+          TopLeft="28,250" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 2]"
+          TopLeft="93.75,214">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,36"
+              Start="0,0"
+              End="0,28.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,28.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="160,42"
+          Id="Package\Alerta sem grupo"
+          TopLeft="24,343" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 3]"
+          TopLeft="100.25,292">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,51"
+              Start="0,0"
+              End="0,43.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,43.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="-8,13.75,16,16"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+  <TaskHost
+    design-time-name="Package\dim_data">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="106,42"
+          Id="Package\dim_data\Datas"
+          TopLeft="125,32" />
+        <NodeLayout
+          Size="147,42"
+          Id="Package\dim_data\Partes da data"
+          TopLeft="104.5,119.5" />
+        <EdgeLayout
+          Id="Package\dim_data.Paths[Saída de Origem OLE DB]"
+          TopLeft="178,74">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,45.5"
+              Start="0,0"
+              End="0,38">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,38" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="174,42"
+          Id="Package\dim_data\Nomes e temporada"
+          TopLeft="274,121" />
+        <EdgeLayout
+          Id="Package\dim_data.Paths[Saída de Coluna Derivada]"
+          TopLeft="201.166666666667,119.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="159.833333333333,1.5"
+              Start="0,0"
+              End="159.833333333333,-6">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,-18.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,-18.5"
+                    Point2="0,-22.5"
+                    Point3="4,-22.5" />
+                  <mssgle:LineSegment
+                    End="155.833333333333,-22.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="155.833333333333,-22.5"
+                    Point2="159.833333333333,-22.5"
+                    Point3="159.833333333333,-18.5" />
+                  <mssgle:LineSegment
+                    End="159.833333333333,-6" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="144,42"
+          Id="Package\dim_data\Dw_dim_data"
+          TopLeft="482,31" />
+        <EdgeLayout
+          Id="Package\dim_data.Paths[Saída de Coluna Derivada1]"
+          TopLeft="388.666666666667,121">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="165.333333333333,-48"
+              Start="0,0"
+              End="165.333333333333,-40.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,-15.4624145785877" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,-15.4624145785877"
+                    Point2="0,-19.4624145785877"
+                    Point3="4,-19.4624145785877" />
+                  <mssgle:LineSegment
+                    End="161.333333333333,-19.4624145785877" />
+                  <mssgle:CubicBezierSegment
+                    Point1="161.333333333333,-19.4624145785877"
+                    Point2="165.333333333333,-19.4624145785877"
+                    Point3="165.333333333333,-23.4624145785877" />
+                  <mssgle:LineSegment
+                    End="165.333333333333,-40.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_data\Datas">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_data\Dw_dim_data">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\dim_liga">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="103,42"
+          Id="Package\dim_liga\Ligas"
+          TopLeft="58,17" />
+        <NodeLayout
+          Size="138,42"
+          Id="Package\dim_liga\dw_dim_liga"
+          TopLeft="42,98" />
+        <EdgeLayout
+          Id="Package\dim_liga.Paths[Saída de Origem OLE DB]"
+          TopLeft="110.25,59">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,39"
+              Start="0,0"
+              End="0,31.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,31.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_liga\Ligas">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_liga\dw_dim_liga">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\dim_posicao">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="16" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        <NodeLayout
+          Size="119,42"
+          Id="Package\dim_posicao\Posições"
+          TopLeft="79,15" />
+        <NodeLayout
+          Size="149,42"
+          Id="Package\dim_posicao\Setor do grupo"
+          TopLeft="84.5,108.5" />
+        <EdgeLayout
+          Id="Package\dim_posicao.Paths[Saída de Origem OLE DB]"
+          TopLeft="138.5,57">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="20.5,51.5"
+              Start="0,0"
+              End="20.5,44">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,21.75" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,21.75"
+                    Point2="0,25.75"
+                    Point3="4,25.75" />
+                  <mssgle:LineSegment
+                    End="16.5,25.75" />
+                  <mssgle:CubicBezierSegment
+                    Point1="16.5,25.75"
+                    Point2="20.5,25.75"
+                    Point3="20.5,29.75" />
+                  <mssgle:LineSegment
+                    End="20.5,44" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="130,42"
+          Id="Package\dim_posicao\Sem grupo"
+          TopLeft="27,198" />
+        <EdgeLayout
+          Id="Package\dim_posicao.Paths[Saída Sem Correspondência de Pesquisa]"
+          TopLeft="135.5,150.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-43.5,47.5"
+              Start="0,0"
+              End="-43.5,40">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,15.3027888446215" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,15.3027888446215"
+                    Point2="0,19.3027888446215"
+                    Point3="-4,19.3027888446215" />
+                  <mssgle:LineSegment
+                    End="-39.5,19.3027888446215" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-39.5,19.3027888446215"
+                    Point2="-43.5,19.3027888446215"
+                    Point3="-43.5,23.3027888446215" />
+                  <mssgle:LineSegment
+                    End="-43.5,40" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="-111.3440234375,24.3027888446215,179.188046875,12.1953125"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="102,42"
+          Id="Package\dim_posicao\Lado"
+          TopLeft="228.5,223.5" />
+        <NodeLayout
+          Size="157,42"
+          Id="Package\dim_posicao\dw_dim_posicao"
+          TopLeft="206,354" />
+        <EdgeLayout
+          Id="Package\dim_posicao.Paths[Saída de Coluna Derivada]"
+          TopLeft="282,265.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,88.5"
+              Start="0,0"
+              End="0,81">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,81" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\dim_posicao.Paths[Saída de Correspondência de Pesquisa]"
+          TopLeft="182.5,150.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="97,73"
+              Start="0,0"
+              End="97,65.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,25.6653386454183" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,25.6653386454183"
+                    Point2="0,29.6653386454183"
+                    Point3="4,29.6653386454183" />
+                  <mssgle:LineSegment
+                    End="93,29.6653386454183" />
+                  <mssgle:CubicBezierSegment
+                    Point1="93,29.6653386454183"
+                    Point2="97,29.6653386454183"
+                    Point3="97,33.6653386454183" />
+                  <mssgle:LineSegment
+                    End="97,65.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="-36.8740234375,34.6653386454183,170.748046875,12.1953125"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_posicao\Posições">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_posicao\Setor do grupo">
+    <Properties>
+      <Property>
+        <Name>OverwriteParamsSQLProp</Name>
+        <Value
+          type="q2:boolean">false</Value>
+      </Property>
+      <Property>
+        <Name>UsedTableName</Name>
+        <Value
+          type="q3:string"></Value>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q4:int">0</Value>
+      </Property>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\dim_posicao\dw_dim_posicao">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>
