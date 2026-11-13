@@ -11,8 +11,8 @@
   DTS:LocaleID="1046"
   DTS:ObjectName="03_bloco1_statsbomb"
   DTS:PackageType="5"
-  DTS:VersionBuild="28"
-  DTS:VersionGUID="{E3BD7C32-1AAD-4682-A6FD-F554DF046577}">
+  DTS:VersionBuild="32"
+  DTS:VersionGUID="{A899C347-78F2-4785-A301-426650F303D0}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:Variables>
@@ -98,7 +98,7 @@
       DTS:LocaleID="-1"
       DTS:ObjectName="Alerta sem par"
       DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
-      DTS:ThreadHint="1">
+      DTS:ThreadHint="2">
       <DTS:Variables />
       <DTS:ObjectData>
         <SQLTask:SqlTaskData
@@ -5299,20 +5299,842 @@ ORDER BY t.sb_team_id</property>
       </DTS:ObjectData>
     </DTS:Executable>
     <DTS:Executable
-      DTS:refId="Package\Limpar dimensoes"
+      DTS:refId="Package\Limpar tabelas"
       DTS:CreationName="Microsoft.ExecuteSQLTask"
       DTS:Description="Tarefa Executar SQL"
       DTS:DTSID="{90173ABE-451D-47BD-AF02-5C55AC351E15}"
       DTS:ExecutableType="Microsoft.ExecuteSQLTask"
       DTS:LocaleID="-1"
-      DTS:ObjectName="Limpar dimensoes"
+      DTS:ObjectName="Limpar tabelas"
       DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
       DTS:ThreadHint="0">
       <DTS:Variables />
       <DTS:ObjectData>
         <SQLTask:SqlTaskData
           SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
-          SQLTask:SqlStatementSource="TRUNCATE TABLE dw.dim_data;&#xA;TRUNCATE TABLE dw.dim_liga;&#xA;TRUNCATE TABLE dw.dim_posicao;&#xA;TRUNCATE TABLE dw.dim_time;&#xA;TRUNCATE TABLE dw.dim_partida;&#xA;TRUNCATE TABLE dw.dim_jogador;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+          SQLTask:SqlStatementSource="TRUNCATE TABLE dw.dim_data;&#xA;TRUNCATE TABLE dw.dim_liga;&#xA;TRUNCATE TABLE dw.dim_posicao;&#xA;TRUNCATE TABLE dw.dim_time;&#xA;TRUNCATE TABLE dw.dim_partida;&#xA;TRUNCATE TABLE dw.dim_jogador;&#xA;TRUNCATE TABLE stg.sb_trechos;&#xA;TRUNCATE TABLE dw.fato_desempenho;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Posse"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Tarefa Executar SQL"
+      DTS:DTSID="{2D2CF1D0-CA89-4149-B974-BE0553A66E77}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Posse"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="WITH passes AS (&#xA;    SELECT match_id, team_id, COUNT(*) AS passes&#xA;    FROM stg.sb_events&#xA;    WHERE type_name = N'Pass'&#xA;      AND (pass_type IS NULL OR pass_type &lt;&gt; N'Throw-in')&#xA;    GROUP BY match_id, team_id&#xA;),&#xA;posse AS (&#xA;    SELECT match_id, team_id,&#xA;           passes * 1.0 / SUM(passes) OVER (PARTITION BY match_id) AS posse&#xA;    FROM passes&#xA;)&#xA;UPDATE p&#xA;SET p.posse = CAST(x.posse AS DECIMAL(5,4))&#xA;FROM dw.dim_partida p&#xA;JOIN posse x ON x.match_id = p.sb_match_id&#xA;            AND x.team_id  = p.sb_team_id;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\sb_trechos"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Tarefa Fluxo de Dados"
+      DTS:DTSID="{A30D77F7-F90E-4A10-9EF2-A4931F98D4E9}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="sb_trechos"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\sb_trechos\Fim e inicio dos tempos"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Fim e inicio dos tempos"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada].Columns[fim_1t]"
+                      cachedDataType="i4"
+                      cachedName="fim_1t"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[fim_1t]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada].Columns[periodo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="periodo_inicio"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada].Columns[segundo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="segundo_inicio"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada].Columns[periodo_fim]"
+                      cachedDataType="i4"
+                      cachedName="periodo_fim"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada].Columns[segundo_fim]"
+                      cachedDataType="i4"
+                      cachedName="segundo_fim"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[fim_no_1t]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[fim_no_1t]"
+                      name="fim_no_1t"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]} == 1 ? #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]} : #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[fim_1t]}</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">periodo_fim == 1 ? segundo_fim : fim_1t</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[inicio_no_2t]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[inicio_no_2t]"
+                      name="inicio_no_2t"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">#{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]} == 2 ? #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]} : 2700</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">periodo_inicio == 2 ? segundo_inicio : 2700</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\sb_trechos\Segundos"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Segundos"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[periodo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="periodo_inicio"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[segundo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="segundo_inicio"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[periodo_fim]"
+                      cachedDataType="i4"
+                      cachedName="periodo_fim"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[segundo_fim]"
+                      cachedDataType="i4"
+                      cachedName="segundo_fim"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[fim_no_1t]"
+                      cachedDataType="i4"
+                      cachedName="fim_no_1t"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[fim_no_1t]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada].Columns[inicio_no_2t]"
+                      cachedDataType="i4"
+                      cachedName="inicio_no_2t"
+                      lineageId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[inicio_no_2t]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\sb_trechos\Segundos.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Segundos.Outputs[Saída de Coluna Derivada].Columns[segundos]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\sb_trechos\Segundos.Outputs[Saída de Coluna Derivada].Columns[segundos]"
+                      name="segundos"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">(#{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]} == 1 &amp;&amp; #{Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[fim_no_1t]} &gt; #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]} ? #{Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[fim_no_1t]} - #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]} : 0) + (#{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]} == 2 &amp;&amp; #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]} &gt; #{Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[inicio_no_2t]} ? #{Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]} - #{Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada].Columns[inicio_no_2t]} : 0)</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">(periodo_inicio == 1 &amp;&amp; fim_no_1t &gt; segundo_inicio ? fim_no_1t - segundo_inicio : 0) + (periodo_fim == 2 &amp;&amp; segundo_fim &gt; inicio_no_2t ? segundo_fim - inicio_no_2t : 0)</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\sb_trechos\Segundos.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Segundos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Segundos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Segundos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Segundos.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\sb_trechos\stg_sb_trechos"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="stg_sb_trechos"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[stg].[sb_trechos]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\sb_trechos\stg_sb_trechos.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[match_id]"
+                      cachedDataType="i4"
+                      cachedName="match_id"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[match_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[match_id]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[team_id]"
+                      cachedDataType="i4"
+                      cachedName="team_id"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[team_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[team_id]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[player_id]"
+                      cachedDataType="i4"
+                      cachedName="player_id"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[player_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[player_id]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[position_seq]"
+                      cachedDataType="i4"
+                      cachedName="position_seq"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[position_seq]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_seq]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[position_id]"
+                      cachedDataType="i4"
+                      cachedName="position_id"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[position_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_id]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[periodo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="periodo_inicio"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_inicio]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[segundo_inicio]"
+                      cachedDataType="i4"
+                      cachedName="segundo_inicio"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundo_inicio]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[cortado_expulsao]"
+                      cachedDataType="bool"
+                      cachedName="cortado_expulsao"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[cortado_expulsao]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[cortado_expulsao]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[periodo_fim]"
+                      cachedDataType="i4"
+                      cachedName="periodo_fim"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_fim]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[segundo_fim]"
+                      cachedDataType="i4"
+                      cachedName="segundo_fim"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundo_fim]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]" />
+                    <inputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].Columns[segundos]"
+                      cachedDataType="i4"
+                      cachedName="segundos"
+                      externalMetadataColumnId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundos]"
+                      lineageId="Package\sb_trechos\Segundos.Outputs[Saída de Coluna Derivada].Columns[segundos]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[match_id]"
+                      dataType="i4"
+                      name="match_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[team_id]"
+                      dataType="i4"
+                      name="team_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[player_id]"
+                      dataType="i4"
+                      name="player_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[position_seq]"
+                      dataType="i4"
+                      name="position_seq" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[position_id]"
+                      dataType="i4"
+                      name="position_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_inicio]"
+                      dataType="i4"
+                      name="periodo_inicio" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundo_inicio]"
+                      dataType="i4"
+                      name="segundo_inicio" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[periodo_fim]"
+                      dataType="i4"
+                      name="periodo_fim" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundo_fim]"
+                      dataType="i4"
+                      name="segundo_fim" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[cortado_expulsao]"
+                      dataType="bool"
+                      name="cortado_expulsao" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB].ExternalColumns[segundos]"
+                      dataType="i4"
+                      name="segundos" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\sb_trechos\stg_sb_trechos.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\stg_sb_trechos.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\sb_trechos\stg_sb_trechos.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\stg_sb_trechos.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\sb_trechos\Trechos"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="Origem OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;7"
+              description="Origem OLE DB"
+              name="Trechos"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">WITH fim_tempo AS (         -- 1. fim de cada tempo = último lance do período
+    SELECT match_id,
+           MAX(CASE WHEN period = 1 THEN minute * 60 + second END) AS fim_1t,
+           MAX(CASE WHEN period = 2 THEN minute * 60 + second END) AS fim_2t
+    FROM stg.sb_events
+    GROUP BY match_id
+),
+expulsoes AS (              -- 2. momento do vermelho ou do 2º amarelo (D8)
+    SELECT match_id, player_id, period AS periodo, minute * 60 + second AS segundo
+    FROM stg.sb_events
+    WHERE card IN (N'Red Card', N'Second Yellow')
+),
+relogio AS (                -- 3. início e fim em segundos do relógio (o 2º tempo começa em 45:00 = 2700)
+    SELECT l.match_id, l.team_id, l.player_id, l.position_seq, l.position_id,
+           l.from_period AS periodo_de,
+           CAST(LEFT(l.from_time, CHARINDEX(':', l.from_time) - 1) AS INT) * 60
+             + CAST(RIGHT(l.from_time, 2) AS INT) AS segundo_de,
+           COALESCE(l.to_period, 2) AS periodo_ate,                  -- sem fim = até o apito
+           COALESCE(CAST(LEFT(l.to_time, CHARINDEX(':', l.to_time) - 1) AS INT) * 60
+             + CAST(RIGHT(l.to_time, 2) AS INT), f.fim_2t) AS segundo_ate,
+           f.fim_1t
+    FROM stg.sb_lineups l
+    JOIN fim_tempo f ON f.match_id = l.match_id
+),
+trechos AS (                -- 4. desfaz os 9 trechos com início e fim trocados (do 2º tempo para o 1º)
+    SELECT r.match_id, r.team_id, r.player_id, r.position_seq, r.position_id, r.fim_1t,
+           IIF(r.periodo_de &gt; r.periodo_ate, r.periodo_ate, r.periodo_de)   AS periodo_inicio,
+           IIF(r.periodo_de &gt; r.periodo_ate, r.segundo_ate, r.segundo_de)   AS segundo_inicio,
+           IIF(r.periodo_de &gt; r.periodo_ate, r.periodo_de,  r.periodo_ate)  AS periodo_fim,
+           IIF(r.periodo_de &gt; r.periodo_ate, r.segundo_de,  r.segundo_ate)  AS segundo_fim,
+           x.periodo AS periodo_cartao, x.segundo AS segundo_cartao
+    FROM relogio r
+    LEFT JOIN expulsoes x ON x.match_id = r.match_id AND x.player_id = r.player_id
+)
+SELECT match_id, team_id, player_id, position_seq, position_id, fim_1t,
+       periodo_inicio, segundo_inicio,
+       -- 5. se o cartão veio antes do fim do trecho, o trecho termina no cartão
+       CAST(CASE WHEN periodo_cartao * 10000 + segundo_cartao &lt; periodo_fim * 10000 + segundo_fim
+                 THEN 1 ELSE 0 END AS BIT) AS cortado_expulsao,
+       CASE WHEN periodo_cartao * 10000 + segundo_cartao &lt; periodo_fim * 10000 + segundo_fim
+            THEN periodo_cartao ELSE periodo_fim END AS periodo_fim,
+       CASE WHEN periodo_cartao * 10000 + segundo_cartao &lt; periodo_fim * 10000 + segundo_fim
+            THEN segundo_cartao ELSE segundo_fim END AS segundo_fim
+FROM trechos
+ORDER BY match_id, player_id, position_seq</property>
+                <property
+                  dataType="System.String"
+                  description="A variável que contém o comando SQL a ser executado."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="Os mapeamentos entre os parâmetros no comando SQL e as variáveis."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\sb_trechos\Trechos.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB]"
+                  name="Saída de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[match_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[match_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[match_id]"
+                      name="match_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[team_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[team_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[team_id]"
+                      name="team_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[player_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[player_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[player_id]"
+                      name="player_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_seq]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[position_seq]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_seq]"
+                      name="position_seq"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[position_id]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[position_id]"
+                      name="position_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[fim_1t]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[fim_1t]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[fim_1t]"
+                      name="fim_1t"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[periodo_inicio]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_inicio]"
+                      name="periodo_inicio"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[segundo_inicio]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_inicio]"
+                      name="segundo_inicio"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[cortado_expulsao]"
+                      dataType="bool"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[cortado_expulsao]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[cortado_expulsao]"
+                      name="cortado_expulsao"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[periodo_fim]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[periodo_fim]"
+                      name="periodo_fim"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[segundo_fim]"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].Columns[segundo_fim]"
+                      name="segundo_fim"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[match_id]"
+                      dataType="i4"
+                      name="match_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[team_id]"
+                      dataType="i4"
+                      name="team_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[player_id]"
+                      dataType="i4"
+                      name="player_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[position_seq]"
+                      dataType="i4"
+                      name="position_seq" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[position_id]"
+                      dataType="i4"
+                      name="position_id" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[fim_1t]"
+                      dataType="i4"
+                      name="fim_1t" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[periodo_inicio]"
+                      dataType="i4"
+                      name="periodo_inicio" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[segundo_inicio]"
+                      dataType="i4"
+                      name="segundo_inicio" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[cortado_expulsao]"
+                      dataType="bool"
+                      name="cortado_expulsao" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[periodo_fim]"
+                      dataType="i4"
+                      name="periodo_fim" />
+                    <externalMetadataColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB].ExternalColumns[segundo_fim]"
+                      dataType="i4"
+                      name="segundo_fim" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB]"
+                  isErrorOut="true"
+                  name="Saída de Erro de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[match_id]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[match_id]"
+                      name="match_id" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[team_id]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[team_id]"
+                      name="team_id" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[player_id]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[player_id]"
+                      name="player_id" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[position_seq]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[position_seq]"
+                      name="position_seq" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[position_id]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[position_id]"
+                      name="position_id" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[fim_1t]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[fim_1t]"
+                      name="fim_1t" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[periodo_inicio]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[periodo_inicio]"
+                      name="periodo_inicio" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[segundo_inicio]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[segundo_inicio]"
+                      name="segundo_inicio" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[cortado_expulsao]"
+                      dataType="bool"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[cortado_expulsao]"
+                      name="cortado_expulsao" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[periodo_fim]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[periodo_fim]"
+                      name="periodo_fim" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[segundo_fim]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[segundo_fim]"
+                      name="segundo_fim" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\sb_trechos\Trechos.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\sb_trechos.Paths[Saída de Coluna Derivada]"
+              endId="Package\sb_trechos\Segundos.Inputs[Entrada de Coluna Derivada]"
+              name="Saída de Coluna Derivada"
+              startId="Package\sb_trechos\Fim e inicio dos tempos.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\sb_trechos.Paths[Saída de Coluna Derivada1]"
+              endId="Package\sb_trechos\stg_sb_trechos.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Coluna Derivada"
+              startId="Package\sb_trechos\Segundos.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\sb_trechos.Paths[Saída de Origem OLE DB]"
+              endId="Package\sb_trechos\Fim e inicio dos tempos.Inputs[Entrada de Coluna Derivada]"
+              name="Saída de Origem OLE DB"
+              startId="Package\sb_trechos\Trechos.Outputs[Saída de Origem OLE DB]" />
+          </paths>
+        </pipeline>
       </DTS:ObjectData>
     </DTS:Executable>
   </DTS:Executables>
@@ -5321,7 +6143,7 @@ ORDER BY t.sb_team_id</property>
       DTS:refId="Package.PrecedenceConstraints[Restrição]"
       DTS:CreationName=""
       DTS:DTSID="{74653F7D-46A5-4A9F-9BDA-27548BECF54A}"
-      DTS:From="Package\Limpar dimensoes"
+      DTS:From="Package\Limpar tabelas"
       DTS:LogicalAnd="True"
       DTS:ObjectName="Restrição"
       DTS:To="Package\dim_data" />
@@ -5333,6 +6155,24 @@ ORDER BY t.sb_team_id</property>
       DTS:LogicalAnd="True"
       DTS:ObjectName="Restrição 1"
       DTS:To="Package\dim_liga" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 10]"
+      DTS:CreationName=""
+      DTS:DTSID="{01A70DFF-7680-4819-817D-D3DEB204B49E}"
+      DTS:EvalOp="3"
+      DTS:Expression="@[User::SemTimeJogador] == 0"
+      DTS:From="Package\dim_jogador"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 10"
+      DTS:To="Package\Posse" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 11]"
+      DTS:CreationName=""
+      DTS:DTSID="{E23B8FE8-20BA-4128-AA28-56582E62D243}"
+      DTS:From="Package\Posse"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 11"
+      DTS:To="Package\sb_trechos" />
     <DTS:PrecedenceConstraint
       DTS:refId="Package.PrecedenceConstraints[Restrição 2]"
       DTS:CreationName=""
@@ -5438,23 +6278,35 @@ ORDER BY t.sb_team_id</property>
           Id="Package\dim_posicao"
           TopLeft="28,250" />
         <NodeLayout
-          Size="164,42"
-          Id="Package\Limpar dimensoes"
+          Size="148,42"
+          Id="Package\Limpar tabelas"
           TopLeft="6.5,5.5" />
         <EdgeLayout
           Id="Package.PrecedenceConstraints[Restrição]"
-          TopLeft="89,47.5">
+          TopLeft="80.5,47.5">
           <EdgeLayout.Curve>
             <mssgle:Curve
               StartConnector="{assembly:Null}"
-              EndConnector="0,45.5"
+              EndConnector="9,45.5"
               Start="0,0"
-              End="0,38">
+              End="9,38">
               <mssgle:Curve.Segments>
                 <mssgle:SegmentCollection
                   Capacity="5">
                   <mssgle:LineSegment
-                    End="0,38" />
+                    End="0,18.75" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,18.75"
+                    Point2="0,22.75"
+                    Point3="4,22.75" />
+                  <mssgle:LineSegment
+                    End="5,22.75" />
+                  <mssgle:CubicBezierSegment
+                    Point1="5,22.75"
+                    Point2="9,22.75"
+                    Point3="9,26.75" />
+                  <mssgle:LineSegment
+                    End="9,38" />
                 </mssgle:SegmentCollection>
               </mssgle:Curve.Segments>
             </mssgle:Curve>
@@ -5713,6 +6565,60 @@ ORDER BY t.sb_team_id</property>
             <mssgm:EdgeLabel
               BoundingBox="-61,-65.7256637168142,16,16"
               RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="106,42"
+          Id="Package\Posse"
+          TopLeft="706,254" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 10]"
+          TopLeft="675,275">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="31,0"
+              Start="0,0"
+              End="23.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="23.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="3.75,5,16,16"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="130,42"
+          Id="Package\sb_trechos"
+          TopLeft="696,333" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Restrição 11]"
+          TopLeft="760,296">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,37"
+              Start="0,0"
+              End="0,29.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,29.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -6833,6 +7739,117 @@ ORDER BY t.sb_team_id</property>
   </PipelineComponentMetadata>
   <PipelineComponentMetadata
     design-time-name="Package\dim_jogador\dw_dim_jogador">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\sb_trechos">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="116,42"
+          Id="Package\sb_trechos\Trechos"
+          TopLeft="100,22" />
+        <NodeLayout
+          Size="190,42"
+          Id="Package\sb_trechos\Fim e inicio dos tempos"
+          TopLeft="63,101" />
+        <EdgeLayout
+          Id="Package\sb_trechos.Paths[Saída de Origem OLE DB]"
+          TopLeft="158,64">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,37"
+              Start="0,0"
+              End="0,29.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,29.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="125,42"
+          Id="Package\sb_trechos\Segundos"
+          TopLeft="96,184" />
+        <EdgeLayout
+          Id="Package\sb_trechos.Paths[Saída de Coluna Derivada]"
+          TopLeft="158.25,143">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,41"
+              Start="0,0"
+              End="0,33.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,33.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="150,42"
+          Id="Package\sb_trechos\stg_sb_trechos"
+          TopLeft="83,276" />
+        <EdgeLayout
+          Id="Package\sb_trechos.Paths[Saída de Coluna Derivada1]"
+          TopLeft="158.25,226">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,50"
+              Start="0,0"
+              End="0,42.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,42.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\sb_trechos\Trechos">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\sb_trechos\stg_sb_trechos">
     <Properties>
       <Property>
         <Name>DataSourceViewID</Name>
