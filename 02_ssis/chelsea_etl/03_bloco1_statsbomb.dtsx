@@ -11,8 +11,8 @@
   DTS:LocaleID="1046"
   DTS:ObjectName="03_bloco1_statsbomb"
   DTS:PackageType="5"
-  DTS:VersionBuild="27"
-  DTS:VersionGUID="{D6ECB959-8AD4-4811-B6A0-E278ABAA5245}">
+  DTS:VersionBuild="28"
+  DTS:VersionGUID="{E3BD7C32-1AAD-4682-A6FD-F554DF046577}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:Variables>
@@ -4960,11 +4960,11 @@ where [refTable].[tm_club_id] = ?</property>
               </outputs>
             </component>
             <component
-              refId="Package\dim_time\Sem clume TM"
+              refId="Package\dim_time\Sem clube TM"
               componentClassID="Microsoft.RowCount"
               contactInfo="Contagem de Linhas;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
               description="Conta as linhas à medida que elas passam por um fluxo de dados. Por exemplo, use o número de linhas processado para determinar se operações de limpeza devem ser executadas ou não, ou atualize o texto em uma mensagem de email para comunicar o status de processamento."
-              name="Sem clume TM">
+              name="Sem clube TM">
               <properties>
                 <property
                   dataType="System.String"
@@ -4973,7 +4973,7 @@ where [refTable].[tm_club_id] = ?</property>
               </properties>
               <inputs>
                 <input
-                  refId="Package\dim_time\Sem clume TM.Inputs[Contagem de Linhas Entrada 1]"
+                  refId="Package\dim_time\Sem clube TM.Inputs[Contagem de Linhas Entrada 1]"
                   hasSideEffects="true"
                   name="Contagem de Linhas Entrada 1">
                   <externalMetadataColumns />
@@ -4981,9 +4981,9 @@ where [refTable].[tm_club_id] = ?</property>
               </inputs>
               <outputs>
                 <output
-                  refId="Package\dim_time\Sem clume TM.Outputs[Contagem de Linhas Saída 1]"
+                  refId="Package\dim_time\Sem clube TM.Outputs[Contagem de Linhas Saída 1]"
                   name="Contagem de Linhas Saída 1"
-                  synchronousInputId="Package\dim_time\Sem clume TM.Inputs[Contagem de Linhas Entrada 1]">
+                  synchronousInputId="Package\dim_time\Sem clube TM.Inputs[Contagem de Linhas Entrada 1]">
                   <externalMetadataColumns />
                 </output>
               </outputs>
@@ -5286,7 +5286,7 @@ ORDER BY t.sb_team_id</property>
               startId="Package\dim_time\Liga.Outputs[Saída Sem Correspondência de Pesquisa]" />
             <path
               refId="Package\dim_time.Paths[Saída Sem Correspondência de Pesquisa1]"
-              endId="Package\dim_time\Sem clume TM.Inputs[Contagem de Linhas Entrada 1]"
+              endId="Package\dim_time\Sem clube TM.Inputs[Contagem de Linhas Entrada 1]"
               name="Saída Sem Correspondência de Pesquisa"
               startId="Package\dim_time\Clube TM.Outputs[Saída Sem Correspondência de Pesquisa]" />
             <path
@@ -6240,8 +6240,8 @@ ORDER BY t.sb_team_id</property>
           </EdgeLayout.Labels>
         </EdgeLayout>
         <NodeLayout
-          Size="149,42"
-          Id="Package\dim_time\Sem clume TM"
+          Size="145,42"
+          Id="Package\dim_time\Sem clube TM"
           TopLeft="340,194" />
         <EdgeLayout
           Id="Package\dim_time.Paths[Saída Sem Correspondência de Pesquisa1]"
