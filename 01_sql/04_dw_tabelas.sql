@@ -18,7 +18,8 @@
 --   [x] dw.fato_desempenho (+ coluna posse na dim_partida)     Aula 17
 --   Bloco 2 — Transfermarkt — completo
 --   [x] stg.ligacao_jogadores (D18)                            Aula 19
---   [x] dw.fato_atuacao                                        Aula 22
+--   [x] stg.tm_elenco_2015_16 (referência da Pesquisa Difusa)  D21.3
+--   [x] dw.fato_atuacao                                       Aula 22
 --   [x] dw.fato_valor_mercado, dw.fato_transferencia           Aula 23
 --
 -- Padrões (D10.4 e D11):
@@ -302,10 +303,27 @@ CREATE TABLE dw.fato_desempenho (
 GO
 
 -- ---------------------------------------------------------------------
+-- stg.tm_elenco_2015_16: quem atuou pelos 80 clubes do StatsBomb em
+-- 2015/16 no Transfermarkt (2.374 jogadores), em qualquer competição.
+-- É o lado TM da ligação: o 05 usa nas regras e o SSIS usa como
+-- referência da Pesquisa Difusa, que só aceita tabela ou view (D21.3).
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS stg.tm_elenco_2015_16;
+CREATE TABLE stg.tm_elenco_2015_16 (
+    tm_club_id      INT           NOT NULL,
+    tm_player_id    INT           NOT NULL,
+    tm_nome         NVARCHAR(200) NULL,
+    CONSTRAINT pk_tm_elenco_2015_16 PRIMARY KEY (tm_club_id, tm_player_id)
+);
+GO
+
+-- ---------------------------------------------------------------------
 -- stg.ligacao_jogadores: StatsBomb x Transfermarkt, um par por jogador x
 -- time do StatsBomb (2.279), com a regra que casou (D18.4). Fica na stg
 -- (D10.4): é passo da carga; o resultado vai para o tm_player_id da
 -- dim_jogador. É também o que o SSIS compara por EXCEPT (D10.1).
+-- No banco do SSIS a regra é 5 exceção, 6 Pesquisa Difusa no apelido,
+-- 7 Pesquisa Difusa no nome completo (D21.1).
 -- ---------------------------------------------------------------------
 DROP TABLE IF EXISTS stg.ligacao_jogadores;
 CREATE TABLE stg.ligacao_jogadores (

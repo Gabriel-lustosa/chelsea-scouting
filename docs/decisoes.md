@@ -23,7 +23,8 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D17 | 2026-11-10 | `fato_desempenho`: minutos por tempo com os acréscimos e o corte dos expulsos, lance ligado pela posição do evento, tabela de trechos na staging, colunas com PAdj no ETL e posse na `dim_partida`, grupo principal antes da posição | Decidida |
 | D18 | 2026-11-10 | Ligação dos jogadores: regras da D10.1 + regra de palavras e troca do `Đ` (99,30% dos minutos), 18 exceções numa lista `VALUES` no script, aspas duplas corrigidas na `dim_jogador`, tabela de ligação na staging | Decidida |
 | D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida (D19.6, 2026-11-11: fatos de mercado na faixa da `dim_data`, `situacao_taxa` na `fato_transferencia`) |
-| D20 | 2026-11-11 | ETL com SSIS: abordagem híbrida (regra de negócio na consulta de origem, ETL nos componentes), 5 pacotes por bloco + master, Pesquisa Difusa no lugar das regras 1 a 4 da ligação | Decidida |
+| D20 | 2026-11-11 | ETL com SSIS: abordagem híbrida (regra de negócio na consulta de origem, ETL nos componentes), 5 pacotes por bloco + master, Pesquisa Difusa no lugar das regras 1 a 4 da ligação | Decidida (exceções e limite da D20.3 definidos na D21) |
+| D21 | 2026-11-17 | Ligação no SSIS: Pesquisa Difusa em 2 passadas (apelido, depois nome completo) com limite 0,4, 17 exceções (7 da D18 que a Difusa erra + 10 de nome único no TM) e elenco do TM numa tabela da staging nos dois bancos | Decidida |
 
 ---
 
@@ -753,3 +754,60 @@ Casamento exato no clube do TM e aproximado no nome, dentro do time × temporada
 **Descartada:** *Pesquisa Difusa só em paralelo, como auditoria*: o DW do SSIS ficaria 0/0 em tudo, mas a Pesquisa Difusa não decidiria nada, ao contrário do que a D10.1 prevê.
 
 **Ordem das aulas:** 24 preparação (tabelas no banco do SSIS, projeto, conexão, parâmetro); 25 `01_staging_statsbomb`; 26 `02_staging_transfermarkt`; 27 e 28 `03_bloco1_statsbomb` (dimensões; trechos + fato); 29 `04_ligacao_jogadores`; 30 `05_bloco2_transfermarkt`; 31 `00_master`, DTExec e comparação final.
+
+## D21 — Ligação dos jogadores no SSIS: Pesquisa Difusa em 2 passadas
+
+**Contexto** (2026-11-17, antes da Aula 29): a D20.3 deixou o limite de semelhança para a aula. Para chegar com números, a Pesquisa Difusa foi testada por um pacote montado pelo modelo de objetos do SSIS, que só leu o DW oficial e gravou em tabelas temporárias. A configuração foi exata no `tm_club_id` e aproximada no nome, com referência no elenco do TM em 2015/16 nos 80 clubes (2.374 jogadores, o mesmo `#tm` do `05_dw_carga.sql`) e até 3 candidatos por jogador, para ver o segundo colocado. Os 2.279 pares jogador × time do StatsBomb foram comparados com a ligação em SQL (D18):
+
+| Nome do StatsBomb comparado com o nome do TM | Limite 0,4: pares ligados | Iguais ao SQL | Diferentes | Minutos ligados |
+|---|---|---|---|---|
+| `nome` (apelido ou nome) | 2.256 | 2.256 | 0 | 99,30% |
+| `nome_completo` | 2.101 | 2.101 | 0 | 92,10% |
+| apelido + nome completo numa frase só | 1.616 | 1.616 | 0 | 70,58% |
+
+- No `nome`, o 1º par diferente aparece com limite 0,3: o "Kolo" do Sevilla vira o Vitolo (0,31), quando o certo é o Kolodziejczak. O menor par certo acima de 0,4 é o Pape Diop (Pape Cheikh no TM, 0,40).
+- A confiança (`_Confidence`) não separa certo de errado (0,99 no Litri → Yuri Berchiche, que está errado). Fica só a similaridade.
+- A Pesquisa Difusa resolve sozinha 11 das 18 exceções da D18.2, de 0,54 a 0,93 (Rober Ibáñez, Gurpegui, Mpoku, Pryima, Rafa Márquez, Xabi Etxeita, Musonda, Juanito Gómez, Fran Varela, Joni Montiel, Ansotegi).
+- Ela não cria tabela permanente: o índice é temporário (`MatchIndexOptions` = gerar novo índice).
+
+### D21.1 — Duas passadas, limite 0,4 nas duas
+
+Fluxo do pacote `04_ligacao_jogadores`: Pesquisa nas exceções (D21.2) → sem correspondência → **Pesquisa Difusa 1** no `nome` → Divisão Condicional `_Similarity >= 0.4` → quem fica abaixo vai para a **Pesquisa Difusa 2** no `nome_completo` → Divisão `_Similarity >= 0.4` → União de Todos → Destino. Quem não passar na 2ª fica numa Contagem de Linhas, que tem de dar 0. A 2ª passada pega mais 5 pares, todos certos: Kolo (1,00), Pichu (0,64), Litri (0,63), Anguissa (0,55) e Eddy Silvestre (0,48). Coluna `regra` no banco do SSIS: 5 = exceção, 6 = Difusa no apelido, 7 = Difusa no nome completo. A comparação com o SQL é feita sem a `regra`.
+
+**Descartadas:** *1 passada com 0,4*: os 5 da 2ª passada teriam de virar exceção; *1 passada com 0,3*: o Kolo sai errado e precisaria de exceção para corrigir.
+
+### D21.2 — Exceções só onde a Pesquisa Difusa não resolve (revê a D20.3)
+
+Depois das 2 passadas sobram 10 jogadores (11 pares) que o TM chama por um nome só e que não têm apelido no StatsBomb. A similaridade fica de 0,17 a 0,36, sempre com o candidato certo. Eles viram exceção, junto com as 7 da D18.2 em que a Pesquisa Difusa erra. São 17 jogadores e 18 pares, numa lista `VALUES` dentro da Pesquisa:
+
+| `sb_player_id` | `tm_player_id` | Motivo |
+|---|---|---|
+| 3058 | 50935 | Apelido no TM: Chicharito (D18.2) |
+| 6390 | 54245 | Markel Susaeta: sem atuação no TM em 2015/16 (D18.2) |
+| 6559 | 126625 | Apelido no TM: Juankar (D18.2) |
+| 9636 | 314237 | Rushian Hepburn-Murphy: sem atuação no TM em 2015/16 (D18.2) |
+| 27053 | 27394 | Apelido no TM: Alex Song (D18.2) |
+| 40348 | 336704 | Assane Gnoukouri = Alassane Traoré no TM (D18.2) |
+| 42946 | 156934 | Jiang Guangtai = Tyias Browning (D18.2) |
+| 5551 | 33357 | Nome único no TM: Miranda |
+| 16426 | 236202 | Nome único no TM: Wanderson |
+| 25345 | 52897 | Nome único no TM: Hernanes (Juventus e Inter) |
+| 27558 | 59938 | Nome único no TM: Elderson |
+| 30767 | 79242 | Nome único no TM: Gabriel |
+| 40945 | 15420 | Nome único no TM: Alex |
+| 386515 | 146660 | Nome único no TM: Ronaldo |
+| 387428 | 6234 | Nome único no TM: Amauri |
+| 401489 | 20410 | Nome único no TM: Jussiê |
+| 401541 | 14948 | Nome único no TM: Brandão |
+
+Resultado esperado: 18 exceções + 2.256 na 1ª passada + 5 na 2ª = 2.279 pares, 100% dos minutos, todos iguais à ligação em SQL. Com isso, o Bloco 2 do SSIS pode ser comparado com o oficial por `EXCEPT` sem divergência esperada.
+
+**Descartadas:** *limite 0,15 na 2ª passada*: acerta os 11 neste dado, mas é um limite ajustado ao resultado e difícil de defender; *deixar sem ligação*: 99,65% dos minutos (passa na meta), mas Miranda, Alex, Hernanes e Elderson, do escopo, ficariam sem valor de mercado; *manter as 18 da D18.2*: as 11 que a Pesquisa Difusa resolve passariam pela exceção antes de chegar nela.
+
+### D21.3 — Elenco do TM numa tabela da staging, nos dois bancos
+
+A Pesquisa Difusa só aceita tabela ou view como referência, não consulta. O elenco vira `stg.tm_elenco_2015_16` (`tm_club_id`, `tm_player_id`, `tm_nome`, PK nas duas chaves), criada pelo `04_dw_tabelas.sql` nos dois bancos, para manter a estrutura igual (D11.1). O `05_dw_carga.sql` passa a usá-la no lugar da `#tm`, e o pacote a enche com um Executar SQL antes do fluxo. O filtro de clubes usa `dim_time` com `sb_team_id` preenchido, para dar os mesmos 2.374 jogadores também quando a `dim_time` já tem os clubes do Bloco 2.
+
+**Descartadas:** *tabela só no banco do SSIS, criada pelo pacote*: não mexe no oficial, mas os dois bancos deixam de ter a mesma estrutura; *view*: descartada para o DW inteiro na D10.
+
+---

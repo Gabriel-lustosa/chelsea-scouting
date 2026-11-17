@@ -735,9 +735,9 @@ GO
 -- ---------------------------------------------------------------------
 -- stg.ligacao_jogadores + dw.dim_jogador.tm_player_id (D18)
 -- * Elencos de 2015/16 nas duas fontes: #sb (jogador x time com minutos
---   na fato, 2.279 pares) e #tm (quem atuou pelos 80 clubes na
---   temporada, em qualquer competição). Tabelas temporárias: só existem
---   nesta sessão.
+--   na fato, 2.279 pares; tabela temporária, só existe nesta sessão) e
+--   stg.tm_elenco_2015_16 (quem atuou pelos 80 clubes na temporada, em
+--   qualquer competição, 2.374 jogadores; tabela da stg desde a D21.3).
 -- * Regras em ordem, sem acento (COLLATE ..._CI_AI), dentro do clube, só
 --   quem ainda não foi ligado e só com 1 candidato de cada lado:
 --   1 nome TM = apelido SB; 2 = nome completo SB; 3 último sobrenome
@@ -768,15 +768,18 @@ FROM dw.fato_desempenho f
 JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
 JOIN dw.dim_time t    ON t.sk_time = f.sk_time;
 
--- 2. Elenco do Transfermarkt: quem atuou pelos 80 clubes em 2015/16 (qualquer competição)
-DROP TABLE IF EXISTS #tm;
-SELECT DISTINCT a.player_club_id AS tm_club_id, a.player_id AS tm_player_id, p.name AS tm_nome
-INTO #tm
+-- 2. Elenco do Transfermarkt: quem atuou pelos 80 clubes em 2015/16 (qualquer
+--    competição). Tabela da stg, e não #tm, porque é também a referência da
+--    Pesquisa Difusa no SSIS (D21.3). sb_team_id preenchido = só os 80 do
+--    StatsBomb, mesmo depois do Bloco 2.
+TRUNCATE TABLE stg.tm_elenco_2015_16;
+INSERT INTO stg.tm_elenco_2015_16 (tm_club_id, tm_player_id, tm_nome)
+SELECT DISTINCT a.player_club_id, a.player_id, p.name
 FROM stg.tm_appearances a
 JOIN stg.tm_games g   ON g.game_id = a.game_id
 JOIN stg.tm_players p ON p.player_id = a.player_id
 WHERE g.season = 2015
-  AND a.player_club_id IN (SELECT tm_club_id FROM dw.dim_time);
+  AND a.player_club_id IN (SELECT tm_club_id FROM dw.dim_time WHERE sb_team_id IS NOT NULL);
 
 -- 3. Regras 1 a 4, uma de cada vez. Cada uma só olha quem ainda não foi ligado
 --    e só liga quando há exatamente 1 candidato de cada lado.
@@ -785,7 +788,7 @@ WHERE g.season = 2015
 WITH candidatos AS (
     SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
     FROM #sb s
-    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+    JOIN stg.tm_elenco_2015_16 t ON t.tm_club_id = s.tm_club_id
               AND t.tm_nome COLLATE Latin1_General_100_CI_AI = s.nome COLLATE Latin1_General_100_CI_AI
     WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
       AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
@@ -803,7 +806,7 @@ FROM unicos WHERE n_sb = 1 AND n_tm = 1;
 WITH candidatos AS (
     SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
     FROM #sb s
-    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+    JOIN stg.tm_elenco_2015_16 t ON t.tm_club_id = s.tm_club_id
               AND t.tm_nome COLLATE Latin1_General_100_CI_AI = s.nome_completo COLLATE Latin1_General_100_CI_AI
     WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
       AND NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.tm_player_id = t.tm_player_id AND l.tm_club_id = t.tm_club_id)
@@ -821,7 +824,7 @@ FROM unicos WHERE n_sb = 1 AND n_tm = 1;
 WITH candidatos AS (
     SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
     FROM #sb s
-    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+    JOIN stg.tm_elenco_2015_16 t ON t.tm_club_id = s.tm_club_id
               AND RIGHT(t.tm_nome, CHARINDEX(N' ', REVERSE(t.tm_nome) + N' ') - 1) COLLATE Latin1_General_100_CI_AI
                 = RIGHT(s.nome_completo, CHARINDEX(N' ', REVERSE(s.nome_completo) + N' ') - 1) COLLATE Latin1_General_100_CI_AI
     WHERE NOT EXISTS (SELECT 1 FROM stg.ligacao_jogadores l WHERE l.sb_player_id = s.sb_player_id AND l.sb_team_id = s.sb_team_id)
@@ -840,7 +843,7 @@ FROM unicos WHERE n_sb = 1 AND n_tm = 1;
 WITH candidatos AS (
     SELECT s.sb_player_id, s.sb_team_id, s.tm_club_id, t.tm_player_id
     FROM #sb s
-    JOIN #tm t ON t.tm_club_id = s.tm_club_id
+    JOIN stg.tm_elenco_2015_16 t ON t.tm_club_id = s.tm_club_id
     WHERE NOT EXISTS (                 -- nenhuma palavra do nome TM fica de fora
               SELECT 1
               FROM STRING_SPLIT(REPLACE(REPLACE(t.tm_nome, N'-', N' '), N'.', N''), N' ') w
