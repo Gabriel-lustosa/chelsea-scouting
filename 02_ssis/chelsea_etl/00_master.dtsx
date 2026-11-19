@@ -1,0 +1,165 @@
+﻿<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="11/19/2026 7:00:39 PM"
+  DTS:CreationName="Microsoft.Package"
+  DTS:CreatorComputerName="DESKTOP-BR098OM"
+  DTS:CreatorName="DESKTOP-BR098OM\Lustosa"
+  DTS:DTSID="{D8310777-67AC-4AE2-8411-494F80E010D5}"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LastModifiedProductVersion="17.0.1000.7"
+  DTS:LocaleID="1046"
+  DTS:ObjectName="00_master"
+  DTS:VersionGUID="{B16C78D3-D8F4-4670-BA04-CDFD74B2491E}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Variables />
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\01_staging_statsbomb"
+      DTS:CreationName="Microsoft.ExecutePackageTask"
+      DTS:DTSID="{855B25B6-C95C-45E1-BFB5-076F7DC17C3C}"
+      DTS:ExecutableType="Microsoft.ExecutePackageTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="01_staging_statsbomb"
+      DTS:TaskContact="Microsoft Corporation; Microsoft SQL Server; Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <ExecutePackageTask>
+          <UseProjectReference>True</UseProjectReference>
+          <PackageName>01_staging_statsbomb.dtsx</PackageName>
+        </ExecutePackageTask>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\02_staging_transfermarkt"
+      DTS:CreationName="Microsoft.ExecutePackageTask"
+      DTS:DTSID="{63136A9F-9C5A-43A1-9988-B0138A50A304}"
+      DTS:ExecutableType="Microsoft.ExecutePackageTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="02_staging_transfermarkt"
+      DTS:TaskContact="Microsoft Corporation; Microsoft SQL Server; Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <ExecutePackageTask>
+          <UseProjectReference>True</UseProjectReference>
+          <PackageName>02_staging_transfermarkt.dtsx</PackageName>
+        </ExecutePackageTask>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\03_bloco1_statsbomb"
+      DTS:CreationName="Microsoft.ExecutePackageTask"
+      DTS:DTSID="{05AA08EA-6F77-43A8-82F5-348D076F56DC}"
+      DTS:ExecutableType="Microsoft.ExecutePackageTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="03_bloco1_statsbomb"
+      DTS:TaskContact="Microsoft Corporation; Microsoft SQL Server; Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <ExecutePackageTask>
+          <UseProjectReference>True</UseProjectReference>
+          <PackageName>03_bloco1_statsbomb.dtsx</PackageName>
+        </ExecutePackageTask>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\04_ligacao_jogadores"
+      DTS:CreationName="Microsoft.ExecutePackageTask"
+      DTS:DTSID="{165E939A-1CB1-441B-B51B-72C1FC868878}"
+      DTS:ExecutableType="Microsoft.ExecutePackageTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="04_ligacao_jogadores"
+      DTS:TaskContact="Microsoft Corporation; Microsoft SQL Server; Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <ExecutePackageTask>
+          <UseProjectReference>True</UseProjectReference>
+          <PackageName>04_ligacao_jogadores.dtsx</PackageName>
+        </ExecutePackageTask>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\05_bloco2_transfermarkt"
+      DTS:CreationName="Microsoft.ExecutePackageTask"
+      DTS:DTSID="{505915CA-DAC9-4C04-8C85-0B08F220EF31}"
+      DTS:ExecutableType="Microsoft.ExecutePackageTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="05_bloco2_transfermarkt"
+      DTS:TaskContact="Microsoft Corporation; Microsoft SQL Server; Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <ExecutePackageTask>
+          <UseProjectReference>True</UseProjectReference>
+          <PackageName>05_bloco2_transfermarkt.dtsx</PackageName>
+        </ExecutePackageTask>
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição]"
+      DTS:CreationName=""
+      DTS:DTSID="{FAFC6257-61FD-46D5-9B94-AA00734863CB}"
+      DTS:From="Package\01_staging_statsbomb"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição"
+      DTS:To="Package\02_staging_transfermarkt" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{D4EBB96D-95B0-4E3F-8C70-D36E689DE6C0}"
+      DTS:From="Package\02_staging_transfermarkt"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 1"
+      DTS:To="Package\03_bloco1_statsbomb" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{6143B61B-DDB6-49FA-B0DD-6201DD4CD1C3}"
+      DTS:From="Package\03_bloco1_statsbomb"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 2"
+      DTS:To="Package\04_ligacao_jogadores" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 3]"
+      DTS:CreationName=""
+      DTS:DTSID="{065EDC3E-DF30-4C9F-A02B-08A8DA9C6672}"
+      DTS:From="Package\04_ligacao_jogadores"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 3"
+      DTS:To="Package\05_bloco2_transfermarkt" />
+  </DTS:PrecedenceConstraints>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<Objects
+  Version="8">
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="210,42"
+          Id="Package\01_staging_statsbomb"
+          TopLeft="40,20" />
+        <NodeLayout
+          Size="210,42"
+          Id="Package\02_staging_transfermarkt"
+          TopLeft="40,110" />
+        <NodeLayout
+          Size="210,42"
+          Id="Package\03_bloco1_statsbomb"
+          TopLeft="40,200" />
+        <NodeLayout
+          Size="210,42"
+          Id="Package\04_ligacao_jogadores"
+          TopLeft="40,290" />
+        <NodeLayout
+          Size="210,42"
+          Id="Package\05_bloco2_transfermarkt"
+          TopLeft="40,380" />
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>

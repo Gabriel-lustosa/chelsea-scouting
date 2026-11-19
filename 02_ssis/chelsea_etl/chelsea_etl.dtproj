@@ -30,6 +30,7 @@
           <SSIS:Property SSIS:Name="FormatVersion">1</SSIS:Property>
         </SSIS:Properties>
         <SSIS:Packages>
+          <SSIS:Package SSIS:Name="00_master.dtsx" SSIS:EntryPoint="1" />
           <SSIS:Package SSIS:Name="01_staging_statsbomb.dtsx" SSIS:EntryPoint="1" />
           <SSIS:Package SSIS:Name="02_staging_transfermarkt.dtsx" SSIS:EntryPoint="1" />
           <SSIS:Package SSIS:Name="03_bloco1_statsbomb.dtsx" SSIS:EntryPoint="1" />
@@ -1544,6 +1545,23 @@
                 <SSIS:Property SSIS:Name="VersionComments">
                 </SSIS:Property>
                 <SSIS:Property SSIS:Name="VersionGUID">{690D8F33-0AD0-4D96-A567-678EA51C31BC}</SSIS:Property>
+                <SSIS:Property SSIS:Name="PackageFormatVersion">8</SSIS:Property>
+                <SSIS:Property SSIS:Name="Description">
+                </SSIS:Property>
+                <SSIS:Property SSIS:Name="ProtectionLevel">1</SSIS:Property>
+              </SSIS:Properties>
+              <SSIS:Parameters />
+            </SSIS:PackageMetaData>
+            <SSIS:PackageMetaData SSIS:Name="00_master.dtsx">
+              <SSIS:Properties>
+                <SSIS:Property SSIS:Name="ID">{D8310777-67AC-4AE2-8411-494F80E010D5}</SSIS:Property>
+                <SSIS:Property SSIS:Name="Name">00_master</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionMajor">1</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionMinor">0</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionBuild">0</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionComments">
+                </SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionGUID">{B16C78D3-D8F4-4670-BA04-CDFD74B2491E}</SSIS:Property>
                 <SSIS:Property SSIS:Name="PackageFormatVersion">8</SSIS:Property>
                 <SSIS:Property SSIS:Name="Description">
                 </SSIS:Property>
