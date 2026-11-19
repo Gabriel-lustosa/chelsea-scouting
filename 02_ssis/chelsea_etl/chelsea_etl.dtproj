@@ -34,6 +34,7 @@
           <SSIS:Package SSIS:Name="02_staging_transfermarkt.dtsx" SSIS:EntryPoint="1" />
           <SSIS:Package SSIS:Name="03_bloco1_statsbomb.dtsx" SSIS:EntryPoint="1" />
           <SSIS:Package SSIS:Name="04_ligacao_jogadores.dtsx" SSIS:EntryPoint="1" />
+          <SSIS:Package SSIS:Name="05_bloco2_transfermarkt.dtsx" SSIS:EntryPoint="1" />
         </SSIS:Packages>
         <SSIS:ConnectionManagers>
           <SSIS:ConnectionManager SSIS:Name="chelsea_ssis.conmgr" />
@@ -1526,6 +1527,23 @@
                 <SSIS:Property SSIS:Name="VersionComments">
                 </SSIS:Property>
                 <SSIS:Property SSIS:Name="VersionGUID">{5E094C81-7B7F-4451-9ABB-1079C487AE41}</SSIS:Property>
+                <SSIS:Property SSIS:Name="PackageFormatVersion">8</SSIS:Property>
+                <SSIS:Property SSIS:Name="Description">
+                </SSIS:Property>
+                <SSIS:Property SSIS:Name="ProtectionLevel">1</SSIS:Property>
+              </SSIS:Properties>
+              <SSIS:Parameters />
+            </SSIS:PackageMetaData>
+            <SSIS:PackageMetaData SSIS:Name="05_bloco2_transfermarkt.dtsx">
+              <SSIS:Properties>
+                <SSIS:Property SSIS:Name="ID">{9CC6DE71-8D82-41BE-B3B0-6D49FE079FAF}</SSIS:Property>
+                <SSIS:Property SSIS:Name="Name">05_bloco2_transfermarkt</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionMajor">1</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionMinor">0</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionBuild">0</SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionComments">
+                </SSIS:Property>
+                <SSIS:Property SSIS:Name="VersionGUID">{EDBEAADE-635C-4153-AF19-8217CD78873B}</SSIS:Property>
                 <SSIS:Property SSIS:Name="PackageFormatVersion">8</SSIS:Property>
                 <SSIS:Property SSIS:Name="Description">
                 </SSIS:Property>
