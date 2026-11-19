@@ -1,0 +1,2277 @@
+﻿<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="11/18/2026 11:50:04 PM"
+  DTS:CreationName="Microsoft.Package"
+  DTS:CreatorComputerName="DESKTOP-BR098OM"
+  DTS:CreatorName="DESKTOP-BR098OM\Lustosa"
+  DTS:DTSID="{4A8DCB82-6964-41D8-970E-3B88B71CF85E}"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LastModifiedProductVersion="17.0.1000.7"
+  DTS:LocaleID="1046"
+  DTS:ObjectName="04_ligacao_jogadores"
+  DTS:VersionGUID="{5E094C81-7B7F-4451-9ABB-1079C487AE41}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Variables>
+    <DTS:Variable
+      DTS:CreationName=""
+      DTS:DTSID="{11BD5089-DC8C-4E27-A6E1-B719D079FCC1}"
+      DTS:IncludeInDebugDump="6789"
+      DTS:Namespace="User"
+      DTS:ObjectName="SemLigacao">
+      <DTS:VariableValue
+        DTS:DataType="3">0</DTS:VariableValue>
+    </DTS:Variable>
+  </DTS:Variables>
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\Alerta sem ligacao"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:DTSID="{F1A0808C-7B7F-4864-B8D2-9C6156A9DCDA}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Alerta sem ligacao"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="THROW 50003, 'Jogador do StatsBomb sem ligacao no Transfermarkt. Veja a variavel SemLigacao.', 1;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Elenco TM 2015-16"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:DTSID="{F7FD1354-716D-4F03-A589-33B4A883F724}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Elenco TM 2015-16"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="-- Limpa a ligacao e recarrega o elenco do TM 2015/16 (D21.3), igual ao 05_dw_carga.sql:&#xA;-- quem atuou pelos 80 clubes do StatsBomb na temporada, em qualquer competicao.&#xA;TRUNCATE TABLE stg.ligacao_jogadores;&#xA;TRUNCATE TABLE stg.tm_elenco_2015_16;&#xA;INSERT INTO stg.tm_elenco_2015_16 (tm_club_id, tm_player_id, tm_nome)&#xA;SELECT DISTINCT a.player_club_id, a.player_id, p.name&#xA;FROM stg.tm_appearances a&#xA;JOIN stg.tm_games g   ON g.game_id = a.game_id&#xA;JOIN stg.tm_players p ON p.player_id = a.player_id&#xA;WHERE g.season = 2015&#xA;  AND a.player_club_id IN (SELECT tm_club_id FROM dw.dim_time WHERE sb_team_id IS NOT NULL);" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Ligacao"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:DTSID="{2746DFD3-1A9A-4894-8904-67F88DC88B12}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Ligacao"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\Ligacao\Difusa no apelido"
+              componentClassID="Microsoft.FuzzyLookup"
+              contactInfo="Pesquisa Difusa;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;5"
+              description="Executa tarefas de limpeza de dados, como padronizar dados, corrigir dados e fornecer valores ausentes. Usa a correspondência difusa para retornar uma ou mais ocorrências próximas de uma tabela de referência. Por exemplo, pesquise dados de clientes por endereço, mesmo se os seus dados de endereço de entrada não corresponderem exatamente aos dados de endereço de referência."
+              name="Difusa no apelido"
+              version="5">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="Indica se uma tabela de índice de correspondência difusa existente deve ser reutilizada ou se uma nova tabela deve ser criada. A nova tabela de índice pode ser temporária, persistente ou persistente e mantida."
+                  name="MatchIndexOptions"
+                  typeConverter="tcMatchIndexOptions">1</property>
+                <property
+                  dataType="System.Null"
+                  description="Especifica a quantidade máxima de memória (MB) que esta instância da transformação Pesquisa Difusa pode usar. Se 0 for atribuído, a transformação ajustará automaticamente o uso da memória com base nos requisitos e na memória de sistema disponível."
+                  expressionType="Notify"
+                  name="MaxMemoryUsage" />
+                <property
+                  dataType="System.Null"
+                  description="Especifica o nome da tabela de índice de correspondência difusa a ser reutilizada ou o nome da tabela na qual uma tabela de índice de correspondência difusa recém-gerada será gravada."
+                  name="MatchIndexName"
+                  state="escaped" />
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome da exibição ou tabela de referência em relação à qual corresponder os registros de entrada."
+                  name="ReferenceTableName"
+                  state="escaped">_x005B_stg_x005D_._x005B_tm_elenco_2015_16_x005D_</property>
+                <property
+                  dataType="System.Int32"
+                  description="Indica se uma tabela de índice de correspondência difusa existente deverá ser descartada se uma transformação for configurada para gerar uma nova tabela e uma tabela com o mesmo nome já existir."
+                  name="DropExistingMatchIndex">1</property>
+                <property
+                  dataType="System.Int32"
+                  description="Se uma cópia da tabela de referência deve ser feita para a construção e correspondência subsequente do índice de correspondência difusa. É altamente recomendável sempre fazer uma cópia, caso contrário poderão ocorrer resultados de saída imprevisíveis se o conteúdo da tabela de referência for alterado durante a execução do pacote (ou entre execuções se um índice de correspondência difusa estiver sendo reutilizado). Se essa propriedade for definida como false, a tabela de referência deverá ter adicionalmente um índice clusterizado criado com base em uma coluna de identidade de inteiro."
+                  name="CopyReferenceTable">1</property>
+                <property
+                  dataType="System.UInt32"
+                  description="Especifica o número máximo de correspondências difusas a serem retornadas para um registro de entrada."
+                  name="MaxOutputMatchesPerInput">1</property>
+                <property
+                  dataType="System.Single"
+                  description="Especifica a pontuação de similaridade mínima necessária para os resultados de correspondência retornados pela transformação."
+                  name="MinSimilarity">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o conjunto de caracteres de espaço em branco e pontuação usados para separar campos de correspondência difusa nas palavras usadas para correspondência e pontuação de uma pesquisa difusa."
+                  name="Delimiters"
+                  state="escaped">_x0020__x0009__x000D__x000A__x002C_._x003B_:-_x0022__x0027__x0026__x002F__x005C__x0040__x0021__x003F__x0028__x0029__x003C__x003E__x005B__x005D__x007B__x007D__x007C__x0023__x002A__x005E__x0025_</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica os metadados da tabela de referência no formato XML."
+                  name="ReferenceMetadataXml"
+                  state="escaped">_x003C_referenceMetadata_x003E__x003C_referenceColumns_x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_club_id_x0022__x0020_dataType_x003D__x0022_DT_I4_x0022__x0020_length_x003D__x0022_0_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_player_id_x0022__x0020_dataType_x003D__x0022_DT_I4_x0022__x0020_length_x003D__x0022_0_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_nome_x0022__x0020_dataType_x003D__x0022_DT_WSTR_x0022__x0020_length_x003D__x0022_200_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C__x002F_referenceColumns_x003E__x003C__x002F_referenceMetadata_x003E__x000D__x000A_</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Se true, cada registro de entrada será comparado diretamente a CADA dois registros na tabela de referência. isso poderá gerar resultados ligeiramente melhores, mas será um processo extremamente lento, a menos que o número de registros na tabela de referência seja muito pequeno. Observe que toda a tabela de referência será carregada na memória principal se essa opção for habilitada. Essa opção destina-se principalmente a fins de depuração e deve ser usada com cuidado."
+                  name="Exhaustive">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Se true, a Pesquisa Difusa carregará parcialmente o índice tolerante a erros e a tabela de referência na memória principal antes do início da execução. Isso poderá melhorar muito o desempenho se for necessário processar muitas linhas de entrada."
+                  name="WarmCaches">true</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\Difusa no apelido.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="Conexão e banco de dados do Microsoft SQL Server em que a tabela de referência de pesquisa difusa está localizada e na qual a tabela de índice de correspondência difusa será armazenada e acessada."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa]"
+                  name="Entrada de Pesquisa Difusa">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa].Columns[sb_team_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_team_id"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_team_id]">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa].Columns[tm_club_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_club_id"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[tm_club_id]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped">tm_club_id</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">1</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa].Columns[nome]"
+                      cachedDataType="wstr"
+                      cachedLength="200"
+                      cachedName="nome"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped">tm_nome</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa].Columns[nome_completo]"
+                      cachedDataType="wstr"
+                      cachedLength="300"
+                      cachedName="nome_completo"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome_completo]">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa]"
+                  name="Saída de Pesquisa Difusa">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]"
+                      dataType="r4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]"
+                      name="_Similarity">
+                      <properties>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">1</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Confidence]"
+                      dataType="r4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Confidence]"
+                      name="_Confidence">
+                      <properties>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">2</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]"
+                      name="sb_player_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]"
+                      name="sb_team_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_team_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]"
+                      name="tm_club_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[tm_club_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome]"
+                      dataType="wstr"
+                      length="200"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome]"
+                      name="nome">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]"
+                      dataType="wstr"
+                      length="300"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]"
+                      name="nome_completo">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome_completo]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]"
+                      name="tm_player_id">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped">tm_player_id</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_nome]"
+                      dataType="wstr"
+                      length="200"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_nome]"
+                      name="tm_nome">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped">tm_nome</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Difusa no nome completo"
+              componentClassID="Microsoft.FuzzyLookup"
+              contactInfo="Pesquisa Difusa;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;5"
+              description="Executa tarefas de limpeza de dados, como padronizar dados, corrigir dados e fornecer valores ausentes. Usa a correspondência difusa para retornar uma ou mais ocorrências próximas de uma tabela de referência. Por exemplo, pesquise dados de clientes por endereço, mesmo se os seus dados de endereço de entrada não corresponderem exatamente aos dados de endereço de referência."
+              name="Difusa no nome completo"
+              version="5">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="Indica se uma tabela de índice de correspondência difusa existente deve ser reutilizada ou se uma nova tabela deve ser criada. A nova tabela de índice pode ser temporária, persistente ou persistente e mantida."
+                  name="MatchIndexOptions"
+                  typeConverter="tcMatchIndexOptions">1</property>
+                <property
+                  dataType="System.Null"
+                  description="Especifica a quantidade máxima de memória (MB) que esta instância da transformação Pesquisa Difusa pode usar. Se 0 for atribuído, a transformação ajustará automaticamente o uso da memória com base nos requisitos e na memória de sistema disponível."
+                  expressionType="Notify"
+                  name="MaxMemoryUsage" />
+                <property
+                  dataType="System.Null"
+                  description="Especifica o nome da tabela de índice de correspondência difusa a ser reutilizada ou o nome da tabela na qual uma tabela de índice de correspondência difusa recém-gerada será gravada."
+                  name="MatchIndexName"
+                  state="escaped" />
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome da exibição ou tabela de referência em relação à qual corresponder os registros de entrada."
+                  name="ReferenceTableName"
+                  state="escaped">_x005B_stg_x005D_._x005B_tm_elenco_2015_16_x005D_</property>
+                <property
+                  dataType="System.Int32"
+                  description="Indica se uma tabela de índice de correspondência difusa existente deverá ser descartada se uma transformação for configurada para gerar uma nova tabela e uma tabela com o mesmo nome já existir."
+                  name="DropExistingMatchIndex">1</property>
+                <property
+                  dataType="System.Int32"
+                  description="Se uma cópia da tabela de referência deve ser feita para a construção e correspondência subsequente do índice de correspondência difusa. É altamente recomendável sempre fazer uma cópia, caso contrário poderão ocorrer resultados de saída imprevisíveis se o conteúdo da tabela de referência for alterado durante a execução do pacote (ou entre execuções se um índice de correspondência difusa estiver sendo reutilizado). Se essa propriedade for definida como false, a tabela de referência deverá ter adicionalmente um índice clusterizado criado com base em uma coluna de identidade de inteiro."
+                  name="CopyReferenceTable">1</property>
+                <property
+                  dataType="System.UInt32"
+                  description="Especifica o número máximo de correspondências difusas a serem retornadas para um registro de entrada."
+                  name="MaxOutputMatchesPerInput">1</property>
+                <property
+                  dataType="System.Single"
+                  description="Especifica a pontuação de similaridade mínima necessária para os resultados de correspondência retornados pela transformação."
+                  name="MinSimilarity">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o conjunto de caracteres de espaço em branco e pontuação usados para separar campos de correspondência difusa nas palavras usadas para correspondência e pontuação de uma pesquisa difusa."
+                  name="Delimiters"
+                  state="escaped">_x0020__x0009__x000D__x000A__x002C_._x003B_:-_x0022__x0027__x0026__x002F__x005C__x0040__x0021__x003F__x0028__x0029__x003C__x003E__x005B__x005D__x007B__x007D__x007C__x0023__x002A__x005E__x0025_</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica os metadados da tabela de referência no formato XML."
+                  name="ReferenceMetadataXml"
+                  state="escaped">_x003C_referenceMetadata_x003E__x003C_referenceColumns_x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_club_id_x0022__x0020_dataType_x003D__x0022_DT_I4_x0022__x0020_length_x003D__x0022_0_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_player_id_x0022__x0020_dataType_x003D__x0022_DT_I4_x0022__x0020_length_x003D__x0022_0_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C_referenceColumn_x0020_name_x003D__x0022_tm_nome_x0022__x0020_dataType_x003D__x0022_DT_WSTR_x0022__x0020_length_x003D__x0022_200_x0022__x0020_precision_x003D__x0022_0_x0022__x0020_scale_x003D__x0022_0_x0022__x0020_codePage_x003D__x0022_0_x0022__x002F__x003E__x003C__x002F_referenceColumns_x003E__x003C__x002F_referenceMetadata_x003E__x000D__x000A_</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Se true, cada registro de entrada será comparado diretamente a CADA dois registros na tabela de referência. isso poderá gerar resultados ligeiramente melhores, mas será um processo extremamente lento, a menos que o número de registros na tabela de referência seja muito pequeno. Observe que toda a tabela de referência será carregada na memória principal se essa opção for habilitada. Essa opção destina-se principalmente a fins de depuração e deve ser usada com cuidado."
+                  name="Exhaustive">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Se true, a Pesquisa Difusa carregará parcialmente o índice tolerante a erros e a tabela de referência na memória principal antes do início da execução. Isso poderá melhorar muito o desempenho se for necessário processar muitas linhas de entrada."
+                  name="WarmCaches">true</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\Difusa no nome completo.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="Conexão e banco de dados do Microsoft SQL Server em que a tabela de referência de pesquisa difusa está localizada e na qual a tabela de índice de correspondência difusa será armazenada e acessada."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa]"
+                  name="Entrada de Pesquisa Difusa">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa].Columns[sb_team_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_team_id"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa].Columns[tm_club_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_club_id"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped">tm_club_id</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">1</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                    <inputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa].Columns[nome_completo]"
+                      cachedDataType="wstr"
+                      cachedLength="300"
+                      cachedName="nome_completo"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="O nome da coluna de tabela de referência com a qual a coluna de entrada deverá corresponder."
+                          name="JoinToReferenceColumn"
+                          state="escaped">tm_nome</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a correspondência é difusa ou exata."
+                          name="JoinType"
+                          typeConverter="tcJoinType">2</property>
+                        <property
+                          dataType="System.Single"
+                          description="Especifica o mínimo de similaridade textual necessário entre registros de entrada e de correspondência difusa em valores nesta coluna de junção em particular. Deve ser um valor de ponto flutuante entre 0.0 e 1.0."
+                          name="MinSimilarity">0</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Especifica as opções de comparação para os dados de caractere. Essas opções são aquelas com suporte da função FoldString."
+                          name="FuzzyComparisonFlags"
+                          typeConverter="tcComparisonFlags">1</property>
+                        <property
+                          dataType="System.UInt32"
+                          description="Sinalizadores para FoldString que devem ser usados ao comparar se duas cadeias de caracteres são equivalentes."
+                          name="FuzzyComparisonFlagsEx"
+                          typeConverter="tcComparisonFlagsEx">0</property>
+                      </properties>
+                    </inputColumn>
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa]"
+                  name="Saída de Pesquisa Difusa">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]"
+                      dataType="r4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]"
+                      name="_Similarity">
+                      <properties>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">1</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Confidence]"
+                      dataType="r4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Confidence]"
+                      name="_Confidence">
+                      <properties>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">2</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]"
+                      name="sb_player_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]"
+                      name="sb_team_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]"
+                      name="tm_club_id">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]"
+                      dataType="wstr"
+                      length="300"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]"
+                      name="nome_completo">
+                      <properties>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped" />
+                        <property
+                          containsID="true"
+                          dataType="System.Int32"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID">#{Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[nome_completo]}</property>
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]"
+                      name="tm_player_id">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped">tm_player_id</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_nome]"
+                      dataType="wstr"
+                      length="200"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_nome]"
+                      name="tm_nome">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna da tabela de referência copiada na saída de cada resultado correspondente."
+                          name="CopyFromReferenceColumn"
+                          state="escaped">tm_nome</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica o identificador de linhagem da coluna de entrada da qual copiar para esta coluna de saída para cada correspondência."
+                          name="SourceInputColumnLineageID" />
+                        <property
+                          dataType="System.Int32"
+                          description="Especifica se a coluna é usada para indicar confiança ou similaridade."
+                          name="ColumnType"
+                          typeConverter="tcColumnType">0</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Excecoes"
+              componentClassID="Microsoft.Lookup"
+              contactInfo="Pesquisa;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;6"
+              description="Une colunas adicionais aos fluxos de dados pesquisando valores de uma tabela. Por exemplo, una à coluna 'employee id' a tabela de funcionários para obter 'hire date' e 'employee name'. Essa transformação é recomendada quando a tabela de pesquisa está de acordo com a memória."
+              name="Excecoes"
+              usesDispositions="true"
+              version="6">
+              <properties>
+                <property
+                  dataType="System.String"
+                  description="Especifica a instrução SQL que gera a tabela de pesquisa."
+                  expressionType="Notify"
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT sb_player_id, tm_player_id, regra, motivo
+FROM (VALUES
+    (3058,   50935,  5, N'Apelido no TM: Chicharito'),
+    (6390,   54245,  5, N'Markel Susaeta: sem atuação no TM em 2015/16'),
+    (6559,   126625, 5, N'Apelido no TM: Juankar'),
+    (9636,   314237, 5, N'Rushian Hepburn-Murphy: sem atuação no TM em 2015/16'),
+    (27053,  27394,  5, N'Apelido no TM: Alex Song'),
+    (40348,  336704, 5, N'Assane Gnoukouri = Alassane Traoré no TM'),
+    (42946,  156934, 5, N'Jiang Guangtai = Tyias Browning'),
+    (5551,   33357,  5, N'Nome único no TM: Miranda'),
+    (16426,  236202, 5, N'Nome único no TM: Wanderson'),
+    (25345,  52897,  5, N'Nome único no TM: Hernanes'),
+    (27558,  59938,  5, N'Nome único no TM: Elderson'),
+    (30767,  79242,  5, N'Nome único no TM: Gabriel'),
+    (40945,  15420,  5, N'Nome único no TM: Alex'),
+    (386515, 146660, 5, N'Nome único no TM: Ronaldo'),
+    (387428, 6234,   5, N'Nome único no TM: Amauri'),
+    (401489, 20410,  5, N'Nome único no TM: Jussiê'),
+    (401541, 14948,  5, N'Nome único no TM: Brandão')
+) AS e (sb_player_id, tm_player_id, regra, motivo);</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica uma instrução SQL que usa parâmetros para gerar a tabela de pesquisa."
+                  expressionType="Notify"
+                  name="SqlCommandParam"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o tipo de conexão usado para acessar o conjunto de dados de referência."
+                  name="ConnectionType"
+                  typeConverter="LookupConnectionType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o tipo de cache da tabela de pesquisa."
+                  name="CacheType"
+                  typeConverter="CacheType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica como a transformação Pesquisa trata as linhas sem entradas correspondentes no conjunto de dados de referência."
+                  name="NoMatchBehavior"
+                  typeConverter="LookupNoMatchBehavior">1</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a porcentagem do cache alocada para linhas sem entradas correspondentes no conjunto de dados de referência."
+                  name="NoMatchCachePercentage">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Uso Máximo de Memória para o Cache de Referência em uma plataforma de 32 bits."
+                  name="MaxMemoryUsage">25</property>
+                <property
+                  dataType="System.Int64"
+                  description="Uso Máximo de Memória para o Cache de Referência em uma plataforma de 64 bits."
+                  name="MaxMemoryUsage64">25</property>
+                <property
+                  dataType="System.String"
+                  description="Indica se os metadados de referência em um formato XML devem ser referenciados."
+                  name="ReferenceMetadataXml">&lt;referenceMetadata&gt;&lt;referenceColumns&gt;&lt;referenceColumn name="sb_player_id" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="tm_player_id" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="regra" dataType="DT_I4" length="0" precision="0" scale="0" codePage="0"/&gt;&lt;referenceColumn name="motivo" dataType="DT_WSTR" length="52" precision="0" scale="0" codePage="0"/&gt;&lt;/referenceColumns&gt;&lt;/referenceMetadata&gt;</property>
+                <property
+                  containsID="true"
+                  dataType="System.String"
+                  description="Especifica a lista de identificadores de linhagem mapeados para os parâmetros usados pela instrução SQL na propriedade SQLCommand. As entradas na lista são separadas por ponto e vírgulas."
+                  name="ParameterMap"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Determina se as chaves duplicadas nos dados de referência devem ser tratadas como erros quando o modo de cache cheio é usado."
+                  name="TreatDuplicateKeysAsError">false</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\Excecoes.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="O gerenciador de conexões usado para acessar dados de pesquisa."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa]"
+                  name="Entrada de Pesquisa">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência que uma coluna une."
+                          name="JoinToReferenceColumn">sb_player_id</property>
+                        <property
+                          dataType="System.Null"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn" />
+                      </properties>
+                    </inputColumn>
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa]"
+                  errorOrTruncationOperation="Pesquisa"
+                  exclusionGroup="1"
+                  name="Saída de Correspondência de Pesquisa"
+                  synchronousInputId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[tm_player_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[tm_player_id]"
+                      name="tm_player_id"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">tm_player_id</property>
+                      </properties>
+                    </outputColumn>
+                    <outputColumn
+                      refId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[regra]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Copiar Coluna"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[regra]"
+                      name="regra"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          dataType="System.String"
+                          description="Especifica a coluna na tabela de referência a partir da qual uma coluna é copiada."
+                          name="CopyFromReferenceColumn">regra</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Excecoes.Outputs[Saída Sem Correspondência de Pesquisa]"
+                  description="A saída de Pesquisa que trata as linhas sem entradas correspondentes no conjunto de dados de referência. Use essa saída quando a propriedade NoMatchBehavior estiver definida como &quot;Enviar as linhas sem entradas correspondentes para a saída sem correspondência&quot;."
+                  exclusionGroup="1"
+                  name="Saída Sem Correspondência de Pesquisa"
+                  synchronousInputId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa]">
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Excecoes.Outputs[Saída de Erro de Pesquisa]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Pesquisa"
+                  synchronousInputId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Excecoes.Outputs[Saída de Erro de Pesquisa].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Erro de Pesquisa].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Excecoes.Outputs[Saída de Erro de Pesquisa].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Erro de Pesquisa].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Jogadores do StatsBomb"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="Origem OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;7"
+              description="Origem OLE DB"
+              name="Jogadores do StatsBomb"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT DISTINCT j.sb_player_id, t.sb_team_id, t.tm_club_id, j.nome, j.nome_completo
+FROM dw.fato_desempenho f
+JOIN dw.dim_jogador j ON j.sk_jogador = f.sk_jogador
+JOIN dw.dim_time t    ON t.sk_time = f.sk_time
+ORDER BY j.sb_player_id, t.sb_team_id;</property>
+                <property
+                  dataType="System.String"
+                  description="A variável que contém o comando SQL a ser executado."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="Os mapeamentos entre os parâmetros no comando SQL e as variáveis."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\Jogadores do StatsBomb.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB]"
+                  name="Saída de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_player_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]"
+                      name="sb_player_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_team_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_team_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_team_id]"
+                      name="sb_team_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[tm_club_id]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[tm_club_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[tm_club_id]"
+                      name="tm_club_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[nome]"
+                      length="200"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome]"
+                      name="nome"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome_completo]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversão"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[nome_completo]"
+                      length="300"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[nome_completo]"
+                      name="nome_completo"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_player_id]"
+                      dataType="i4"
+                      name="sb_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[sb_team_id]"
+                      dataType="i4"
+                      name="sb_team_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[tm_club_id]"
+                      dataType="i4"
+                      name="tm_club_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[nome]"
+                      dataType="wstr"
+                      length="200"
+                      name="nome" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].ExternalColumns[nome_completo]"
+                      dataType="wstr"
+                      length="300"
+                      name="nome_completo" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB]"
+                  isErrorOut="true"
+                  name="Saída de Erro de Origem OLE DB">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_player_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_player_id]"
+                      name="sb_player_id" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_team_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[sb_team_id]"
+                      name="sb_team_id" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[tm_club_id]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[tm_club_id]"
+                      name="tm_club_id" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[nome]"
+                      dataType="wstr"
+                      length="200"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[nome]"
+                      name="nome" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[nome_completo]"
+                      dataType="wstr"
+                      length="300"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[nome_completo]"
+                      name="nome_completo" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Erro de Origem OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\ligacao excecoes"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="ligacao excecoes"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[stg].[ligacao_jogadores]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\ligacao excecoes.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].Columns[sb_team_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_team_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[sb_team_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].Columns[tm_player_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[tm_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].Columns[tm_club_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_club_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      lineageId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB].Columns[tm_club_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].Columns[regra]"
+                      cachedDataType="i4"
+                      cachedName="regra"
+                      externalMetadataColumnId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      lineageId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa].Columns[regra]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      dataType="i4"
+                      name="sb_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      dataType="i4"
+                      name="sb_team_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      dataType="i4"
+                      name="tm_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      dataType="i4"
+                      name="tm_club_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      dataType="i4"
+                      name="regra" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\ligacao excecoes.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao excecoes.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao excecoes.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao excecoes.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\ligacao regra 6"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="ligacao regra 6"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[stg].[ligacao_jogadores]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\ligacao regra 6.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].Columns[sb_team_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_team_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].Columns[tm_player_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].Columns[tm_club_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_club_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].Columns[regra]"
+                      cachedDataType="i4"
+                      cachedName="regra"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      lineageId="Package\Ligacao\Regra 6.Outputs[Saída de Coluna Derivada].Columns[regra]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      dataType="i4"
+                      name="sb_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      dataType="i4"
+                      name="sb_team_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      dataType="i4"
+                      name="tm_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      dataType="i4"
+                      name="tm_club_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      dataType="i4"
+                      name="regra" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\ligacao regra 6.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao regra 6.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao regra 6.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao regra 6.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\ligacao regra 7"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="Destino OLE DB;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;4"
+              description="Destino OLE DB"
+              name="ligacao regra 7"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="O tempo em segundos antes que um comando expire. Zero indica uma expiração infinita."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowset">[stg].[ligacao_jogadores]</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que contém o nome do objeto de banco de dados usado para abrir um conjunto de linhas."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="O comando SQL a ser executado."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica a página de código de coluna a ser usada quando não há informações de página de código disponíveis a partir da fonte de dados."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forca o uso do valor da propriedade DefaultCodePage durante a descrição dos dados de caractere."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica o modo usado para acessar o banco de dados."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se os valores fornecidos para colunas de identidade serão copiados no destino. Se false, os valores para colunas de identidade serão gerados automaticamente no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indica se as colunas que contêm null terão null inserido no destino. Se false, as colunas que contêm null terão seus valores padrão inseridos no destino. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Especifica as opções a serem usadas com o carregamento rápido. Aplicável apenas se o carregamento rápido estiver ativado."
+                  name="FastLoadOptions">CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Especifica quando confirmações são emitidas durante a inserção de dados. Um valor de 0 especifica que uma confirmação será emitida ao final da inserção de dados. Aplicável somente se o carregamento rápido estiver ativado."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Ligacao\ligacao regra 7.Connections[OleDbConnection]"
+                  connectionManagerID="{C6E32CC7-5721-4560-919F-C276BD5F39BF}:external"
+                  connectionManagerRefId="Project.ConnectionManagers[chelsea_ssis]"
+                  description="A conexão de tempo de execução OLE DB usada para acessar o banco de dados."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB]"
+                  errorOrTruncationOperation="Inserir"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="Entrada de Destino OLE DB">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].Columns[sb_player_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].Columns[sb_team_id]"
+                      cachedDataType="i4"
+                      cachedName="sb_team_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[sb_team_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].Columns[tm_player_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_player_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_player_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].Columns[tm_club_id]"
+                      cachedDataType="i4"
+                      cachedName="tm_club_id"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[tm_club_id]" />
+                    <inputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].Columns[regra]"
+                      cachedDataType="i4"
+                      cachedName="regra"
+                      externalMetadataColumnId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      lineageId="Package\Ligacao\Regra 7.Outputs[Saída de Coluna Derivada].Columns[regra]" />
+                  </inputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_player_id]"
+                      dataType="i4"
+                      name="sb_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[sb_team_id]"
+                      dataType="i4"
+                      name="sb_team_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_player_id]"
+                      dataType="i4"
+                      name="tm_player_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[tm_club_id]"
+                      dataType="i4"
+                      name="tm_club_id" />
+                    <externalMetadataColumn
+                      refId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB].ExternalColumns[regra]"
+                      dataType="i4"
+                      name="regra" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\ligacao regra 7.Outputs[Saída de Erro de Destino OLE DB]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Destino OLE DB"
+                  synchronousInputId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao regra 7.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\ligacao regra 7.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\ligacao regra 7.Outputs[Saída de Erro de Destino OLE DB].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Limite apelido"
+              componentClassID="Microsoft.ConditionalSplit"
+              contactInfo="Divisão Condicional;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Encaminha colunas de dados para saídas diferentes, dependendo do conteúdo dos dados. Use condições (expressões do SSIS) para especificar quais linhas são encaminhadas. Por exemplo, separe os registros que precisam ser limpos daqueles que estão prontos para serem carregados ou encaminhe somente um subconjunto de registros."
+              name="Limite apelido"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional]"
+                  description="Entrada para a Transformação Divisão Condicional"
+                  name="Entrada de Divisão Condicional">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional].Columns[_Similarity]"
+                      cachedDataType="r4"
+                      cachedName="_Similarity"
+                      lineageId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Limite apelido.Outputs[Ligado no apelido]"
+                  description="Saída 1 da Transformação Divisão Condicional"
+                  errorOrTruncationOperation="Computação"
+                  errorRowDisposition="FailComponent"
+                  exclusionGroup="1"
+                  name="Ligado no apelido"
+                  synchronousInputId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional]"
+                  truncationRowDisposition="FailComponent">
+                  <properties>
+                    <property
+                      containsID="true"
+                      dataType="System.String"
+                      description="Especifica a expressão. Essa versão da expressão usa identificadores de linhagem, em vez de nomes de colunas."
+                      name="Expression">#{Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]} &gt;= 0.4</property>
+                    <property
+                      containsID="true"
+                      dataType="System.String"
+                      description="Especifica a versão amigável da expressão. Essa versão de expressão usa nomes de colunas."
+                      expressionType="Notify"
+                      name="FriendlyExpression">_Similarity &gt;= 0.4</property>
+                    <property
+                      dataType="System.Int32"
+                      description="Especifica a posição da condição na lista de condições que a transformação avalia. A ordem de avaliação é do menor para o maior valor."
+                      name="EvaluationOrder">0</property>
+                  </properties>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Limite apelido.Outputs[Abaixo do limite]"
+                  description="Saída Padrão da Transformação Divisão Condicional"
+                  exclusionGroup="1"
+                  name="Abaixo do limite"
+                  synchronousInputId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional]">
+                  <properties>
+                    <property
+                      dataType="System.Boolean"
+                      name="IsDefaultOut">true</property>
+                  </properties>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Limite apelido.Outputs[Saída de Erro de Divisão Condicional]"
+                  description="Saída de Erro da Transformação Divisão Condicional"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Divisão Condicional"
+                  synchronousInputId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Limite apelido.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Limite apelido.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Limite apelido.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Limite apelido.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Limite nome completo"
+              componentClassID="Microsoft.ConditionalSplit"
+              contactInfo="Divisão Condicional;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Encaminha colunas de dados para saídas diferentes, dependendo do conteúdo dos dados. Use condições (expressões do SSIS) para especificar quais linhas são encaminhadas. Por exemplo, separe os registros que precisam ser limpos daqueles que estão prontos para serem carregados ou encaminhe somente um subconjunto de registros."
+              name="Limite nome completo"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional]"
+                  description="Entrada para a Transformação Divisão Condicional"
+                  name="Entrada de Divisão Condicional">
+                  <inputColumns>
+                    <inputColumn
+                      refId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional].Columns[_Similarity]"
+                      cachedDataType="r4"
+                      cachedName="_Similarity"
+                      lineageId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]" />
+                  </inputColumns>
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Limite nome completo.Outputs[Ligado no nome completo]"
+                  description="Saída 1 da Transformação Divisão Condicional"
+                  errorOrTruncationOperation="Computação"
+                  errorRowDisposition="FailComponent"
+                  exclusionGroup="1"
+                  name="Ligado no nome completo"
+                  synchronousInputId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional]"
+                  truncationRowDisposition="FailComponent">
+                  <properties>
+                    <property
+                      containsID="true"
+                      dataType="System.String"
+                      description="Especifica a expressão. Essa versão da expressão usa identificadores de linhagem, em vez de nomes de colunas."
+                      name="Expression">#{Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa].Columns[_Similarity]} &gt;= 0.4</property>
+                    <property
+                      containsID="true"
+                      dataType="System.String"
+                      description="Especifica a versão amigável da expressão. Essa versão de expressão usa nomes de colunas."
+                      expressionType="Notify"
+                      name="FriendlyExpression">_Similarity &gt;= 0.4</property>
+                    <property
+                      dataType="System.Int32"
+                      description="Especifica a posição da condição na lista de condições que a transformação avalia. A ordem de avaliação é do menor para o maior valor."
+                      name="EvaluationOrder">0</property>
+                  </properties>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Limite nome completo.Outputs[Abaixo do limite]"
+                  description="Saída Padrão da Transformação Divisão Condicional"
+                  exclusionGroup="1"
+                  name="Abaixo do limite"
+                  synchronousInputId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional]">
+                  <properties>
+                    <property
+                      dataType="System.Boolean"
+                      name="IsDefaultOut">true</property>
+                  </properties>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Limite nome completo.Outputs[Saída de Erro de Divisão Condicional]"
+                  description="Saída de Erro da Transformação Divisão Condicional"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Divisão Condicional"
+                  synchronousInputId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Limite nome completo.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Limite nome completo.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Limite nome completo.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Limite nome completo.Outputs[Saída de Erro de Divisão Condicional].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Regra 6"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Regra 6"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Regra 6.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Regra 6.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\Ligacao\Regra 6.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 6.Outputs[Saída de Coluna Derivada].Columns[regra]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\Ligacao\Regra 6.Outputs[Saída de Coluna Derivada].Columns[regra]"
+                      name="regra"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">6</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">6</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Regra 6.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\Ligacao\Regra 6.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 6.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Regra 6.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 6.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Regra 6.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Regra 7"
+              componentClassID="Microsoft.DerivedColumn"
+              contactInfo="Coluna Derivada;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Cria novos valores de coluna aplicando expressões a colunas de entrada da transformação. Crie novas colunas ou substitua as existentes. Por exemplo, concatene os valores das colunas 'first name' e 'last name' para formar uma coluna 'full name'."
+              name="Regra 7"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Regra 7.Inputs[Entrada de Coluna Derivada]"
+                  description="Entrada para a Transformação Coluna Derivada"
+                  name="Entrada de Coluna Derivada">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Regra 7.Outputs[Saída de Coluna Derivada]"
+                  description="Saída Padrão da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  name="Saída de Coluna Derivada"
+                  synchronousInputId="Package\Ligacao\Regra 7.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 7.Outputs[Saída de Coluna Derivada].Columns[regra]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Computação"
+                      errorRowDisposition="FailComponent"
+                      lineageId="Package\Ligacao\Regra 7.Outputs[Saída de Coluna Derivada].Columns[regra]"
+                      name="regra"
+                      truncationRowDisposition="FailComponent">
+                      <properties>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão de Coluna Derivada"
+                          name="Expression">7</property>
+                        <property
+                          containsID="true"
+                          dataType="System.String"
+                          description="Expressão Amigável de Coluna Derivada"
+                          expressionType="Notify"
+                          name="FriendlyExpression">7</property>
+                      </properties>
+                    </outputColumn>
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Ligacao\Regra 7.Outputs[Saída de Erro de Coluna Derivada]"
+                  description="Saída de Erro da Transformação Coluna Derivada"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Saída de Erro de Coluna Derivada"
+                  synchronousInputId="Package\Ligacao\Regra 7.Inputs[Entrada de Coluna Derivada]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 7.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Regra 7.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Ligacao\Regra 7.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Ligacao\Regra 7.Outputs[Saída de Erro de Coluna Derivada].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Ligacao\Sem ligacao"
+              componentClassID="Microsoft.RowCount"
+              contactInfo="Contagem de Linhas;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation;  Todos os Direitos Reservados; http://www.microsoft.com/sql/support;0"
+              description="Conta as linhas à medida que elas passam por um fluxo de dados. Por exemplo, use o número de linhas processado para determinar se operações de limpeza devem ser executadas ou não, ou atualize o texto em uma mensagem de email para comunicar o status de processamento."
+              name="Sem ligacao">
+              <properties>
+                <property
+                  dataType="System.String"
+                  description="Especifica a variável que conterá a contagem de linhas."
+                  name="VariableName">User::SemLigacao</property>
+              </properties>
+              <inputs>
+                <input
+                  refId="Package\Ligacao\Sem ligacao.Inputs[Contagem de Linhas Entrada 1]"
+                  hasSideEffects="true"
+                  name="Contagem de Linhas Entrada 1">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Ligacao\Sem ligacao.Outputs[Contagem de Linhas Saída 1]"
+                  name="Contagem de Linhas Saída 1"
+                  synchronousInputId="Package\Ligacao\Sem ligacao.Inputs[Contagem de Linhas Entrada 1]">
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\Ligacao.Paths[Abaixo do limite]"
+              endId="Package\Ligacao\Difusa no nome completo.Inputs[Entrada de Pesquisa Difusa]"
+              name="Abaixo do limite"
+              startId="Package\Ligacao\Limite apelido.Outputs[Abaixo do limite]" />
+            <path
+              refId="Package\Ligacao.Paths[Abaixo do limite1]"
+              endId="Package\Ligacao\Sem ligacao.Inputs[Contagem de Linhas Entrada 1]"
+              name="Abaixo do limite"
+              startId="Package\Ligacao\Limite nome completo.Outputs[Abaixo do limite]" />
+            <path
+              refId="Package\Ligacao.Paths[Ligado no apelido]"
+              endId="Package\Ligacao\Regra 6.Inputs[Entrada de Coluna Derivada]"
+              name="Ligado no apelido"
+              startId="Package\Ligacao\Limite apelido.Outputs[Ligado no apelido]" />
+            <path
+              refId="Package\Ligacao.Paths[Ligado no nome completo]"
+              endId="Package\Ligacao\Regra 7.Inputs[Entrada de Coluna Derivada]"
+              name="Ligado no nome completo"
+              startId="Package\Ligacao\Limite nome completo.Outputs[Ligado no nome completo]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Coluna Derivada1]"
+              endId="Package\Ligacao\ligacao regra 7.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Coluna Derivada"
+              startId="Package\Ligacao\Regra 7.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Coluna Derivada]"
+              endId="Package\Ligacao\ligacao regra 6.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Coluna Derivada"
+              startId="Package\Ligacao\Regra 6.Outputs[Saída de Coluna Derivada]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Correspondência de Pesquisa]"
+              endId="Package\Ligacao\ligacao excecoes.Inputs[Entrada de Destino OLE DB]"
+              name="Saída de Correspondência de Pesquisa"
+              startId="Package\Ligacao\Excecoes.Outputs[Saída de Correspondência de Pesquisa]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Origem OLE DB]"
+              endId="Package\Ligacao\Excecoes.Inputs[Entrada de Pesquisa]"
+              name="Saída de Origem OLE DB"
+              startId="Package\Ligacao\Jogadores do StatsBomb.Outputs[Saída de Origem OLE DB]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Pesquisa Difusa1]"
+              endId="Package\Ligacao\Limite nome completo.Inputs[Entrada de Divisão Condicional]"
+              name="Saída de Pesquisa Difusa"
+              startId="Package\Ligacao\Difusa no nome completo.Outputs[Saída de Pesquisa Difusa]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída de Pesquisa Difusa]"
+              endId="Package\Ligacao\Limite apelido.Inputs[Entrada de Divisão Condicional]"
+              name="Saída de Pesquisa Difusa"
+              startId="Package\Ligacao\Difusa no apelido.Outputs[Saída de Pesquisa Difusa]" />
+            <path
+              refId="Package\Ligacao.Paths[Saída Sem Correspondência de Pesquisa]"
+              endId="Package\Ligacao\Difusa no apelido.Inputs[Entrada de Pesquisa Difusa]"
+              name="Saída Sem Correspondência de Pesquisa"
+              startId="Package\Ligacao\Excecoes.Outputs[Saída Sem Correspondência de Pesquisa]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\tm_player_id na dim_jogador"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:DTSID="{3A4D0E4A-5B95-415A-B313-8DC7F397AFA4}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="tm_player_id na dim_jogador"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{C6E32CC7-5721-4560-919F-C276BD5F39BF}"
+          SQLTask:SqlStatementSource="-- tm_player_id na dim_jogador (D18.4), igual ao 05_dw_carga.sql&#xA;UPDATE j&#xA;SET j.tm_player_id = l.tm_player_id&#xA;FROM dw.dim_jogador j&#xA;JOIN (SELECT DISTINCT sb_player_id, tm_player_id&#xA;      FROM stg.ligacao_jogadores) l ON l.sb_player_id = j.sb_player_id;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição]"
+      DTS:CreationName=""
+      DTS:DTSID="{2FE3D8A7-B93F-4B38-B1B8-882D20798B70}"
+      DTS:From="Package\Elenco TM 2015-16"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição"
+      DTS:To="Package\Ligacao" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{9082D495-5127-4104-8A05-FA42587425C9}"
+      DTS:EvalOp="3"
+      DTS:Expression="@[User::SemLigacao] == 0"
+      DTS:From="Package\Ligacao"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 1"
+      DTS:To="Package\tm_player_id na dim_jogador" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Restrição 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{ACF57C17-3D37-46B5-9A39-F775B3829EE0}"
+      DTS:EvalOp="3"
+      DTS:Expression="@[User::SemLigacao] &gt; 0"
+      DTS:From="Package\Ligacao"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Restrição 2"
+      DTS:To="Package\Alerta sem ligacao" />
+  </DTS:PrecedenceConstraints>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<Objects
+  Version="8">
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="32" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="170,42"
+          Id="Package\Elenco TM 2015-16"
+          TopLeft="40,20" />
+        <NodeLayout
+          Size="140,42"
+          Id="Package\Ligacao"
+          TopLeft="55,110" />
+        <NodeLayout
+          Size="220,42"
+          Id="Package\tm_player_id na dim_jogador"
+          TopLeft="10,210" />
+        <NodeLayout
+          Size="180,42"
+          Id="Package\Alerta sem ligacao"
+          TopLeft="280,210" />
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+  <TaskHost
+    design-time-name="Package\Ligacao">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="32" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="190,42"
+          Id="Package\Ligacao\Jogadores do StatsBomb"
+          TopLeft="30,20" />
+        <NodeLayout
+          Size="130,42"
+          Id="Package\Ligacao\Excecoes"
+          TopLeft="60,110" />
+        <NodeLayout
+          Size="170,42"
+          Id="Package\Ligacao\Difusa no apelido"
+          TopLeft="300,200" />
+        <NodeLayout
+          Size="150,42"
+          Id="Package\Ligacao\Limite apelido"
+          TopLeft="310,290" />
+        <NodeLayout
+          Size="120,42"
+          Id="Package\Ligacao\Regra 6"
+          TopLeft="200,380" />
+        <NodeLayout
+          Size="200,42"
+          Id="Package\Ligacao\Difusa no nome completo"
+          TopLeft="440,380" />
+        <NodeLayout
+          Size="180,42"
+          Id="Package\Ligacao\Limite nome completo"
+          TopLeft="450,470" />
+        <NodeLayout
+          Size="120,42"
+          Id="Package\Ligacao\Regra 7"
+          TopLeft="330,560" />
+        <NodeLayout
+          Size="130,42"
+          Id="Package\Ligacao\Sem ligacao"
+          TopLeft="600,560" />
+        <NodeLayout
+          Size="160,42"
+          Id="Package\Ligacao\ligacao excecoes"
+          TopLeft="20,200" />
+        <NodeLayout
+          Size="150,42"
+          Id="Package\Ligacao\ligacao regra 6"
+          TopLeft="190,470" />
+        <NodeLayout
+          Size="150,42"
+          Id="Package\Ligacao\ligacao regra 7"
+          TopLeft="320,650" />
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>
