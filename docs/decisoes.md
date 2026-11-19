@@ -853,3 +853,29 @@ Resultado (2026-11-19): 2.181 jogadores (5 novos), 943 clubes (863 novos) e 68.5
 - Setas: `dim_partida` → fatos em fila com `== 0`. Cada passo tem uma seta `> 0` para o `Alerta sem par`, todas em OU.
 
 Resultado (2026-11-19): 329.797 / 46.741 / 5.716 linhas e as 4 variáveis de sobra = 0. EXCEPT 0/0 contra o oficial nas 3 fatos e de novo nas 3 dimensões. 0 órfãos em todas as chaves. `situacao_taxa`: Paga 1.389 / Sem custo 3.482 / Não informada 845. Gols do Chelsea na PL: 72 / 55 / 83 em 2014/15, 2015/16 e 2016/17. O pacote inteiro roda em ~5 s, testado em 2 execuções seguidas, e o Bloco 1 continua intacto. **Bloco 2 completo no SSIS.**
+
+---
+
+## D23 — Pacote master, execução pelo DTExec e comparação dos 2 bancos
+
+**Contexto** (2026-11-19, Aula 31): fechar o ETL no SSIS com um pacote que roda o projeto inteiro e provar que o banco do SSIS sai igual ao DW feito em SQL.
+
+### D23.1 — `00_master` em fila
+
+5 tarefas **Executar Pacote** com **referência de projeto** (`UseProjectReference`; os filhos usam o parâmetro `PastaDados` e a conexão do projeto, sem ligar nada) em fila, `01_staging_statsbomb` → `02_staging_transfermarkt` → `03_bloco1_statsbomb` → `04_ligacao_jogadores` → `05_bloco2_transfermarkt`, com setas de sucesso: se um pacote falha, os seguintes não rodam. Montado pelo agente pelo modelo de objetos, a pedido do usuário.
+
+**Descartadas:** *01 e 02 em paralelo*: as duas stagings não dependem uma da outra, mas o 01 leva quase todo o tempo (eventos), então o ganho seria de uns 15 s, com o log mais embaralhado; *usuário monta em aula*.
+
+### D23.2 — DTExec com o `.ispac` e comparação das tabelas stg + dw
+
+O `.ispac` do projeto (6 pacotes, conexão, parâmetro) é gerado pelo modelo de objetos (`Project.SaveTo`, o mesmo que o Build do Visual Studio gera em `bin\Development\`) e rodado com:
+
+```
+DTExec /Project chelsea_etl.ispac /Package 00_master.dtsx /Rep EW
+```
+
+Depois, um script que lista as tabelas do `stg` e do `dw` pelo `sys.tables` e faz EXCEPT nos dois sentidos em cada uma, com todas as colunas. A única exceção é a `regra` da `stg.ligacao_jogadores`, que é diferente de propósito (D21.1).
+
+Resultado (2026-11-19): `DTSER_SUCCESS (0)` em **326 s**. **23 tabelas** (13 stg + 10 dw), **8.820.320 linhas, 0 diferenças**. Os 207 avisos são dos tipos conhecidos: truncamento possível de texto de 400 em colunas menores (183), coluna de saída não usada (19), comprimento do `nome_completo` na Pesquisa Difusa (4) e o contador de desempenho do Windows (1). **ETL no SSIS completo.**
+
+**Descartada:** *só as 10 do DW*: a staging ficaria sem prova de ponta a ponta.
