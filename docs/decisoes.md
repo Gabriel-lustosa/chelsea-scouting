@@ -811,3 +811,34 @@ A Pesquisa Difusa só aceita tabela ou view como referência, não consulta. O e
 **Descartadas:** *tabela só no banco do SSIS, criada pelo pacote*: não mexe no oficial, mas os dois bancos deixam de ter a mesma estrutura; *view*: descartada para o DW inteiro na D10.
 
 ---
+
+## D22 — Pacote SSIS do Bloco 2: limpeza própria e montagem em 2 partes
+
+**Contexto** (2026-11-19, Aula 30): o `05_bloco2_transfermarkt` acrescenta linhas a 3 dimensões que o `03_bloco1_statsbomb` já encheu (`dim_jogador`, `dim_time`, `dim_partida`) e carrega as 3 fatos de mercado. O `05_dw_carga.sql` só protege as dimensões com `NOT EXISTS`: rodando de novo, nada é inserido. No SSIS isso atrapalha. Depois de mudar um fluxo de dimensão, o pacote rodado sozinho não grava nada novo, e uma execução parada no meio deixa linhas que, completadas depois, saem com outras SKs.
+
+### D22.1 — `Limpar Bloco 2` com DELETE + RESEED
+
+A 1ª tarefa do pacote é um Executar SQL que:
+1. para com THROW 50005 se a `dim_jogador` não tiver `tm_player_id` (o 03 e o 04 não rodaram);
+2. faz TRUNCATE das 3 fatos de mercado;
+3. apaga das 3 dimensões as linhas só do Transfermarkt (`sb_match_id`, `sb_team_id` ou `sb_player_id` NULL);
+4. roda `DBCC CHECKIDENT (..., RESEED, @maior_sk_que_ficou)`, porque o DELETE, ao contrário do TRUNCATE, não reinicia o IDENTITY.
+
+Assim o próximo IDENTITY é o maior SK + 1, e as SKs do Bloco 2 saem iguais às do oficial em toda execução (testado: 3 execuções seguidas, EXCEPT 0/0 com as SKs nas 3 dimensões). O Bloco 1 não é tocado (`fato_desempenho` 54.415 e ligação 2.279 seguem iguais).
+
+**Descartada:** *só o `NOT EXISTS`, como no SQL*: é mais simples, mas obriga a rodar o 03 e o 04 antes de cada teste do 05 e não se recupera de uma execução parada no meio.
+
+### D22.2 — Duas partes, montadas pelo agente
+
+Parte A com as dimensões e parte B com as 3 fatos, cada uma conferida e commitada no dia em que é feita. O usuário pediu que o agente montasse o pacote pelo modelo de objetos do SSIS, como nas Aulas 28B e 29, para depois ler o pacote pronto no Visual Studio.
+
+**Descartadas:** *tudo de uma vez*; *usuário monta em aula* (fica para os pacotes seguintes).
+
+### D22.3 — Parte A: o que ficou em SQL e o que ficou em componentes (D20)
+
+- `dim_jogador`: um Fluxo grava os 5 do Chelsea 2014/15. A consulta, com o país na grafia do StatsBomb, vai na Origem. Os atributos do TM entram por um Executar SQL com o UPDATE do 05, porque o Destino só insere.
+- `dim_time`: a Origem traz as CTEs do 05 com os **códigos** das ligas. Três Pesquisas na `dim_liga` com **Ignorar falha** funcionam como LEFT JOIN: país pela liga do clube, país pela liga mais jogada e nome da liga em 2015/16. Faltar par aqui é normal (clube de divisão inferior fica sem país, 431 clubes). Uma Coluna Derivada faz `REPLACENULL` dos dois países e grava `eh_time_do_estudo` = FALSE.
+- `dim_partida`: a Origem traz o jogo visto do lado do clube do jogador (mando, adversário, técnico, formação, gols). `Liga` e `Time` são Pesquisas obrigatórias: o que ficar sem par vai para uma União de Todos e uma Contagem `SemParPartida`, que tem de dar 0, senão o `Alerta sem par` dispara (THROW 50004). `Adversario` é LEFT JOIN, com Ignorar falha, e dá o nome curto e a posição. A Coluna Derivada monta temporada, rodada (`'12. Matchday'` → 12), adversário, confronto e resultado.
+- **Sem TABLOCK** nos 3 Destinos de dimensão. A Origem lê a mesma tabela (`NOT EXISTS`) e segura o bloqueio compartilhado enquanto manda linhas, e o Destino com TABLOCK espera o bloqueio exclusivo. Na 1ª execução a `dim_partida` (65.470 linhas, mais do que cabe nos buffers) ficou 10 minutos parada, com a Origem em `ASYNC_NETWORK_IO` e o Destino em `LCK_M_X`. Sem TABLOCK, o pacote roda em 3 s.
+
+Resultado (2026-11-19): 2.181 jogadores (5 novos), 943 clubes (863 novos) e 68.504 jogo × clube (65.470 novos), com `SemParPartida` = 0. EXCEPT 0/0 contra o oficial nas 3 dimensões inteiras, com as SKs.
