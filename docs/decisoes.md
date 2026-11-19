@@ -842,3 +842,14 @@ Parte A com as dimensões e parte B com as 3 fatos, cada uma conferida e commita
 - **Sem TABLOCK** nos 3 Destinos de dimensão. A Origem lê a mesma tabela (`NOT EXISTS`) e segura o bloqueio compartilhado enquanto manda linhas, e o Destino com TABLOCK espera o bloqueio exclusivo. Na 1ª execução a `dim_partida` (65.470 linhas, mais do que cabe nos buffers) ficou 10 minutos parada, com a Origem em `ASYNC_NETWORK_IO` e o Destino em `LCK_M_X`. Sem TABLOCK, o pacote roda em 3 s.
 
 Resultado (2026-11-19): 2.181 jogadores (5 novos), 943 clubes (863 novos) e 68.504 jogo × clube (65.470 novos), com `SemParPartida` = 0. EXCEPT 0/0 contra o oficial nas 3 dimensões inteiras, com as SKs.
+
+### D22.4 — Parte B: as 3 fatos de mercado
+
+- A Origem de cada fato traz as **chaves do TM** com o filtro do 05: só os jogadores do DW (`EXISTS` na `dim_jogador`), atuações desde 2014/15 e datas dentro da `dim_data`. As SKs saem em Pesquisas obrigatórias. As linhas sem par vão para uma União de Todos e uma Contagem por fato (`SemParAtuacao`, `SemParValor`, `SemParTransferencia`), que têm de dar 0.
+- `fato_atuacao`: 5 Pesquisas (`Jogador`; `Partida` pelas 2 chaves, jogo + clube, que devolve também a data; `Time`; `Liga`; `Data`).
+- `fato_valor_mercado`: 2 Pesquisas (`Jogador`, `Data`).
+- `fato_transferencia`: a `dim_time` em **papel duplo**, com 2 Pesquisas na mesma tabela (`Time de origem` → `sk_time_origem`, `Time de destino` → `sk_time_destino`). A `situacao_taxa` sai na Coluna Derivada: `ISNULL([taxa_eur]) ? "Não informada" : [taxa_eur] == 0 ? "Sem custo" : "Paga"`.
+- Destinos das fatos **com TABLOCK**: a Origem não lê a própria fato, então não há a trava da D22.3.
+- Setas: `dim_partida` → fatos em fila com `== 0`. Cada passo tem uma seta `> 0` para o `Alerta sem par`, todas em OU.
+
+Resultado (2026-11-19): 329.797 / 46.741 / 5.716 linhas e as 4 variáveis de sobra = 0. EXCEPT 0/0 contra o oficial nas 3 fatos e de novo nas 3 dimensões. 0 órfãos em todas as chaves. `situacao_taxa`: Paga 1.389 / Sem custo 3.482 / Não informada 845. Gols do Chelsea na PL: 72 / 55 / 83 em 2014/15, 2015/16 e 2016/17. O pacote inteiro roda em ~5 s, testado em 2 execuções seguidas, e o Bloco 1 continua intacto. **Bloco 2 completo no SSIS.**
