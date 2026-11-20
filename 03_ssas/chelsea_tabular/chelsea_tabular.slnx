@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Development" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="chelsea_tabular.smproj" Type="6870e480-7721-4708-bfb8-9ae898aa21b3" Id="853f9017-aaee-43b5-a803-8a08cbd1e9b6">
+    <Deploy />
+  </Project>
+</Solution>

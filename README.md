@@ -64,6 +64,7 @@ As etapas de SQL Server, SSIS, SSAS e Power BI entram aqui conforme forem constr
 00_dados/        download dos dados e scripts do levantamento
 01_sql/          DW em T-SQL: bancos, staging, dimensões e fatos
 02_ssis/         projeto SSIS chelsea_etl: o mesmo ETL em pacotes, num banco de teste
+03_ssas/         modelo SSAS Tabular chelsea_tabular (fonte do Power BI)
 docs/            log de decisões e documentação dos dados
 ```
 
@@ -90,7 +91,7 @@ Cada etapa foi decidida entre alternativas, e o motivo de cada escolha está reg
 | DW no SQL Server | Pronto (6 dimensões e 4 fatos: `fato_desempenho` com 54.415 linhas jogador × partida × posição do StatsBomb 2015/16, validada contra o levantamento; jogadores ligados ao Transfermarkt em 100% dos minutos; `fato_atuacao` com 329.797 atuações, `fato_valor_mercado` com 46.741 avaliações e `fato_transferencia` com 5.716 transferências, de 2014 a 2026; 0 órfãos em todas as fatos) |
 | ETL com SSIS | Pronto (D20 a D23): 6 pacotes no projeto `02_ssis/chelsea_etl`. O `00_master` roda em fila as 2 stagings (`01_staging_statsbomb`: 1.517 partidas, 56.884 escalações e 5.321.459 eventos lidos dos JSONs em Loops Foreach; `02_staging_transfermarkt`: 7 tabelas, 2,9 milhões de linhas lidas dos CSVs), o `03_bloco1_statsbomb` (6 dimensões e a `fato_desempenho`, com Pesquisas no lugar dos JOINs, Colunas Derivadas para datas, minutos por tempo e PAdj, e um alerta que para o pacote se alguma linha ficar sem par), o `04_ligacao_jogadores` (Pesquisa Difusa em 2 passadas, pelo apelido e pelo nome completo, + 17 exceções: 2.279 pares, 100% dos minutos) e o `05_bloco2_transfermarkt` (dimensões e as 3 fatos de mercado, com a dimensão de times no papel de origem e de destino). Rodado pelo DTExec em 5 min 26 s; comparado com o DW feito em SQL: **23 tabelas, 8.820.320 linhas, 0 diferenças** |
 | Desenho do modelo SSAS Tabular (D24) | Pronto: as 10 tabelas do DW em memória, 17 relações (a transferência liga ao time de destino; o de origem fica numa relação inativa, usada só na medida de saídas), indicadores por 90 minutos calculados como soma ÷ minutos, mínimo de minutos e percentis por grupo de posição em DAX, e os parâmetros de orçamento (teto de valor, idade máxima) e de minutos dentro do modelo, para o Power BI conectado ao vivo |
-| Modelo SSAS Tabular | Em andamento |
+| Modelo SSAS Tabular | Em andamento: projeto `03_ssas/chelsea_tabular` implantado no SSAS local (Aula 32) com as 10 tabelas do DW em memória (513.139 linhas, iguais ao SQL) e as 17 relações sem nenhum órfão; conferido por DAX: Chelsea na Premier League 2015/16 com 55 gols e 53,6 de xG, e a janela de 2016 pela relação de destino (Batshuayi € 39 mi, Kanté € 35,8 mi, Alonso € 23 mi). Medidas nas próximas aulas |
 | Dashboards Power BI | Pendente |
 
 ---

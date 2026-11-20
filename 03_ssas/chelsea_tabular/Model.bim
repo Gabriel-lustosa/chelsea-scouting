@@ -1,0 +1,1025 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1700,
+  "model": {
+    "culture": "pt-BR",
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "SQL/localhost;chelsea_scouting",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "localhost",
+            "database": "chelsea_scouting"
+          }
+        },
+        "credential": {
+          "AuthenticationKind": "ServiceAccount",
+          "EncryptConnection": false
+        }
+      }
+    ],
+    "tables": [
+      {
+        "name": "dim_data",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_data"
+          },
+          {
+            "name": "data",
+            "dataType": "dateTime",
+            "isKey": true,
+            "sourceColumn": "data"
+          },
+          {
+            "name": "ano",
+            "dataType": "int64",
+            "sourceColumn": "ano"
+          },
+          {
+            "name": "trimestre",
+            "dataType": "int64",
+            "sourceColumn": "trimestre"
+          },
+          {
+            "name": "mes",
+            "dataType": "int64",
+            "sourceColumn": "mes"
+          },
+          {
+            "name": "mes_nome",
+            "dataType": "string",
+            "sourceColumn": "mes_nome"
+          },
+          {
+            "name": "dia",
+            "dataType": "int64",
+            "sourceColumn": "dia"
+          },
+          {
+            "name": "dia_semana",
+            "dataType": "int64",
+            "sourceColumn": "dia_semana"
+          },
+          {
+            "name": "dia_semana_nome",
+            "dataType": "string",
+            "sourceColumn": "dia_semana_nome"
+          },
+          {
+            "name": "eh_fim_semana",
+            "dataType": "boolean",
+            "sourceColumn": "eh_fim_semana"
+          },
+          {
+            "name": "temporada",
+            "dataType": "string",
+            "sourceColumn": "temporada"
+          },
+          {
+            "name": "temporada_ano_inicio",
+            "dataType": "int64",
+            "sourceColumn": "temporada_ano_inicio"
+          },
+          {
+            "name": "periodo_cenario",
+            "dataType": "string",
+            "sourceColumn": "periodo_cenario"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_data = Source{[Schema=\"dw\",Item=\"dim_data\"]}[Data]",
+                "in",
+                "    dw_dim_data"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_jogador",
+        "columns": [
+          {
+            "name": "sk_jogador",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_jogador"
+          },
+          {
+            "name": "sb_player_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_player_id"
+          },
+          {
+            "name": "tm_player_id",
+            "dataType": "int64",
+            "sourceColumn": "tm_player_id"
+          },
+          {
+            "name": "nome",
+            "dataType": "string",
+            "sourceColumn": "nome"
+          },
+          {
+            "name": "nome_completo",
+            "dataType": "string",
+            "sourceColumn": "nome_completo"
+          },
+          {
+            "name": "pais",
+            "dataType": "string",
+            "sourceColumn": "pais"
+          },
+          {
+            "name": "time_fim_2015_16",
+            "dataType": "string",
+            "sourceColumn": "time_fim_2015_16"
+          },
+          {
+            "name": "trocou_de_time_2015_16",
+            "dataType": "boolean",
+            "sourceColumn": "trocou_de_time_2015_16"
+          },
+          {
+            "name": "eh_elenco_chelsea_2015_16",
+            "dataType": "boolean",
+            "sourceColumn": "eh_elenco_chelsea_2015_16"
+          },
+          {
+            "name": "posicao_principal",
+            "dataType": "string",
+            "sourceColumn": "posicao_principal"
+          },
+          {
+            "name": "grupo_principal",
+            "dataType": "string",
+            "sourceColumn": "grupo_principal"
+          },
+          {
+            "name": "data_nascimento",
+            "dataType": "dateTime",
+            "sourceColumn": "data_nascimento"
+          },
+          {
+            "name": "idade_2016",
+            "dataType": "int64",
+            "sourceColumn": "idade_2016"
+          },
+          {
+            "name": "pe",
+            "dataType": "string",
+            "sourceColumn": "pe"
+          },
+          {
+            "name": "altura_cm",
+            "dataType": "int64",
+            "sourceColumn": "altura_cm"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_jogador = Source{[Schema=\"dw\",Item=\"dim_jogador\"]}[Data]",
+                "in",
+                "    dw_dim_jogador"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_liga",
+        "columns": [
+          {
+            "name": "sk_liga",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_liga"
+          },
+          {
+            "name": "tm_competition_id",
+            "dataType": "string",
+            "sourceColumn": "tm_competition_id"
+          },
+          {
+            "name": "sb_competition_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_competition_id"
+          },
+          {
+            "name": "nome",
+            "dataType": "string",
+            "sourceColumn": "nome"
+          },
+          {
+            "name": "tipo",
+            "dataType": "string",
+            "sourceColumn": "tipo"
+          },
+          {
+            "name": "pais",
+            "dataType": "string",
+            "sourceColumn": "pais"
+          },
+          {
+            "name": "confederacao",
+            "dataType": "string",
+            "sourceColumn": "confederacao"
+          },
+          {
+            "name": "eh_liga_do_estudo",
+            "dataType": "boolean",
+            "sourceColumn": "eh_liga_do_estudo"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_liga = Source{[Schema=\"dw\",Item=\"dim_liga\"]}[Data]",
+                "in",
+                "    dw_dim_liga"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_partida",
+        "columns": [
+          {
+            "name": "sk_partida",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_partida"
+          },
+          {
+            "name": "sb_match_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_match_id"
+          },
+          {
+            "name": "sb_team_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_team_id"
+          },
+          {
+            "name": "tm_game_id",
+            "dataType": "int64",
+            "sourceColumn": "tm_game_id"
+          },
+          {
+            "name": "tm_club_id",
+            "dataType": "int64",
+            "sourceColumn": "tm_club_id"
+          },
+          {
+            "name": "data",
+            "dataType": "dateTime",
+            "sourceColumn": "data"
+          },
+          {
+            "name": "temporada",
+            "dataType": "string",
+            "sourceColumn": "temporada"
+          },
+          {
+            "name": "liga",
+            "dataType": "string",
+            "sourceColumn": "liga"
+          },
+          {
+            "name": "rodada",
+            "dataType": "int64",
+            "sourceColumn": "rodada"
+          },
+          {
+            "name": "confronto",
+            "dataType": "string",
+            "sourceColumn": "confronto"
+          },
+          {
+            "name": "mando",
+            "dataType": "string",
+            "sourceColumn": "mando"
+          },
+          {
+            "name": "adversario",
+            "dataType": "string",
+            "sourceColumn": "adversario"
+          },
+          {
+            "name": "posicao_adversario_2015_16",
+            "dataType": "int64",
+            "sourceColumn": "posicao_adversario_2015_16"
+          },
+          {
+            "name": "tecnico",
+            "dataType": "string",
+            "sourceColumn": "tecnico"
+          },
+          {
+            "name": "tecnico_adversario",
+            "dataType": "string",
+            "sourceColumn": "tecnico_adversario"
+          },
+          {
+            "name": "formacao",
+            "dataType": "string",
+            "sourceColumn": "formacao"
+          },
+          {
+            "name": "formacao_adversario",
+            "dataType": "string",
+            "sourceColumn": "formacao_adversario"
+          },
+          {
+            "name": "gols_pro",
+            "dataType": "int64",
+            "sourceColumn": "gols_pro"
+          },
+          {
+            "name": "gols_contra",
+            "dataType": "int64",
+            "sourceColumn": "gols_contra"
+          },
+          {
+            "name": "resultado",
+            "dataType": "string",
+            "sourceColumn": "resultado"
+          },
+          {
+            "name": "posse",
+            "dataType": "double",
+            "sourceColumn": "posse"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_partida = Source{[Schema=\"dw\",Item=\"dim_partida\"]}[Data]",
+                "in",
+                "    dw_dim_partida"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_posicao",
+        "columns": [
+          {
+            "name": "sk_posicao",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_posicao"
+          },
+          {
+            "name": "sb_position_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_position_id"
+          },
+          {
+            "name": "posicao",
+            "dataType": "string",
+            "sourceColumn": "posicao"
+          },
+          {
+            "name": "posicao_pt",
+            "dataType": "string",
+            "sourceColumn": "posicao_pt"
+          },
+          {
+            "name": "sigla",
+            "dataType": "string",
+            "sourceColumn": "sigla"
+          },
+          {
+            "name": "lado",
+            "dataType": "string",
+            "sourceColumn": "lado"
+          },
+          {
+            "name": "grupo",
+            "dataType": "string",
+            "sourceColumn": "grupo"
+          },
+          {
+            "name": "setor",
+            "dataType": "string",
+            "sourceColumn": "setor"
+          },
+          {
+            "name": "eh_escopo",
+            "dataType": "boolean",
+            "sourceColumn": "eh_escopo"
+          },
+          {
+            "name": "ordem_grupo",
+            "dataType": "int64",
+            "sourceColumn": "ordem_grupo"
+          },
+          {
+            "name": "ordem_setor",
+            "dataType": "int64",
+            "sourceColumn": "ordem_setor"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_posicao = Source{[Schema=\"dw\",Item=\"dim_posicao\"]}[Data]",
+                "in",
+                "    dw_dim_posicao"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_time",
+        "columns": [
+          {
+            "name": "sk_time",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_time"
+          },
+          {
+            "name": "sb_team_id",
+            "dataType": "int64",
+            "sourceColumn": "sb_team_id"
+          },
+          {
+            "name": "tm_club_id",
+            "dataType": "int64",
+            "sourceColumn": "tm_club_id"
+          },
+          {
+            "name": "nome",
+            "dataType": "string",
+            "sourceColumn": "nome"
+          },
+          {
+            "name": "nome_tm",
+            "dataType": "string",
+            "sourceColumn": "nome_tm"
+          },
+          {
+            "name": "pais",
+            "dataType": "string",
+            "sourceColumn": "pais"
+          },
+          {
+            "name": "liga_2015_16",
+            "dataType": "string",
+            "sourceColumn": "liga_2015_16"
+          },
+          {
+            "name": "posicao_2015_16",
+            "dataType": "int64",
+            "sourceColumn": "posicao_2015_16"
+          },
+          {
+            "name": "eh_time_do_estudo",
+            "dataType": "boolean",
+            "sourceColumn": "eh_time_do_estudo"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_dim_time = Source{[Schema=\"dw\",Item=\"dim_time\"]}[Data]",
+                "in",
+                "    dw_dim_time"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fato_desempenho",
+        "columns": [
+          {
+            "name": "sk_jogador",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_jogador"
+          },
+          {
+            "name": "sk_partida",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_partida"
+          },
+          {
+            "name": "sk_posicao",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_posicao"
+          },
+          {
+            "name": "sk_time",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_time"
+          },
+          {
+            "name": "sk_liga",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_liga"
+          },
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_data"
+          },
+          {
+            "name": "minutos",
+            "dataType": "double",
+            "sourceColumn": "minutos"
+          },
+          {
+            "name": "passes",
+            "dataType": "int64",
+            "sourceColumn": "passes"
+          },
+          {
+            "name": "passes_certos",
+            "dataType": "int64",
+            "sourceColumn": "passes_certos"
+          },
+          {
+            "name": "passes_progressivos",
+            "dataType": "int64",
+            "sourceColumn": "passes_progressivos"
+          },
+          {
+            "name": "passes_chave",
+            "dataType": "int64",
+            "sourceColumn": "passes_chave"
+          },
+          {
+            "name": "passes_area",
+            "dataType": "int64",
+            "sourceColumn": "passes_area"
+          },
+          {
+            "name": "conducoes_progressivas",
+            "dataType": "int64",
+            "sourceColumn": "conducoes_progressivas"
+          },
+          {
+            "name": "dribles",
+            "dataType": "int64",
+            "sourceColumn": "dribles"
+          },
+          {
+            "name": "dribles_certos",
+            "dataType": "int64",
+            "sourceColumn": "dribles_certos"
+          },
+          {
+            "name": "desarmes_ganhos",
+            "dataType": "int64",
+            "sourceColumn": "desarmes_ganhos"
+          },
+          {
+            "name": "interceptacoes",
+            "dataType": "int64",
+            "sourceColumn": "interceptacoes"
+          },
+          {
+            "name": "recuperacoes",
+            "dataType": "int64",
+            "sourceColumn": "recuperacoes"
+          },
+          {
+            "name": "pressoes",
+            "dataType": "int64",
+            "sourceColumn": "pressoes"
+          },
+          {
+            "name": "duelos_aereos_ganhos",
+            "dataType": "int64",
+            "sourceColumn": "duelos_aereos_ganhos"
+          },
+          {
+            "name": "duelos_aereos_perdidos",
+            "dataType": "int64",
+            "sourceColumn": "duelos_aereos_perdidos"
+          },
+          {
+            "name": "perdas_bola",
+            "dataType": "int64",
+            "sourceColumn": "perdas_bola"
+          },
+          {
+            "name": "erros_levaram_chute",
+            "dataType": "int64",
+            "sourceColumn": "erros_levaram_chute"
+          },
+          {
+            "name": "chutes",
+            "dataType": "int64",
+            "sourceColumn": "chutes"
+          },
+          {
+            "name": "gols",
+            "dataType": "int64",
+            "sourceColumn": "gols"
+          },
+          {
+            "name": "xg",
+            "dataType": "double",
+            "sourceColumn": "xg"
+          },
+          {
+            "name": "assistencias",
+            "dataType": "int64",
+            "sourceColumn": "assistencias"
+          },
+          {
+            "name": "desarmes_padj",
+            "dataType": "double",
+            "sourceColumn": "desarmes_padj"
+          },
+          {
+            "name": "interceptacoes_padj",
+            "dataType": "double",
+            "sourceColumn": "interceptacoes_padj"
+          },
+          {
+            "name": "recuperacoes_padj",
+            "dataType": "double",
+            "sourceColumn": "recuperacoes_padj"
+          },
+          {
+            "name": "pressoes_padj",
+            "dataType": "double",
+            "sourceColumn": "pressoes_padj"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_fato_desempenho = Source{[Schema=\"dw\",Item=\"fato_desempenho\"]}[Data]",
+                "in",
+                "    dw_fato_desempenho"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fato_atuacao",
+        "columns": [
+          {
+            "name": "sk_jogador",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_jogador"
+          },
+          {
+            "name": "sk_partida",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_partida"
+          },
+          {
+            "name": "sk_time",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_time"
+          },
+          {
+            "name": "sk_liga",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_liga"
+          },
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_data"
+          },
+          {
+            "name": "minutos",
+            "dataType": "int64",
+            "sourceColumn": "minutos"
+          },
+          {
+            "name": "gols",
+            "dataType": "int64",
+            "sourceColumn": "gols"
+          },
+          {
+            "name": "assistencias",
+            "dataType": "int64",
+            "sourceColumn": "assistencias"
+          },
+          {
+            "name": "amarelos",
+            "dataType": "int64",
+            "sourceColumn": "amarelos"
+          },
+          {
+            "name": "vermelhos",
+            "dataType": "int64",
+            "sourceColumn": "vermelhos"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_fato_atuacao = Source{[Schema=\"dw\",Item=\"fato_atuacao\"]}[Data]",
+                "in",
+                "    dw_fato_atuacao"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fato_valor_mercado",
+        "columns": [
+          {
+            "name": "sk_jogador",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_jogador"
+          },
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_data"
+          },
+          {
+            "name": "valor_eur",
+            "dataType": "int64",
+            "sourceColumn": "valor_eur"
+          },
+          {
+            "name": "clube_na_avaliacao",
+            "dataType": "string",
+            "sourceColumn": "clube_na_avaliacao"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_fato_valor_mercado = Source{[Schema=\"dw\",Item=\"fato_valor_mercado\"]}[Data]",
+                "in",
+                "    dw_fato_valor_mercado"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fato_transferencia",
+        "columns": [
+          {
+            "name": "sk_jogador",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_jogador"
+          },
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_data"
+          },
+          {
+            "name": "sk_time_origem",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_time_origem"
+          },
+          {
+            "name": "sk_time_destino",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_time_destino"
+          },
+          {
+            "name": "taxa_eur",
+            "dataType": "int64",
+            "sourceColumn": "taxa_eur"
+          },
+          {
+            "name": "valor_mercado_eur",
+            "dataType": "int64",
+            "sourceColumn": "valor_mercado_eur"
+          },
+          {
+            "name": "situacao_taxa",
+            "dataType": "string",
+            "sourceColumn": "situacao_taxa"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;chelsea_scouting\",",
+                "    dw_fato_transferencia = Source{[Schema=\"dw\",Item=\"fato_transferencia\"]}[Data]",
+                "in",
+                "    dw_fato_transferencia"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "00bd6123-a807-40cb-b4c9-f1dbabdbf766",
+        "toTable": "dim_jogador",
+        "toColumn": "sk_jogador",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_jogador"
+      },
+      {
+        "name": "97fc156e-6a87-465f-9ae6-0a1dde16b3e8",
+        "toTable": "dim_partida",
+        "toColumn": "sk_partida",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_partida"
+      },
+      {
+        "name": "0d995b40-52fc-402b-a637-c48658ae9806",
+        "toTable": "dim_posicao",
+        "toColumn": "sk_posicao",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_posicao"
+      },
+      {
+        "name": "552c34e2-fa1b-4371-8938-38bafaea788b",
+        "toTable": "dim_time",
+        "toColumn": "sk_time",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_time"
+      },
+      {
+        "name": "81d44830-a209-4ac0-baff-306d4f9b8a50",
+        "toTable": "dim_liga",
+        "toColumn": "sk_liga",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_liga"
+      },
+      {
+        "name": "ab18a855-ed77-4b14-b903-7f896e297bf7",
+        "toTable": "dim_data",
+        "toColumn": "sk_data",
+        "fromTable": "fato_desempenho",
+        "fromColumn": "sk_data"
+      },
+      {
+        "name": "0122aeff-f75f-45eb-ba89-7c26d03984dd",
+        "toTable": "dim_jogador",
+        "toColumn": "sk_jogador",
+        "fromTable": "fato_atuacao",
+        "fromColumn": "sk_jogador"
+      },
+      {
+        "name": "5e73e95c-2c87-46d9-928b-6e7d0535195c",
+        "toTable": "dim_partida",
+        "toColumn": "sk_partida",
+        "fromTable": "fato_atuacao",
+        "fromColumn": "sk_partida"
+      },
+      {
+        "name": "8b9d7922-46b6-49d5-aa56-216e5af6e8ab",
+        "toTable": "dim_time",
+        "toColumn": "sk_time",
+        "fromTable": "fato_atuacao",
+        "fromColumn": "sk_time"
+      },
+      {
+        "name": "fb86f007-7e32-4bcc-83f3-b14c1cfb704f",
+        "toTable": "dim_liga",
+        "toColumn": "sk_liga",
+        "fromTable": "fato_atuacao",
+        "fromColumn": "sk_liga"
+      },
+      {
+        "name": "4182190e-465f-404d-9c8a-d0d78c6a62cd",
+        "toTable": "dim_data",
+        "toColumn": "sk_data",
+        "fromTable": "fato_atuacao",
+        "fromColumn": "sk_data"
+      },
+      {
+        "name": "5836272e-6211-4027-ac95-edf4f01240fb",
+        "toTable": "dim_jogador",
+        "toColumn": "sk_jogador",
+        "fromTable": "fato_valor_mercado",
+        "fromColumn": "sk_jogador"
+      },
+      {
+        "name": "b8e3412c-4d95-49fd-88a2-0faa24846fe0",
+        "toTable": "dim_data",
+        "toColumn": "sk_data",
+        "fromTable": "fato_valor_mercado",
+        "fromColumn": "sk_data"
+      },
+      {
+        "name": "4efac39c-e9c2-4db7-8af7-42cd9249758d",
+        "toTable": "dim_jogador",
+        "toColumn": "sk_jogador",
+        "fromTable": "fato_transferencia",
+        "fromColumn": "sk_jogador"
+      },
+      {
+        "name": "cfee7ecc-6339-40ce-9be7-e7060b168175",
+        "toTable": "dim_data",
+        "toColumn": "sk_data",
+        "fromTable": "fato_transferencia",
+        "fromColumn": "sk_data"
+      },
+      {
+        "name": "63989e4f-c815-417c-9607-7fd30b13d325",
+        "toTable": "dim_time",
+        "toColumn": "sk_time",
+        "fromTable": "fato_transferencia",
+        "fromColumn": "sk_time_destino"
+      },
+      {
+        "name": "3c6f482a-3d67-416b-9605-9847b5d9016b",
+        "toTable": "dim_time",
+        "toColumn": "sk_time",
+        "fromColumn": "sk_time_origem",
+        "fromTable": "fato_transferencia",
+        "isActive": false
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "800"
+      }
+    ]
+  },
+  "id": "SemanticModel"
+}

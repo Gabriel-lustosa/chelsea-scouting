@@ -887,7 +887,7 @@ Resultado (2026-11-19): `DTSER_SUCCESS (0)` em **326 s**. **23 tabelas** (13 stg
 
 ## D24 — Desenho do modelo SSAS Tabular
 
-**Contexto** (2026-11-20): com o ETL completo (D23), o DW vira um modelo SSAS Tabular, que vai ser a fonte única do Power BI. Conferido antes de decidir: serviço `MSSQLServerOLAPService` rodando; DW oficial com as 10 tabelas (`dim_data` 4.748, `dim_jogador` 2.181, `dim_liga` 69, `dim_partida` 68.504, `dim_posicao` 25, `dim_time` 943, `fato_desempenho` 54.415, `fato_atuacao` 329.797, `fato_valor_mercado` 46.741, `fato_transferencia` 5.716: ~560 mil linhas); o login `NT Service\MSSQLServerOLAPService` existe no servidor (veio do Olist), mas **não tem usuário no `chelsea_scouting`**. Diferente do Olist, aqui o SSAS vem **antes** do Power BI, então as medidas nascem no SSAS.
+**Contexto** (2026-11-20): com o ETL completo (D23), o DW vira um modelo SSAS Tabular, que vai ser a fonte única do Power BI. Conferido antes de decidir: serviço `MSSQLServerOLAPService` rodando; DW oficial com as 10 tabelas (`dim_data` 4.748, `dim_jogador` 2.181, `dim_liga` 69, `dim_partida` 68.504, `dim_posicao` 25, `dim_time` 943, `fato_desempenho` 54.415, `fato_atuacao` 329.797, `fato_valor_mercado` 46.741, `fato_transferencia` 5.716: 513.139 linhas); o login `NT Service\MSSQLServerOLAPService` existe no servidor (veio do Olist), mas **não tem usuário no `chelsea_scouting`**. Diferente do Olist, aqui o SSAS vem **antes** do Power BI, então as medidas nascem no SSAS.
 
 ### D24.1 — Fonte: DW oficial, só leitura, modo Import
 
@@ -945,3 +945,5 @@ Projeto `03_ssas/chelsea_tabular`, com workspace integrado, compatibilidade 1700
 | 36 | Acabamento (ocultar, hierarquias setor → grupo → posição e temporada → data, formatos) + teste em conexão dinâmica no Power BI | Prints |
 
 **Descartada:** *agente monta o modelo*: fica para os dias sem tempo, a pedido do usuário, como no SSIS.
+
+**Aula 32** (2026-11-20): montada pelo agente pelo TOM, a pedido do usuário (colunas lidas do `INFORMATION_SCHEMA` do DW, `Model.bim` gravado no formato do VS e implantado a partir do próprio arquivo, em 6 s). Antes, com o "sim" do usuário, a conta do SSAS virou `db_datareader` no `chelsea_scouting`. Conferido por DAX no `localhost`: as 10 tabelas com as contagens do DW (513.139 linhas), 0 órfãos nas 17 relações, Chelsea na PL 2015/16 com 40.428,63 minutos, 55 gols e 53,58 de xG (= SQL), gols na PL pela `fato_atuacao` 72 / 55 / 83 em 2014/15 a 2016/17, e em jul–set/2016 3 chegadas pela relação ativa (Batshuayi € 39 mi, Kanté € 35,8 mi, Alonso € 23 mi) e 9 saídas pela inativa com `USERELATIONSHIP` (= SQL).
