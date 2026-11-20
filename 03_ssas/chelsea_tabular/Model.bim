@@ -890,6 +890,247 @@
             }
           }
         ]
+      },
+      {
+        "name": "_Medidas",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Medidas",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "sourceColumn": "[Medidas]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "ROW( \"Medidas\", 0 )"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Minutos",
+            "expression": "SUM( fato_desempenho[minutos] )",
+            "formatString": "#,0",
+            "displayFolder": "Tempo",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Partidas",
+            "expression": "CALCULATE( DISTINCTCOUNT( dim_partida[sb_match_id] ), fato_desempenho )",
+            "formatString": "#,0",
+            "displayFolder": "Tempo",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Jogadores",
+            "expression": "DISTINCTCOUNT( fato_desempenho[sk_jogador] )",
+            "formatString": "#,0",
+            "displayFolder": "Tempo",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes",
+            "expression": "SUM( fato_desempenho[passes] )",
+            "formatString": "#,0",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes certos",
+            "expression": "SUM( fato_desempenho[passes_certos] )",
+            "formatString": "#,0",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Acerto de passe %",
+            "expression": "DIVIDE( [Passes certos], [Passes] )",
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Percentage\" Accuracy=\"1\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes progressivos",
+            "expression": "SUM( fato_desempenho[passes_progressivos] )",
+            "formatString": "#,0",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes progressivos por 90",
+            "expression": "DIVIDE( [Passes progressivos], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes-chave",
+            "expression": "SUM( fato_desempenho[passes_chave] )",
+            "formatString": "#,0",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes-chave por 90",
+            "expression": "DIVIDE( [Passes-chave], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes na área",
+            "expression": "SUM( fato_desempenho[passes_area] )",
+            "formatString": "#,0",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Passes na área por 90",
+            "expression": "DIVIDE( [Passes na área], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Passe",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Conduções progressivas",
+            "expression": "SUM( fato_desempenho[conducoes_progressivas] )",
+            "formatString": "#,0",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Conduções progressivas por 90",
+            "expression": "DIVIDE( [Conduções progressivas], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Dribles",
+            "expression": "SUM( fato_desempenho[dribles] )",
+            "formatString": "#,0",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Dribles certos",
+            "expression": "SUM( fato_desempenho[dribles_certos] )",
+            "formatString": "#,0",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Dribles certos por 90",
+            "expression": "DIVIDE( [Dribles certos], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Acerto de drible %",
+            "expression": "DIVIDE( [Dribles certos], [Dribles] )",
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Condução",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Percentage\" Accuracy=\"1\" />"
+              }
+            ]
+          }
+        ]
       }
     ],
     "relationships": [
