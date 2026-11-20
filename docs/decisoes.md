@@ -25,6 +25,9 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D19 | 2026-11-10 | Resto do Bloco 2: atributos do TM e 5 jogadores do Chelsea 2014/15 na `dim_jogador`, 943 clubes das atuações e transferências na `dim_time` (D19.5: avaliação sem chave de clube), só o lado do clube do jogador na `dim_partida`, fatos a partir de 2014 | Decidida (D19.6, 2026-11-11: fatos de mercado na faixa da `dim_data`, `situacao_taxa` na `fato_transferencia`) |
 | D20 | 2026-11-11 | ETL com SSIS: abordagem híbrida (regra de negócio na consulta de origem, ETL nos componentes), 5 pacotes por bloco + master, Pesquisa Difusa no lugar das regras 1 a 4 da ligação | Decidida (exceções e limite da D20.3 definidos na D21) |
 | D21 | 2026-11-17 | Ligação no SSIS: Pesquisa Difusa em 2 passadas (apelido, depois nome completo) com limite 0,4, 17 exceções (7 da D18 que a Difusa erra + 10 de nome único no TM) e elenco do TM numa tabela da staging nos dois bancos | Decidida |
+| D22 | 2026-11-19 | Pacote SSIS do Bloco 2: limpeza própria (DELETE + RESEED) para rodar sozinho com as mesmas SKs, 2 partes montadas pelo agente, sem TABLOCK nos destinos de dimensão | Decidida |
+| D23 | 2026-11-19 | Pacote master em fila, execução pelo DTExec e comparação das tabelas stg + dw dos 2 bancos (0 diferenças) | Decidida |
+| D24 | 2026-11-20 | Modelo SSAS Tabular: DW oficial em Import, as 10 tabelas do `dw`, 17 relações (destino da transferência ativa, origem inativa), medidas por 90 como razão das somas, mínimo de minutos e percentis em DAX, parâmetros como tabelas no SSAS, roteiro de 5 aulas | Decidida |
 
 ---
 
@@ -879,3 +882,66 @@ Depois, um script que lista as tabelas do `stg` e do `dw` pelo `sys.tables` e fa
 Resultado (2026-11-19): `DTSER_SUCCESS (0)` em **326 s**. **23 tabelas** (13 stg + 10 dw), **8.820.320 linhas, 0 diferenças**. Os 207 avisos são dos tipos conhecidos: truncamento possível de texto de 400 em colunas menores (183), coluna de saída não usada (19), comprimento do `nome_completo` na Pesquisa Difusa (4) e o contador de desempenho do Windows (1). **ETL no SSIS completo.**
 
 **Descartada:** *só as 10 do DW*: a staging ficaria sem prova de ponta a ponta.
+
+---
+
+## D24 — Desenho do modelo SSAS Tabular
+
+**Contexto** (2026-11-20): com o ETL completo (D23), o DW vira um modelo SSAS Tabular, que vai ser a fonte única do Power BI. Conferido antes de decidir: serviço `MSSQLServerOLAPService` rodando; DW oficial com as 10 tabelas (`dim_data` 4.748, `dim_jogador` 2.181, `dim_liga` 69, `dim_partida` 68.504, `dim_posicao` 25, `dim_time` 943, `fato_desempenho` 54.415, `fato_atuacao` 329.797, `fato_valor_mercado` 46.741, `fato_transferencia` 5.716: ~560 mil linhas); o login `NT Service\MSSQLServerOLAPService` existe no servidor (veio do Olist), mas **não tem usuário no `chelsea_scouting`**. Diferente do Olist, aqui o SSAS vem **antes** do Power BI, então as medidas nascem no SSAS.
+
+### D24.1 — Fonte: DW oficial, só leitura, modo Import
+
+O modelo lê o `chelsea_scouting` (o banco do SSIS fica como prova do ETL, com 0 diferenças na D23). Import, porque o volume cabe na memória. Pré-requisito: `CREATE USER [NT Service\MSSQLServerOLAPService]` + `db_datareader` no `chelsea_scouting` (personificação "Conta de serviço", como no Olist), aplicado com o "sim" do usuário na Aula 32.
+
+**Descartadas:** *banco do SSIS como fonte*: mesmos dados, mas os scripts versionados e as conferências usam o oficial; *DirectQuery*: lento nos percentis e com restrições de DAX, sem ganho com esse volume.
+
+### D24.2 — As 10 tabelas do `dw`, com os nomes do DW
+
+Nada da `stg`. Nomes das tabelas e colunas como no DW (padrão do Olist), para o rastro até o SQL ficar direto. SKs e IDs das fontes ocultos; colunas `ordem_*` usadas em "Classificar por coluna"; `dim_data` marcada como tabela de datas (coluna `data`).
+
+**Descartadas:** *só o Bloco 1 primeiro*: a importação é barata e a pergunta de Validação precisa do mercado; *nomes amigáveis nas tabelas*: perde o rastro até o SQL.
+
+### D24.3 — 17 relações 1:N, filtro numa direção
+
+| Fato | Dimensões |
+|---|---|
+| `fato_desempenho` | `dim_jogador`, `dim_partida`, `dim_posicao`, `dim_time`, `dim_liga`, `dim_data` |
+| `fato_atuacao` | `dim_jogador`, `dim_partida`, `dim_time`, `dim_liga`, `dim_data` |
+| `fato_valor_mercado` | `dim_jogador`, `dim_data` |
+| `fato_transferencia` | `dim_jogador`, `dim_data`, `dim_time` por `sk_time_destino` (**ativa**), `dim_time` por `sk_time_origem` (**inativa**) |
+
+Com o destino ativo, filtrar o Chelsea mostra as contratações, que é a janela de 2016 da pergunta 3. As saídas viram uma medida com `USERELATIONSHIP` (D19.6). Sem relação entre dimensões, então não há caminho ambíguo.
+
+**Descartadas:** *origem ativa*: o filtro de time mostraria as vendas, que não são o foco; *as duas inativas*: nenhum filtro de time funcionaria sem medida especial; *cópia da `dim_time` como tabela calculada "Time de origem"*: mais uma tabela para explicar; *filtro bidirecional*: risco de ambiguidade e números inesperados.
+
+### D24.4 — Medidas na `_Medidas`, por 90 como razão das somas
+
+Tabela `_Medidas` (`ROW("Medidas", 0)`, como no Olist), com pastas por família (Tempo, Passe, Condução, Defesa, Erros, Ataque, Mercado, Comparação). **Por 90** = soma do indicador ÷ soma dos minutos × 90; as versões PAdj usam as colunas `_padj` (D17.4). **%** = `DIVIDE(numerador, denominador)` (acerto de passe, duelos aéreos ganhos, dribles certos), o que soma certo em qualquer filtro (D6.2).
+
+**Descartadas:** *média dos "por 90" de cada jogo*: um jogo de 5 minutos pesaria igual a um de 90; *"por 90" em coluna calculada*: não soma certo.
+
+### D24.5 — Mínimo de minutos e percentis em DAX
+
+`Minutos no grupo` respeita o filtro de grupo de posição; o jogador é elegível com minutos ≥ o mínimo (900 por padrão, D6.3). O percentil compara o jogador com os elegíveis do mesmo grupo, nas ligas selecionadas (`ALLSELECTED`). Em "Perdas de bola" o percentil é invertido (quanto menos, melhor, D6.5).
+
+**Descartadas:** *tabela pré-calculada no SQL por jogador × grupo*: prende a liga e o mínimo, e foge do grão da D6.1; *mínimo fixo no código*: não deixa testar a sensibilidade.
+
+### D24.6 — Parâmetros no SSAS (revê a D6.6)
+
+Com o Power BI em conexão dinâmica no SSAS (um modelo só, com o DAX num lugar só), o Power BI não cria parâmetros de hipóteses. Então o **mínimo de minutos**, o **teto de valor** e a **idade máxima** viram tabelas calculadas desconectadas no SSAS (`GENERATESERIES`), lidas por `SELECTEDVALUE` com valor padrão. As faixas e os passos são fechados na aula. A ideia do "fator de prêmio" sobre o valor do TM, se entrar, segue o mesmo caminho.
+
+**Descartadas:** *Power BI em Import direto do SQL*: dois modelos com o DAX duplicado; *modelo composto (DirectQuery sobre o SSAS)*: funciona, mas complica o portfólio e a explicação.
+
+### D24.7 — Projeto, montagem e aulas
+
+Projeto `03_ssas/chelsea_tabular`, com workspace integrado, compatibilidade 1700, personificação pela conta do serviço e implantação no `localhost`, banco `chelsea_tabular`. O usuário monta no Visual Studio; o agente confere o `Model.bim` e consulta o `localhost` com DAX.
+
+| Aula | O quê | Conferência |
+|---|---|---|
+| 32 | Projeto, 10 tabelas, 17 relações, implantar | Contagens = DW |
+| 33 | `_Medidas`: somas, por 90, %, PAdj | Terry, Cahill e Matić = SQL |
+| 34 | Mínimo de minutos, percentis, tabela de parâmetro | Percentil em passe progressivo dos zagueiros da PL: Terry 0, Cahill 2, Zouma 5 (D17) |
+| 35 | Mercado: valor em jun/2016, idade, teto, transferências | Taxas da janela de 2016: Kanté € 35,8 mi, Alonso € 23 mi, Batshuayi € 39 mi |
+| 36 | Acabamento (ocultar, hierarquias setor → grupo → posição e temporada → data, formatos) + teste em conexão dinâmica no Power BI | Prints |
+
+**Descartada:** *agente monta o modelo*: fica para os dias sem tempo, a pedido do usuário, como no SSIS.
