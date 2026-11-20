@@ -1129,6 +1129,294 @@
                 "value": "<Format Format=\"Percentage\" Accuracy=\"1\" />"
               }
             ]
+          },
+          {
+            "name": "Desarmes ganhos",
+            "expression": "SUM( fato_desempenho[desarmes_ganhos] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Interceptações",
+            "expression": "SUM( fato_desempenho[interceptacoes] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Desarmes + interceptações",
+            "expression": "[Desarmes ganhos] + [Interceptações]",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Desarmes + interceptações por 90",
+            "expression": "DIVIDE( [Desarmes + interceptações], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Desarmes + interceptações PAdj por 90",
+            "expression": "DIVIDE( SUM( fato_desempenho[desarmes_padj] ) + SUM( fato_desempenho[interceptacoes_padj] ), [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Recuperações",
+            "expression": "SUM( fato_desempenho[recuperacoes] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Recuperações por 90",
+            "expression": "DIVIDE( [Recuperações], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Recuperações PAdj por 90",
+            "expression": "DIVIDE( SUM( fato_desempenho[recuperacoes_padj] ), [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Pressões",
+            "expression": "SUM( fato_desempenho[pressoes] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Pressões por 90",
+            "expression": "DIVIDE( [Pressões], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Pressões PAdj por 90",
+            "expression": "DIVIDE( SUM( fato_desempenho[pressoes_padj] ), [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Duelos aéreos ganhos",
+            "expression": "SUM( fato_desempenho[duelos_aereos_ganhos] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Duelos aéreos perdidos",
+            "expression": "SUM( fato_desempenho[duelos_aereos_perdidos] )",
+            "formatString": "#,0",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Duelos aéreos ganhos %",
+            "expression": "DIVIDE( [Duelos aéreos ganhos], [Duelos aéreos ganhos] + [Duelos aéreos perdidos] )",
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Defesa",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Percentage\" Accuracy=\"1\" />"
+              }
+            ]
+          },
+          {
+            "name": "Perdas de bola",
+            "expression": "SUM( fato_desempenho[perdas_bola] )",
+            "formatString": "#,0",
+            "displayFolder": "Erros",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Perdas de bola por 90",
+            "expression": "DIVIDE( [Perdas de bola], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Erros",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Erros que levaram a chute",
+            "expression": "SUM( fato_desempenho[erros_levaram_chute] )",
+            "formatString": "#,0",
+            "displayFolder": "Erros",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Erros que levaram a chute por 90",
+            "expression": "DIVIDE( [Erros que levaram a chute], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Erros",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Chutes",
+            "expression": "SUM( fato_desempenho[chutes] )",
+            "formatString": "#,0",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Gols",
+            "expression": "SUM( fato_desempenho[gols] )",
+            "formatString": "#,0",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "xG",
+            "expression": "SUM( fato_desempenho[xg] )",
+            "formatString": "#,0.00",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Assistências",
+            "expression": "SUM( fato_desempenho[assistencias] )",
+            "formatString": "#,0",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Gols por 90",
+            "expression": "DIVIDE( [Gols], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "xG por 90",
+            "expression": "DIVIDE( [xG], [Minutos] ) * 90",
+            "formatString": "#,0.00",
+            "displayFolder": "Ataque",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
+              }
+            ]
           }
         ]
       }
