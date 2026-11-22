@@ -1417,6 +1417,391 @@
                 "value": "<Format Format=\"NumberDecimal\" Accuracy=\"2\" ThousandSeparator=\"True\" />"
               }
             ]
+          },
+          {
+            "name": "Minimo minutos selecionado",
+            "expression": "SELECTEDVALUE( 'Minimo minutos'[Minimo minutos], 900 )",
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Elegíveis no grupo",
+            "expression": [
+              "VAR minimo = [Minimo minutos selecionado]",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ),",
+              "        CALCULATE(",
+              "            COUNTROWS( FILTER( VALUES( dim_jogador[sk_jogador] ), VAR m = [Minutos] RETURN m > 0 && m >= minimo ) ),",
+              "            REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil passes progressivos",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Passes progressivos por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Passes progressivos por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil conduções progressivas",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Conduções progressivas por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Conduções progressivas por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil acerto de passe",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Acerto de passe %]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Acerto de passe %] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil desarmes + interceptações PAdj",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Desarmes + interceptações PAdj por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Desarmes + interceptações PAdj por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil recuperações PAdj",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Recuperações PAdj por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Recuperações PAdj por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil pressões PAdj",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Pressões PAdj por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Pressões PAdj por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil duelos aéreos ganhos",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Duelos aéreos ganhos %]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Duelos aéreos ganhos %] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil passes-chave",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Passes-chave por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Passes-chave por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil passes na área",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Passes na área por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Passes na área por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil dribles certos",
+            "expression": [
+              "-- pares estritamente abaixo ÷ (n − 1) × 100 (D25.1)",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Dribles certos por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Dribles certos por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] < valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Percentil perdas de bola",
+            "expression": [
+              "-- invertido (D6.5): conta quem perde MAIS a bola, então menos perdas = percentil maior",
+              "VAR minimo = [Minimo minutos selecionado]",
+              "VAR minutos = [Minutos]",
+              "VAR valor = [Perdas de bola por 90]",
+              "-- pares: elegíveis do mesmo grupo, ligas e datas do filtro; sem filtro de jogador, time e partida (D25.2)",
+              "VAR pares =",
+              "    CALCULATETABLE(",
+              "        FILTER(",
+              "            ADDCOLUMNS( VALUES( dim_jogador[sk_jogador] ), \"@min\", [Minutos], \"@valor\", [Perdas de bola por 90] ),",
+              "            [@min] > 0 && [@min] >= minimo ),",
+              "        REMOVEFILTERS( dim_jogador ), REMOVEFILTERS( dim_time ), REMOVEFILTERS( dim_partida ) )",
+              "VAR n = COUNTROWS( pares )",
+              "-- COUNTROWS de tabela vazia é BLANK: sem o COALESCE o pior do grupo sumiria",
+              "VAR abaixo = COALESCE( COUNTROWS( FILTER( pares, [@valor] > valor ) ), 0 )",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_posicao[grupo] ) && HASONEVALUE( dim_jogador[sk_jogador] ) && minutos > 0 && minutos >= minimo,",
+              "        100 * DIVIDE( abaixo, n - 1 ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Comparação",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Minimo minutos",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Minimo minutos",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Minimo minutos]",
+            "formatString": "#,0",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "SELECTCOLUMNS( GENERATESERIES( 0, 3420, 90 ), \"Minimo minutos\", [Value] )"
+            }
           }
         ]
       }

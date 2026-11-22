@@ -27,7 +27,8 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D21 | 2026-11-17 | Ligação no SSIS: Pesquisa Difusa em 2 passadas (apelido, depois nome completo) com limite 0,4, 17 exceções (7 da D18 que a Difusa erra + 10 de nome único no TM) e elenco do TM numa tabela da staging nos dois bancos | Decidida |
 | D22 | 2026-11-19 | Pacote SSIS do Bloco 2: limpeza própria (DELETE + RESEED) para rodar sozinho com as mesmas SKs, 2 partes montadas pelo agente, sem TABLOCK nos destinos de dimensão | Decidida |
 | D23 | 2026-11-19 | Pacote master em fila, execução pelo DTExec e comparação das tabelas stg + dw dos 2 bancos (0 diferenças) | Decidida |
-| D24 | 2026-11-20 | Modelo SSAS Tabular: DW oficial em Import, as 10 tabelas do `dw`, 17 relações (destino da transferência ativa, origem inativa), medidas por 90 como razão das somas, mínimo de minutos e percentis em DAX, parâmetros como tabelas no SSAS, roteiro de 5 aulas | Decidida |
+| D24 | 2026-11-20 | Modelo SSAS Tabular: DW oficial em Import, as 10 tabelas do `dw`, 17 relações (destino da transferência ativa, origem inativa), medidas por 90 como razão das somas, mínimo de minutos e percentis em DAX, parâmetros como tabelas no SSAS, roteiro de 5 aulas | Decidida (percentis e parâmetro de minutos detalhados na D25) |
+| D25 | 2026-11-22 | Percentis e mínimo de minutos: pares estritamente abaixo ÷ (n − 1), pares sem filtro de jogador, time e partida, 11 medidas explícitas (perdas invertido) e parâmetro de 0 a 3.420 minutos, de 90 em 90 | Decidida |
 
 ---
 
@@ -947,3 +948,48 @@ Projeto `03_ssas/chelsea_tabular`, com workspace integrado, compatibilidade 1700
 **Descartada:** *agente monta o modelo*: fica para os dias sem tempo, a pedido do usuário, como no SSIS.
 
 **Aula 32** (2026-11-20): montada pelo agente pelo TOM, a pedido do usuário (colunas lidas do `INFORMATION_SCHEMA` do DW, `Model.bim` gravado no formato do VS e implantado a partir do próprio arquivo, em 6 s). Antes, com o "sim" do usuário, a conta do SSAS virou `db_datareader` no `chelsea_scouting`. Conferido por DAX no `localhost`: as 10 tabelas com as contagens do DW (513.139 linhas), 0 órfãos nas 17 relações, Chelsea na PL 2015/16 com 40.428,63 minutos, 55 gols e 53,58 de xG (= SQL), gols na PL pela `fato_atuacao` 72 / 55 / 83 em 2014/15 a 2016/17, e em jul–set/2016 3 chegadas pela relação ativa (Batshuayi € 39 mi, Kanté € 35,8 mi, Alonso € 23 mi) e 9 saídas pela inativa com `USERELATIONSHIP` (= SQL).
+
+**Aula 33** (2026-11-20): também montada pelo agente. Tabela `_Medidas` com 42 medidas em 6 pastas (Tempo, Passe, Condução, Defesa, Erros, Ataque), conferidas contra o SQL em Terry, Cahill, Matić, na PL inteira e no Chelsea (Terry com 91,4% de acerto de passe e 0,76 passe progressivo por 90, contra 3,02 da PL; Chelsea com 1,68 desarmes + interceptações por 90, 1,93 com o ajuste por posse).
+
+---
+
+## D25 — Percentis e mínimo de minutos
+
+**Contexto** (2026-11-22): a D24.5 deixou os percentis em DAX, mas sem fechar a fórmula nem quem entra na comparação. Antes de decidir, o modelo da medida foi testado no `localhost` contra a Aula 18 (passe progressivo por 90 dos zagueiros da PL com 900+ min: Terry 0, Cahill 2, Zouma 5, n = 62).
+
+### D25.1 — Fórmula: pares estritamente abaixo ÷ (n − 1) × 100
+
+É o `PERCENT_RANK` do SQL e a mesma conta do levantamento (`4_percentis_jogadores.ps1`) e da Aula 18. A escala vai de 0 (pior do grupo) a 100 (melhor). Empate conta como "não abaixo".
+
+**Descartadas:** *posição no ranking com `RANKX`* ("12º de 62"): não compara grupos de tamanhos diferentes; *meio ponto por empate*: os números deixam de bater com os do levantamento.
+
+### D25.2 — Quem são os pares
+
+O jogador é comparado com os elegíveis (minutos ≥ mínimo, no grupo do filtro) **nas ligas e datas do filtro**. Os filtros de **jogador, time e partida saem** (`REMOVEFILTERS`), para um filtro "Chelsea" ou "técnico Hiddink" não encolher o grupo de comparação. O percentil fica vazio se o filtro tiver mais de um grupo ou mais de um jogador, ou se o jogador estiver abaixo do mínimo. Isso revê o `ALLSELECTED` da D24.5.
+
+**Descartadas:** *`ALLSELECTED`*: com o filtro do Chelsea, os pares seriam só os jogadores do Chelsea; *usar o `grupo_principal` quando não há filtro de grupo*: o Kanté (Volante e Meia central) ficaria preso a um grupo só.
+
+### D25.3 — 11 medidas de percentil, uma por indicador da D6.5, na pasta `Comparação`
+
+Passes progressivos, conduções progressivas, acerto de passe, desarmes + interceptações PAdj, recuperações PAdj, pressões PAdj, duelos aéreos ganhos %, passes-chave, passes na área e dribles certos (por 90 onde cabe), mais **perdas de bola invertido** (conta quem perde mais a bola, então menos perdas dá percentil maior). "Erros que levaram a chute" fica sem percentil (contexto, D6.5). Junto vão `Minimo minutos selecionado` e `Elegíveis no grupo` (o n de cada comparação).
+
+**Descartado:** *grupo de cálculo "Percentil" sobre qualquer medida*: mais abstrato, a de perdas vira exceção e é mais difícil de ler no portfólio.
+
+### D25.4 — Parâmetro de minutos
+
+Tabela calculada desconectada `Minimo minutos` = `GENERATESERIES(0, 3420, 90)` (de 0 a 38 jogos, de jogo em jogo), lida por `SELECTEDVALUE(..., 900)`: sem seleção, vale 900 (D6.3).
+
+**Descartada:** *faixa curta só com 600, 900 e 1.350*: limita o teste de sensibilidade. Observação: 600 não está na série (540, 630).
+
+**Aula 34** (2026-11-22): montada pelo agente pelo TOM. Medidas geradas de um modelo único (`gera34.ps1`) e testadas antes em `DEFINE`, depois conferidas já gravadas. Resultados:
+- **Contra o SQL:** os 11 percentis de todos os 322 jogador × grupo da PL com 900+ min deram 0 diferenças em 3.542 valores, com o n igual em todos.
+- **Aula 18:** com o filtro do Chelsea ligado, Terry 0, Cahill 1,6 (→ 2) e Zouma 4,9 (→ 5), n = 62.
+- **Parâmetro:** n = 70 / 62 / 51 zagueiros com 450 / 900 / 1.350 min (= SQL). Com 450, o Ivanović (849 min) entra no percentil 35.
+- **Casos de vazio:** sem filtro de grupo ou com 2 grupos, o percentil fica vazio.
+- **Nas 4 ligas:** 254 zagueiros, Terry 0 (= SQL). Uma tabela com os 11 percentis desses zagueiros leva 0,6 s.
+- **Perfil do Terry entre os zagueiros das 4 ligas:**
+  - em cima: acerto de passe 98, perdas de bola 99;
+  - no meio: duelos aéreos 38, desarmes + interceptações PAdj 50;
+  - embaixo: passes progressivos 0, passes na área 0, recuperações PAdj 8, pressões PAdj 7.
+
+**Pendência para a Aula 36:** o `nome` da `dim_jogador` não é único (11 nomes, 23 jogadores). Num visual por `nome`, os dois Danilos (Real Madrid e Udinese), os dois Juanfran (Atlético e Deportivo) e outros caem na mesma linha, e o percentil fica vazio. Isso atinge 15 jogador × grupo elegíveis, alguns deles laterais e volantes do escopo.
