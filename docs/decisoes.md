@@ -30,6 +30,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D24 | 2026-11-20 | Modelo SSAS Tabular: DW oficial em Import, as 10 tabelas do `dw`, 17 relações (destino da transferência ativa, origem inativa), medidas por 90 como razão das somas, mínimo de minutos e percentis em DAX, parâmetros como tabelas no SSAS, roteiro de 5 aulas | Decidida (percentis e parâmetro de minutos detalhados na D25) |
 | D25 | 2026-11-22 | Percentis e mínimo de minutos: pares estritamente abaixo ÷ (n − 1), pares sem filtro de jogador, time e partida, 11 medidas explícitas (perdas invertido) e parâmetro de 0 a 3.420 minutos, de 90 em 90 | Decidida |
 | D26 | 2026-11-22 | Mercado e orçamento: valor fixo em jun/2016 e valor até a data do filtro, parâmetros de teto de valor, idade máxima e fator de prêmio, medida "cabe no orçamento" (sem valor fica fora quando há teto) e medidas de transferências com a origem pela relação inativa | Decidida |
+| D27 | 2026-11-22 | Acabamento do SSAS: nome único do jogador numa coluna calculada (nome + time só quando repete), IDs, ordens e colunas das fatos ocultos, classificar por, hierarquias de posição, temporada e calendário, formatos | Decidida |
 
 ---
 
@@ -1053,3 +1054,65 @@ Vale 1 quando o preço estimado está dentro do teto e a idade dentro do limite;
 Tudo igual ao SQL.
 
 **Observação para o Power BI:** a `fato_valor_mercado` só liga à `dim_jogador` e à `dim_data`, então um filtro de grupo ou de liga não filtra o valor. Uma tabela por jogador com valor e percentil precisa do filtro "percentil (ou minutos) não vazio" no visual.
+
+---
+
+## D27 — Acabamento do modelo SSAS
+
+**Contexto** (2026-11-22): com as medidas prontas (D24 a D26), o modelo precisa ficar pronto para quem monta o relatório:
+- **Nome repetido:** 11 nomes de jogador se repetem em 23 jogadores (pendência da D25). Com nome + time do fim de 2015/16, ficam 0 repetidos.
+- **Colunas visíveis demais:** os IDs das fontes, as colunas `ordem_*` e as colunas numéricas das fatos ainda aparecem.
+- **"Classificar por":** os 6 pares candidatos foram conferidos no SQL e são todos 1:1.
+
+### D27.1 — Nome único do jogador: coluna calculada `jogador`
+
+Na `dim_jogador`, a coluna `jogador` mostra o `nome` quando ele é único e `nome (time)` só nos 23 que repetem, como `Danilo (Udinese)` e `Juanfran (Atlético Madrid)`. O `nome` fica oculto.
+
+**Descartadas:** *coluna no DW*: a regra ficaria no SQL, mas obrigaria a mexer no 04/05, no pacote SSIS 03 e na comparação dos bancos só por um rótulo de exibição; *`nome (time)` para todos*: poluído; *deixar como está*: 15 jogador × grupo elegíveis ficariam sem percentil num visual por nome.
+
+### D27.2 — O que fica oculto
+
+- IDs das fontes (`sb_*`, `tm_*`) nas dimensões.
+- As colunas `ordem_*`, `mes` e `dia_semana`, que só servem para ordenar.
+- Todas as colunas das fatos, menos `situacao_taxa` e `clube_na_avaliacao`: as medidas cobrem os números.
+
+São 48 colunas ocultadas, além das SKs.
+
+**Descartado:** *colunas das fatos visíveis*: o Power BI somaria `passes_progressivos` direto, sem o por 90.
+
+### D27.3 — Classificar por
+
+| Coluna | Ordenada por |
+|---|---|
+| `grupo` | `ordem_grupo` |
+| `setor` | `ordem_setor` |
+| `posicao` e `posicao_pt` | `sb_position_id`, a ordem do campo do StatsBomb |
+| `mes_nome` | `mes` |
+| `dia_semana_nome` | `dia_semana` |
+
+### D27.4 — Hierarquias
+
+- `Posições`: setor → grupo → posição.
+- `Temporadas`: temporada → data.
+- `Calendário`: ano → mês → data.
+
+Os nomes ficam no plural porque o SSAS recusa uma hierarquia com o mesmo nome de uma coluna, sem diferenciar maiúsculas (`Temporada` × `temporada`).
+
+**Descartado:** *temporada → mês*: o mês, ordenado de janeiro a dezembro, fica fora da ordem da temporada (jul–jun).
+
+### D27.5 — Formatos
+
+`posse` em % e as 3 colunas de data em `dd/mm/aaaa`.
+
+### D27.6 — Montagem e teste
+
+O agente monta pelo TOM e confere por DAX. O usuário abre o projeto no Visual Studio e testa no Power BI Desktop em conexão dinâmica, com prints. O `.pbix` de teste fica fora do Git.
+
+**Aula 36** (2026-11-22): montada pelo agente (`acabamento36.cs`) e conferida por DAX no `localhost`:
+- **Nomes:** 2.181 jogadores com 2.181 nomes únicos, 23 deles com o time.
+- **Percentil nas 4 ligas:** passe progressivo dos zagueiros com 254 linhas = n (antes eram 253; o Danilo da Udinese aparece no percentil 76). Nos laterais, 253 = n: Danilo (Real Madrid) no 70 e Juanfran (Atlético) no 43.
+- **Regressão:**
+  - Aula 34: 0 diferenças nos 3.542 percentis e Aula 18 intacta.
+  - Aula 35: 0 diferenças nos 2.181 jogadores.
+
+O teste em conexão dinâmica no Power BI fica com o usuário.

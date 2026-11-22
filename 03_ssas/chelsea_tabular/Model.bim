@@ -35,7 +35,8 @@
             "name": "data",
             "dataType": "dateTime",
             "isKey": true,
-            "sourceColumn": "data"
+            "sourceColumn": "data",
+            "formatString": "dd/mm/yyyy"
           },
           {
             "name": "ano",
@@ -50,12 +51,14 @@
           {
             "name": "mes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "mes"
           },
           {
             "name": "mes_nome",
             "dataType": "string",
-            "sourceColumn": "mes_nome"
+            "sourceColumn": "mes_nome",
+            "sortByColumn": "mes"
           },
           {
             "name": "dia",
@@ -65,12 +68,14 @@
           {
             "name": "dia_semana",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "dia_semana"
           },
           {
             "name": "dia_semana_nome",
             "dataType": "string",
-            "sourceColumn": "dia_semana_nome"
+            "sourceColumn": "dia_semana_nome",
+            "sortByColumn": "dia_semana"
           },
           {
             "name": "eh_fim_semana",
@@ -107,6 +112,43 @@
               ]
             }
           }
+        ],
+        "hierarchies": [
+          {
+            "name": "Temporadas",
+            "levels": [
+              {
+                "name": "temporada",
+                "ordinal": 0,
+                "column": "temporada"
+              },
+              {
+                "name": "data",
+                "ordinal": 1,
+                "column": "data"
+              }
+            ]
+          },
+          {
+            "name": "Calendário",
+            "levels": [
+              {
+                "name": "ano",
+                "ordinal": 0,
+                "column": "ano"
+              },
+              {
+                "name": "mes_nome",
+                "ordinal": 1,
+                "column": "mes_nome"
+              },
+              {
+                "name": "data",
+                "ordinal": 2,
+                "column": "data"
+              }
+            ]
+          }
         ]
       },
       {
@@ -121,16 +163,19 @@
           {
             "name": "sb_player_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_player_id"
           },
           {
             "name": "tm_player_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "tm_player_id"
           },
           {
             "name": "nome",
             "dataType": "string",
+            "isHidden": true,
             "sourceColumn": "nome"
           },
           {
@@ -171,7 +216,8 @@
           {
             "name": "data_nascimento",
             "dataType": "dateTime",
-            "sourceColumn": "data_nascimento"
+            "sourceColumn": "data_nascimento",
+            "formatString": "dd/mm/yyyy"
           },
           {
             "name": "idade_2016",
@@ -187,6 +233,18 @@
             "name": "altura_cm",
             "dataType": "int64",
             "sourceColumn": "altura_cm"
+          },
+          {
+            "type": "calculated",
+            "name": "jogador",
+            "dataType": "string",
+            "expression": [
+              "-- nome de exibição único (D27.1): o nome, e nome (time do fim de 2015/16) só quando o nome repete",
+              "VAR repetido = CALCULATE( COUNTROWS( dim_jogador ), ALLEXCEPT( dim_jogador, dim_jogador[nome] ) ) > 1",
+              "RETURN",
+              "    IF( repetido, dim_jogador[nome] & \" (\" & dim_jogador[time_fim_2015_16] & \")\", dim_jogador[nome] )"
+            ],
+            "summarizeBy": "none"
           }
         ],
         "partitions": [
@@ -217,11 +275,13 @@
           {
             "name": "tm_competition_id",
             "dataType": "string",
+            "isHidden": true,
             "sourceColumn": "tm_competition_id"
           },
           {
             "name": "sb_competition_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_competition_id"
           },
           {
@@ -278,27 +338,32 @@
           {
             "name": "sb_match_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_match_id"
           },
           {
             "name": "sb_team_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_team_id"
           },
           {
             "name": "tm_game_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "tm_game_id"
           },
           {
             "name": "tm_club_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "tm_club_id"
           },
           {
             "name": "data",
             "dataType": "dateTime",
-            "sourceColumn": "data"
+            "sourceColumn": "data",
+            "formatString": "dd/mm/yyyy"
           },
           {
             "name": "temporada",
@@ -373,7 +438,8 @@
           {
             "name": "posse",
             "dataType": "double",
-            "sourceColumn": "posse"
+            "sourceColumn": "posse",
+            "formatString": "0.0%"
           }
         ],
         "partitions": [
@@ -404,17 +470,20 @@
           {
             "name": "sb_position_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_position_id"
           },
           {
             "name": "posicao",
             "dataType": "string",
-            "sourceColumn": "posicao"
+            "sourceColumn": "posicao",
+            "sortByColumn": "sb_position_id"
           },
           {
             "name": "posicao_pt",
             "dataType": "string",
-            "sourceColumn": "posicao_pt"
+            "sourceColumn": "posicao_pt",
+            "sortByColumn": "sb_position_id"
           },
           {
             "name": "sigla",
@@ -429,12 +498,14 @@
           {
             "name": "grupo",
             "dataType": "string",
-            "sourceColumn": "grupo"
+            "sourceColumn": "grupo",
+            "sortByColumn": "ordem_grupo"
           },
           {
             "name": "setor",
             "dataType": "string",
-            "sourceColumn": "setor"
+            "sourceColumn": "setor",
+            "sortByColumn": "ordem_setor"
           },
           {
             "name": "eh_escopo",
@@ -444,11 +515,13 @@
           {
             "name": "ordem_grupo",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "ordem_grupo"
           },
           {
             "name": "ordem_setor",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "ordem_setor"
           }
         ],
@@ -466,6 +539,28 @@
               ]
             }
           }
+        ],
+        "hierarchies": [
+          {
+            "name": "Posições",
+            "levels": [
+              {
+                "name": "setor",
+                "ordinal": 0,
+                "column": "setor"
+              },
+              {
+                "name": "grupo",
+                "ordinal": 1,
+                "column": "grupo"
+              },
+              {
+                "name": "posicao_pt",
+                "ordinal": 2,
+                "column": "posicao_pt"
+              }
+            ]
+          }
         ]
       },
       {
@@ -480,11 +575,13 @@
           {
             "name": "sb_team_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "sb_team_id"
           },
           {
             "name": "tm_club_id",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "tm_club_id"
           },
           {
@@ -576,126 +673,151 @@
           {
             "name": "minutos",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "minutos"
           },
           {
             "name": "passes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "passes"
           },
           {
             "name": "passes_certos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "passes_certos"
           },
           {
             "name": "passes_progressivos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "passes_progressivos"
           },
           {
             "name": "passes_chave",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "passes_chave"
           },
           {
             "name": "passes_area",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "passes_area"
           },
           {
             "name": "conducoes_progressivas",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "conducoes_progressivas"
           },
           {
             "name": "dribles",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "dribles"
           },
           {
             "name": "dribles_certos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "dribles_certos"
           },
           {
             "name": "desarmes_ganhos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "desarmes_ganhos"
           },
           {
             "name": "interceptacoes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "interceptacoes"
           },
           {
             "name": "recuperacoes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "recuperacoes"
           },
           {
             "name": "pressoes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "pressoes"
           },
           {
             "name": "duelos_aereos_ganhos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "duelos_aereos_ganhos"
           },
           {
             "name": "duelos_aereos_perdidos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "duelos_aereos_perdidos"
           },
           {
             "name": "perdas_bola",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "perdas_bola"
           },
           {
             "name": "erros_levaram_chute",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "erros_levaram_chute"
           },
           {
             "name": "chutes",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "chutes"
           },
           {
             "name": "gols",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "gols"
           },
           {
             "name": "xg",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "xg"
           },
           {
             "name": "assistencias",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "assistencias"
           },
           {
             "name": "desarmes_padj",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "desarmes_padj"
           },
           {
             "name": "interceptacoes_padj",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "interceptacoes_padj"
           },
           {
             "name": "recuperacoes_padj",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "recuperacoes_padj"
           },
           {
             "name": "pressoes_padj",
             "dataType": "double",
+            "isHidden": true,
             "sourceColumn": "pressoes_padj"
           }
         ],
@@ -751,26 +873,31 @@
           {
             "name": "minutos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "minutos"
           },
           {
             "name": "gols",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "gols"
           },
           {
             "name": "assistencias",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "assistencias"
           },
           {
             "name": "amarelos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "amarelos"
           },
           {
             "name": "vermelhos",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "vermelhos"
           }
         ],
@@ -808,6 +935,7 @@
           {
             "name": "valor_eur",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "valor_eur"
           },
           {
@@ -862,11 +990,13 @@
           {
             "name": "taxa_eur",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "taxa_eur"
           },
           {
             "name": "valor_mercado_eur",
             "dataType": "int64",
+            "isHidden": true,
             "sourceColumn": "valor_mercado_eur"
           },
           {
