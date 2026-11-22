@@ -29,6 +29,7 @@ Cada etapa do projeto começa com alternativas na mesa. A decisão escolhida fic
 | D23 | 2026-11-19 | Pacote master em fila, execução pelo DTExec e comparação das tabelas stg + dw dos 2 bancos (0 diferenças) | Decidida |
 | D24 | 2026-11-20 | Modelo SSAS Tabular: DW oficial em Import, as 10 tabelas do `dw`, 17 relações (destino da transferência ativa, origem inativa), medidas por 90 como razão das somas, mínimo de minutos e percentis em DAX, parâmetros como tabelas no SSAS, roteiro de 5 aulas | Decidida (percentis e parâmetro de minutos detalhados na D25) |
 | D25 | 2026-11-22 | Percentis e mínimo de minutos: pares estritamente abaixo ÷ (n − 1), pares sem filtro de jogador, time e partida, 11 medidas explícitas (perdas invertido) e parâmetro de 0 a 3.420 minutos, de 90 em 90 | Decidida |
+| D26 | 2026-11-22 | Mercado e orçamento: valor fixo em jun/2016 e valor até a data do filtro, parâmetros de teto de valor, idade máxima e fator de prêmio, medida "cabe no orçamento" (sem valor fica fora quando há teto) e medidas de transferências com a origem pela relação inativa | Decidida |
 
 ---
 
@@ -993,3 +994,62 @@ Tabela calculada desconectada `Minimo minutos` = `GENERATESERIES(0, 3420, 90)` (
   - embaixo: passes progressivos 0, passes na área 0, recuperações PAdj 8, pressões PAdj 7.
 
 **Pendência para a Aula 36:** o `nome` da `dim_jogador` não é único (11 nomes, 23 jogadores). Num visual por `nome`, os dois Danilos (Real Madrid e Udinese), os dois Juanfran (Atlético e Deportivo) e outros caem na mesma linha, e o percentil fica vazio. Isso atinge 15 jogador × grupo elegíveis, alguns deles laterais e volantes do escopo.
+
+---
+
+## D26 — Mercado e orçamento
+
+**Contexto** (2026-11-22): falta o lado de mercado do modelo, para a pergunta 2 (quem cabe no orçamento) e para a pergunta 3 (o que aconteceu depois). Medido no DW antes de decidir:
+- **Valor em jun/2016:** 2.122 dos 2.181 jogadores têm avaliação até 30/06/2016; 59 ficam sem.
+- **Faixas de valor:** de € 25 mil a € 120 mi (Messi). 1.526 valem até € 5 mi, 2.011 até € 20 mi e 2.098 até € 40 mi.
+- **Idade em 01/07/2016:** de 17 a 41 anos, com 1 jogador sem data de nascimento.
+- **Janela de 2016 do Chelsea:** 3 chegadas, que somam € 97,8 mi, e 9 saídas, que trazem € 19,5 mi.
+
+### D26.1 — Duas medidas de valor
+
+- **`Valor jun/2016`:** a última avaliação de cada jogador até 30/06/2016, fixa. O filtro de data não muda esse valor, porque é a foto da janela (D6.6). Com vários jogadores, soma o valor de cada um, o que dá o valor do elenco.
+- **`Valor de mercado`:** a última avaliação até a última data do filtro, usada na validação (quanto o jogador valia depois).
+
+**Descartada:** *coluna calculada na `dim_jogador`*: resolve só o valor fixo e não deixa aplicar o fator de prêmio.
+
+### D26.2 — Três parâmetros como tabelas (mantém a D24.6)
+
+| Tabela | Faixa | Passo | Sem seleção |
+|---|---|---|---|
+| `Teto de valor` | € 0 a € 100 mi (guardado em € mi) | € 1 mi | sem teto |
+| `Idade maxima` | 17 a 41 | 1 ano | sem limite |
+| `Fator de premio` | 1,0 a 3,0 | 0,1 | 1,0 |
+
+- **Leitura do teto e da idade:** pelo `MAX`, e só quando há filtro no parâmetro (`ISFILTERED`). Assim funcionam tanto com lista quanto com o slider "menor ou igual".
+- **Fator de prêmio:** `Preço estimado` = valor jun/2016 × fator, e o teto compara com esse preço. Em 2016 o Chelsea pagou 1,8× (Kanté), 2,6× (Batshuayi) e 2,9× (Alonso) o valor de jun/2016.
+
+**Descartadas:** *slider direto na coluna `idade_2016`*: funcionaria, mas os parâmetros ficariam de dois jeitos diferentes; *ficar sem o fator*: o teto ficaria otimista demais para a realidade da janela de 2016.
+
+### D26.3 — `Cabe no orçamento`
+
+Vale 1 quando o preço estimado está dentro do teto e a idade dentro do limite; senão, fica vazio. No Power BI, entra como filtro do visual. Os jogadores sem valor ficam **fora** quando há teto, porque não dá para garantir que cabem.
+
+**Descartado:** *deixar quem não tem valor dentro do orçamento*.
+
+### D26.4 — Pasta `Transferências`
+
+- **Medidas:** Chegadas e Taxa paga pela relação ativa (time de destino); Saídas e Taxa recebida pela inativa (time de origem), com `USERELATIONSHIP`; Saldo (recebida − paga); Prêmio pago (taxa ÷ valor do TM na data da transferência, só nas pagas que têm valor); Transferências sem taxa informada.
+- **Taxa não informada:** fica fora das somas, porque taxa vazia não é zero (D19.6).
+
+**Aula 35** (2026-11-22): montada pelo agente pelo TOM. As 15 medidas foram geradas de um script só (`gera35.ps1`), testadas antes em `DEFINE` e conferidas depois de gravadas contra o SQL:
+- **Por jogador:** valor jun/2016, valor atual, valor em jun/2018 e idade dos 2.181 jogadores, com 0 diferenças.
+- **Elenco do Chelsea 2015/16:** € 523,5 mi em 25 jogadores (= Aula 23). O valor não muda com um filtro de 2017/18.
+- **Janela de 2016 do Chelsea:** 3 chegadas, € 97,8 mi pagos; 9 saídas, € 19,5 mi recebidos; saldo de −€ 78,3 mi; prêmio pago de 2,22×.
+- **Totais:** 5.716 transferências, € 16,07 bi pagos, prêmio pago geral de 1,11× e 845 sem taxa informada (= SQL).
+- **Orçamento:**
+
+| Parâmetros | Jogadores que cabem | Kanté |
+|---|---|---|
+| Nenhum | 2.181 | cabe |
+| Teto € 20 mi | 2.011 (o slider "até 20" dá o mesmo) | cabe |
+| Teto € 20 mi + fator 2,0 | 1.816 | fora (€ 20 mi → € 40 mi estimado) |
+| Idade máxima 24 | 785 | fora (25 anos) |
+
+Tudo igual ao SQL.
+
+**Observação para o Power BI:** a `fato_valor_mercado` só liga à `dim_jogador` e à `dim_data`, então um filtro de grupo ou de liga não filtra o valor. Uma tabela por jogador com valor e percentil precisa do filtro "percentil (ou minutos) não vazio" no visual.

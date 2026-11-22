@@ -1778,6 +1778,188 @@
                 "value": "<Format Format=\"NumberDecimal\" Accuracy=\"0\" ThousandSeparator=\"True\" />"
               }
             ]
+          },
+          {
+            "name": "Valor jun/2016",
+            "expression": [
+              "-- última avaliação de cada jogador até 30/06/2016 (D6.6), fixa: filtro de data não muda; com vários jogadores, soma",
+              "SUMX(",
+              "    VALUES( dim_jogador[sk_jogador] ),",
+              "    CALCULATE(",
+              "        LASTNONBLANKVALUE( dim_data[data], SUM( fato_valor_mercado[valor_eur] ) ),",
+              "        REMOVEFILTERS( dim_data ), dim_data[data] <= DATE( 2016, 6, 30 ) ) )"
+            ],
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Mercado"
+          },
+          {
+            "name": "Valor de mercado",
+            "expression": [
+              "-- última avaliação de cada jogador até a última data do filtro (validação: quanto valia depois)",
+              "VAR fim = MAX( dim_data[data] )",
+              "RETURN",
+              "    SUMX(",
+              "        VALUES( dim_jogador[sk_jogador] ),",
+              "        CALCULATE(",
+              "            LASTNONBLANKVALUE( dim_data[data], SUM( fato_valor_mercado[valor_eur] ) ),",
+              "            REMOVEFILTERS( dim_data ), dim_data[data] <= fim ) )"
+            ],
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Mercado"
+          },
+          {
+            "name": "Idade em jul/2016",
+            "expression": "IF( HASONEVALUE( dim_jogador[sk_jogador] ), MAX( dim_jogador[idade_2016] ) )",
+            "formatString": "#,0",
+            "displayFolder": "Mercado",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Teto de valor selecionado",
+            "expression": [
+              "-- sem filtro no parâmetro = sem teto; MAX aceita lista e slider \"menor ou igual\"; a tabela está em € mi",
+              "IF( ISFILTERED( 'Teto de valor'[Teto de valor] ), MAX( 'Teto de valor'[Teto de valor] ) * 1000000 )"
+            ],
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Mercado"
+          },
+          {
+            "name": "Idade maxima selecionada",
+            "expression": [
+              "-- sem filtro no parâmetro = sem limite",
+              "IF( ISFILTERED( 'Idade maxima'[Idade maxima] ), MAX( 'Idade maxima'[Idade maxima] ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Mercado",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Fator de premio selecionado",
+            "expression": "SELECTEDVALUE( 'Fator de premio'[Fator de premio], 1 )",
+            "formatString": "#,0.0",
+            "displayFolder": "Mercado",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberDecimal\" Accuracy=\"1\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Preço estimado",
+            "expression": [
+              "-- valor de jun/2016 × fator de prêmio (em 2016 o Chelsea pagou 1,8× a 2,9× esse valor)",
+              "[Valor jun/2016] * [Fator de premio selecionado]"
+            ],
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Mercado"
+          },
+          {
+            "name": "Cabe no orçamento",
+            "expression": [
+              "-- 1 = preço estimado dentro do teto e idade dentro do limite; sem valor fica fora quando há teto (D26.3)",
+              "VAR teto = [Teto de valor selecionado]",
+              "VAR idadeMax = [Idade maxima selecionada]",
+              "VAR preco = [Preço estimado]",
+              "VAR idade = [Idade em jul/2016]",
+              "RETURN",
+              "    IF( HASONEVALUE( dim_jogador[sk_jogador] )",
+              "        && ( ISBLANK( teto ) || ( NOT ISBLANK( preco ) && preco <= teto ) )",
+              "        && ( ISBLANK( idadeMax ) || ( NOT ISBLANK( idade ) && idade <= idadeMax ) ),",
+              "        1 )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Mercado",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Chegadas",
+            "expression": [
+              "-- relação ativa = time de destino (D24.3)",
+              "COUNTROWS( fato_transferencia )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Transferências",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Taxa paga",
+            "expression": [
+              "-- taxa vazia (não informada) fica fora da soma: vazio não é zero (D19.6)",
+              "SUM( fato_transferencia[taxa_eur] )"
+            ],
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Transferências"
+          },
+          {
+            "name": "Saídas",
+            "expression": [
+              "-- relação inativa = time de origem",
+              "CALCULATE( COUNTROWS( fato_transferencia ), USERELATIONSHIP( fato_transferencia[sk_time_origem], dim_time[sk_time] ) )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Transferências",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
+          },
+          {
+            "name": "Taxa recebida",
+            "expression": "CALCULATE( SUM( fato_transferencia[taxa_eur] ), USERELATIONSHIP( fato_transferencia[sk_time_origem], dim_time[sk_time] ) )",
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Transferências"
+          },
+          {
+            "name": "Saldo de transferências",
+            "expression": "[Taxa recebida] - [Taxa paga]",
+            "formatString": "\"€\" #,0;-\"€\" #,0;\"€\" #,0",
+            "displayFolder": "Transferências"
+          },
+          {
+            "name": "Prêmio pago",
+            "expression": [
+              "-- taxa ÷ valor do TM na data da transferência, só nas pagas que têm valor",
+              "CALCULATE(",
+              "    DIVIDE( SUM( fato_transferencia[taxa_eur] ), SUM( fato_transferencia[valor_mercado_eur] ) ),",
+              "    fato_transferencia[situacao_taxa] = \"Paga\", NOT ISBLANK( fato_transferencia[valor_mercado_eur] ) )"
+            ],
+            "formatString": "#,0.00\"×\"",
+            "displayFolder": "Transferências"
+          },
+          {
+            "name": "Transferências sem taxa informada",
+            "expression": "CALCULATE( COUNTROWS( fato_transferencia ), fato_transferencia[situacao_taxa] = \"Não informada\" )",
+            "formatString": "#,0",
+            "displayFolder": "Transferências",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"NumberWhole\" ThousandSeparator=\"True\" />"
+              }
+            ]
           }
         ]
       },
@@ -1801,6 +1983,78 @@
             "source": {
               "type": "calculated",
               "expression": "SELECTCOLUMNS( GENERATESERIES( 0, 3420, 90 ), \"Minimo minutos\", [Value] )"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Teto de valor",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Teto de valor",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Teto de valor]",
+            "formatString": "\"€ \"#,0\" mi\"",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "SELECTCOLUMNS( GENERATESERIES( 0, 100, 1 ), \"Teto de valor\", [Value] )"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Idade maxima",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Idade maxima",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Idade maxima]",
+            "formatString": "#,0",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "SELECTCOLUMNS( GENERATESERIES( 17, 41, 1 ), \"Idade maxima\", [Value] )"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fator de premio",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Fator de premio",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Fator de premio]",
+            "formatString": "0.0",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "SELECTCOLUMNS( GENERATESERIES( 10, 30, 1 ), \"Fator de premio\", [Value] / 10 )"
             }
           }
         ]
